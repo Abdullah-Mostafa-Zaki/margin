@@ -43,15 +43,15 @@ export function ExpenseDonutChart({ data }: Props) {
         <h3 className="font-semibold">Expense Breakdown</h3>
         <p className="text-sm text-muted-foreground mb-4">By category</p>
       </div>
-      <div className="flex-1 min-h-[250px]">
-        <ResponsiveContainer width="100%" height={250}>
+      <div className="flex-1 min-h-[300px] md:min-h-[380px]">
+        <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={dataWithPercentage}
               cx="50%"
-              cy="50%"
+              cy="40%"
               innerRadius={60}
-              outerRadius={80}
+              outerRadius={90}
               paddingAngle={2}
               dataKey="amount"
               nameKey="category"
@@ -61,7 +61,7 @@ export function ExpenseDonutChart({ data }: Props) {
               ))}
             </Pie>
             <Tooltip formatter={(val: any) => `EGP ${Number(val).toLocaleString()}`} />
-            <Legend layout="vertical" verticalAlign="middle" align="right" formatter={renderLegendText} />
+            <Legend layout="horizontal" verticalAlign="bottom" align="center" formatter={renderLegendText} />
           </PieChart>
         </ResponsiveContainer>
       </div>

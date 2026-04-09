@@ -126,17 +126,17 @@ export default async function TransactionsPage(props: {
         </Card>
       )}
 
-      <div className="rounded-md border bg-white overflow-hidden">
+      <div className="w-full overflow-x-auto rounded-md border bg-white">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Payment</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Amount (EGP)</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="whitespace-nowrap">Date</TableHead>
+              <TableHead className="whitespace-nowrap">Type</TableHead>
+              <TableHead className="whitespace-nowrap">Category</TableHead>
+              <TableHead className="whitespace-nowrap">Payment</TableHead>
+              <TableHead className="whitespace-nowrap">Status</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Amount (EGP)</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -149,23 +149,23 @@ export default async function TransactionsPage(props: {
             ) : (
               organization.transactions.map((t: Transaction) => (
                 <TableRow key={t.id}>
-                  <TableCell>{new Date(t.date).toLocaleDateString()}</TableCell>
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">{new Date(t.date).toLocaleDateString()}</TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <Badge variant="outline" className={t.type === "INCOME" ? "text-blue-600 bg-blue-50" : "text-red-600 bg-red-50"}>
                       {t.type}
                     </Badge>
                   </TableCell>
-                  <TableCell>{t.category}</TableCell>
-                  <TableCell>{t.paymentMethod}</TableCell>
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">{t.category}</TableCell>
+                  <TableCell className="whitespace-nowrap">{t.paymentMethod}</TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <Badge variant="outline" className={t.status === "RECEIVED" ? "text-green-600 bg-green-50" : "text-amber-600 bg-amber-50"}>
                       {t.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right font-medium">
+                  <TableCell className="text-right font-medium whitespace-nowrap">
                     {Number(t.amount).toLocaleString()}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right whitespace-nowrap">
                     <div className="flex justify-end gap-2">
                       {t.receiptUrl && (
                         <a href={t.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">

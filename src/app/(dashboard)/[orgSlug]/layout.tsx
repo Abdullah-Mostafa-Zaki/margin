@@ -57,12 +57,13 @@ export default async function DashboardLayout({
         orgSlug={org.slug}
         orgName={org.name}
       />
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col min-w-0">
         <TopNav
           userName={user.name || user.email || "User"}
           userImage={user.image}
         />
-        <main className="flex-1 p-6 md:p-8">
+        {/* pb-20 ensures content clears the fixed mobile bottom tab bar */}
+        <main className="flex-1 px-4 py-6 pb-20 md:px-8 md:py-8 md:pb-8">
           {children}
         </main>
       </div>
