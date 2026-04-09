@@ -44,7 +44,7 @@ export function ExpenseDonutChart({ data }: Props) {
         <p className="text-sm text-muted-foreground mb-4">By category</p>
       </div>
       <div className="h-[300px] md:h-[400px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minHeight={300}>
           <PieChart>
             <Pie
               data={dataWithPercentage}

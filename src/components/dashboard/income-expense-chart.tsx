@@ -25,7 +25,7 @@ export function IncomeExpenseChart({ data }: Props) {
     <div className="rounded-xl border bg-card p-6">
       <h3 className="font-semibold mb-4">Income vs Expenses</h3>
       <div className="h-[300px] md:h-[400px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minHeight={300}>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis dataKey="date" tick={{ fontSize: 12 }} />
