@@ -23,16 +23,20 @@ export async function POST(req: Request) {
 
   const payload = JSON.parse(rawBody);
 
-  // 1. THE ULTIMATE LOG: This will tell us EXACTLY what Shopify is sending for "Pending" orders
-  console.log(`WEBHOOK DATA: Order ${payload.name} | Status: ${payload.financial_status} | Gateway: ${payload.gateway}`);
-
-  // 2. Fallback Logic: If it's not 'paid', it's PENDING. No exceptions for now.
+  // 1. Extract statuses and gateways
+  const gateway = (payload.gateway || "").toLowerCase();
   const financialStatus = (payload.financial_status || "").toLowerCase();
-  const isPaid = financialStatus === "paid";
-  const status = isPaid ? "RECEIVED" : "PENDING";
+  const gatewayNames = (payload.payment_gateway_names || []).map((g: any) => String(g).toLowerCase());
 
-  // Default to COD for any Egyptian order that isn't explicitly paid via Card already
-  const paymentMethod = isPaid ? "CARD" : "COD";
+  // 2. SMART PAYMENT DETECTION
+  // We define what a 'Card' looks like. If it's not one of these, it's COD.
+  const cardKeywords = ["stripe", "paymob", "fawry", "visa", "mastercard", "card", "checkout"];
+  const isExplicitlyCard = cardKeywords.some(k =>
+    gateway.includes(k) || gatewayNames.some(gn => gn.includes(k))
+  );
+
+  const paymentMethod = isExplicitlyCard ? "CARD" : "COD";
+  const status = financialStatus === "paid" ? "RECEIVED" : "PENDING";
 
   const admin = await prisma.membership.findFirst({
     where: { organizationId: organization.id, role: "ADMIN" },
@@ -46,7 +50,7 @@ export async function POST(req: Request) {
       update: {
         status: status,
         amount: Number(payload.total_price),
-        paymentMethod: paymentMethod,
+        paymentMethod: paymentMethod, // Will now correctly stay COD for manual payments
       },
       create: {
         shopifyOrderId: String(payload.id),
@@ -65,6 +69,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("UPSERT ERROR:", error);
-    return NextResponse.json({ error: "Database error" }, { status: 500 });
+    return NextResponse.json({ error: "DB Write Failed" }, { status: 500 });
   }
 }
