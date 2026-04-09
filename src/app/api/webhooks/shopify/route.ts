@@ -10,7 +10,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing orgSlug" }, { status: 400 });
   }
 
-  // Find the organization and its webhook secret
   const organization = await prisma.organization.findUnique({
     where: { slug: orgSlug },
     select: { id: true, shopifyWebhookSecret: true },
@@ -20,10 +19,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Organization or Secret not found" }, { status: 404 });
   }
 
-  // Read raw body for HMAC verification
   const rawBody = await req.text();
-
-  // Verify HMAC signature from Shopify
   const shopifyHmac = req.headers.get("x-shopify-hmac-sha256");
   const computedHmac = crypto
     .createHmac("sha256", organization.shopifyWebhookSecret)
@@ -34,32 +30,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid HMAC signature" }, { status: 401 });
   }
 
-  // Parse payload with Shopify's internal ID
-  const payload = JSON.parse(rawBody) as {
-    id: number;
-    name: string;
-    total_price: string;
-    gateway: string | null;
-    payment_gateway_names?: string[];
-    financial_status?: string;
-  };
+  const payload = JSON.parse(rawBody);
 
-  // Logic for Egyptian Market (Manual/Draft = COD)
+  // 1. Robust Field Extraction
+  // Draft orders often have null gateways, so we check financial_status as a fallback
   const gateway = (payload.gateway || "").toLowerCase();
-  const gatewayNames = (payload.payment_gateway_names || []).map((g: string) => g.toLowerCase());
+  const gatewayNames = (payload.payment_gateway_names || []).map((g: any) => String(g).toLowerCase());
+  const financialStatus = (payload.financial_status || "").toLowerCase();
 
+  // 2. Logic for Egyptian Market (Capture Pending/Draft as COD)
   const isCod =
     gateway === "manual" ||
     gateway.includes("cod") ||
     gateway.includes("cash") ||
-    gatewayNames.includes("manual");
+    gatewayNames.includes("manual") ||
+    financialStatus === "pending"; // Captures Draft Orders immediately
 
-  // Status Logic: 'paid' becomes RECEIVED. Everything else (pending, authorized) is PENDING.
-  const isPaid = payload.financial_status === "paid";
-  const status = isPaid ? "RECEIVED" : "PENDING";
   const paymentMethod = isCod ? "COD" : "CARD";
+  const status = financialStatus === "paid" ? "RECEIVED" : "PENDING";
 
-  // Find the admin to attribute the transaction to
   const adminMembership = await prisma.membership.findFirst({
     where: { organizationId: organization.id, role: "ADMIN" },
     select: { userId: true },
@@ -69,7 +58,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No admin found" }, { status: 500 });
   }
 
-  // THE UPSERT: This handles both initial creation (Pending) and later updates (Paid)
+  // 3. THE UPSERT
+  // We use String(payload.id) because Shopify IDs are massive 64-bit integers
   await prisma.transaction.upsert({
     where: {
       shopifyOrderId: String(payload.id),
