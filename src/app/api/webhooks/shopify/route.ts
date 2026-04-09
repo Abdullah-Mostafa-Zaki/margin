@@ -47,7 +47,8 @@ export async function POST(req: Request) {
 
   // Determine payment method and status based on gateway
   const isCod = typeof payload.gateway === "string" &&
-    payload.gateway.toLowerCase().includes("cod");
+    (payload.gateway.toLowerCase().includes("cod") ||
+      payload.gateway.toLowerCase().includes("cash_on_delivery"));
 
   const paymentMethod = isCod ? "COD" : "CARD";
   const status = isCod ? "PENDING" : "RECEIVED";
