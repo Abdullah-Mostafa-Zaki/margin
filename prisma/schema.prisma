@@ -9,14 +9,14 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String        @id @default(cuid())
   name          String?
-  email         String?   @unique
+  email         String?       @unique
   emailVerified DateTime?
-  password      String?   // <--- Add this line here
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  password      String?
   accounts      Account[]
   memberships   Membership[]
   sessions      Session[]
@@ -103,6 +103,7 @@ model Tag {
 
 model Transaction {
   id             String            @id @default(cuid())
+  shopifyOrderId   String?           @unique
   type           TransactionType
   amount         Decimal           @db.Decimal(10, 2)
   date           DateTime
