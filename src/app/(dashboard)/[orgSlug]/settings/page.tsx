@@ -33,14 +33,22 @@ export default async function SettingsPage({
     redirect("/unauthorized");
   }
 
-  // Security Rule: Verify current session user has a Membership record for this org
-  const currentUserMembership = organization.memberships.find(
-    (m) => m.user.email === session.user?.email
-  );
+  // ── GHOST MODE: Super Admin bypass ─────────────────────────────────────────
+  const isSuperAdmin =
+    !!process.env.SUPER_ADMIN_EMAIL &&
+    session.user?.email === process.env.SUPER_ADMIN_EMAIL;
 
-  if (!currentUserMembership) {
-    redirect("/unauthorized");
+  if (!isSuperAdmin) {
+    // Security Rule: Verify current session user has a Membership record for this org
+    const currentUserMembership = organization.memberships.find(
+      (m) => m.user.email === session.user?.email
+    );
+
+    if (!currentUserMembership) {
+      redirect("/unauthorized");
+    }
   }
+  // ─────────────────────────────────────────────────────────────────────────────
 
   // Derive a boolean — never send the raw secret to the client
   const hasSecret = Boolean(organization.shopifyWebhookSecret);
