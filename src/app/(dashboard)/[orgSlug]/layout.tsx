@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+
+import { unstable_noStore as noStore } from 'next/cache';
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
@@ -13,6 +16,8 @@ export default async function DashboardLayout({
   children: ReactNode;
   params: Promise<{ orgSlug: string }>;
 }) {
+  noStore();
+
   const resolvedParams = await params;
   const session = await getServerSession(authOptions);
 
@@ -20,39 +25,78 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const membership = await prisma.membership.findFirst({
-    where: {
-      organization: { slug: resolvedParams.orgSlug },
-      user: { email: session.user.email }
-    },
-    include: {
-      organization: {
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-        }
-      },
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          image: true,
-        }
-      }
+  // ─── GHOST MODE CHECK ────────────────────────────────────────────────────────
+  // Only the Super Admin email (set server-side via SUPER_ADMIN_EMAIL env var)
+  // can bypass org membership enforcement. This value is never exposed to the client.
+  const isSuperAdmin =
+    !!process.env.SUPER_ADMIN_EMAIL &&
+    session.user.email === process.env.SUPER_ADMIN_EMAIL;
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  let org: { id: string; name: string; slug: string };
+  let user: { id: string; name: string | null; email: string | null; image: string | null };
+
+  if (isSuperAdmin) {
+    // Ghost Mode: fetch org directly without membership check
+    const organization = await prisma.organization.findUnique({
+      where: { slug: resolvedParams.orgSlug },
+      select: { id: true, name: true, slug: true },
+    });
+
+    if (!organization) {
+      redirect("/");
     }
-  });
 
-  if (!membership) {
-    redirect("/unauthorized");
+    org = organization;
+    user = {
+      id: "super-admin",
+      name: session.user.name ?? "Super Admin",
+      email: session.user.email,
+      image: session.user.image ?? null,
+    };
+  } else {
+    // Standard path: enforce membership
+    const membership = await prisma.membership.findFirst({
+      where: {
+        organization: { slug: resolvedParams.orgSlug },
+        user: { email: session.user.email },
+      },
+      include: {
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+      },
+    });
+
+    if (!membership) {
+      redirect("/unauthorized");
+    }
+
+    org = membership.organization;
+    user = membership.user;
   }
-
-  const org = membership.organization;
-  const user = membership.user;
 
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50 md:flex-row">
+      {/* ── Ghost Mode Banner ──────────────────────────────────────────────── */}
+      {isSuperAdmin && (
+        <div className="w-full bg-red-600 text-white text-center py-2 text-sm font-bold tracking-widest sticky top-0 z-50">
+          👻 SUPER ADMIN GHOST MODE: Viewing as {org.name}
+        </div>
+      )}
+      {/* ───────────────────────────────────────────────────────────────────── */}
       <Sidebar
         orgSlug={org.slug}
         orgName={org.name}
