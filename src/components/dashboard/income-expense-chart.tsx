@@ -24,7 +24,7 @@ export function IncomeExpenseChart({ data }: Props) {
   return (
     <div className="rounded-xl border bg-card p-6">
       <h3 className="font-semibold mb-4">Income vs Expenses</h3>
-      <div className="min-h-[300px] md:min-h-[380px]">
+      <div className="h-[300px] md:h-[400px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
