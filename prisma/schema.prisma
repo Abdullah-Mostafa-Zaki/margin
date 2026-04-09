@@ -96,10 +96,11 @@ model VerificationToken {
 // -----------------------------------------------------------------------------
 
 model Organization {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  courierFee Float   @default(0)
+  id                    String   @id @default(cuid())
+  name                  String
+  slug                  String   @unique
+  courierFee            Float    @default(0)
+  shopifyWebhookSecret  String?
 
   memberships   Membership[]
   transactions  Transaction[]

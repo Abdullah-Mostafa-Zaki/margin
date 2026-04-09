@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { EditOrgForm } from "@/components/settings/edit-org-form";
+import { ShopifyIntegration } from "@/components/settings/shopify-integration";
 
 export default async function SettingsPage({
   params,
@@ -41,6 +42,12 @@ export default async function SettingsPage({
     redirect("/unauthorized");
   }
 
+  // Derive a boolean — never send the raw secret to the client
+  const hasSecret = Boolean(organization.shopifyWebhookSecret);
+
+  // Base URL for constructing the webhook endpoint
+  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div>
@@ -65,6 +72,13 @@ export default async function SettingsPage({
             <p className="text-xs text-zinc-500">Contact support to change these details.</p>
           </div>
         </div>
+
+        {/* Shopify Integration */}
+        <ShopifyIntegration
+          orgSlug={orgSlug}
+          baseUrl={baseUrl}
+          hasSecret={hasSecret}
+        />
 
         {/* Team Members */}
         <div className="rounded-lg border bg-white p-6 shadow-sm">
