@@ -1,6 +1,6 @@
-import crypto from "crypto"; // Standard Node.js crypto
-import { NextResponse } from "next/server"; // Next.js specific responses
-import prisma from "@/lib/prisma"; // Your Prisma client
+import crypto from "crypto";
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
 
 export async function POST(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -10,7 +10,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing orgSlug" }, { status: 400 });
   }
 
-  // Find the organization and its webhook secret
   const organization = await prisma.organization.findUnique({
     where: { slug: orgSlug },
     select: { id: true, shopifyWebhookSecret: true },
@@ -20,10 +19,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Organization or Secret not found" }, { status: 404 });
   }
 
-  // Read raw body for HMAC verification
   const rawBody = await req.text();
-
-  // Verify HMAC signature
   const shopifyHmac = req.headers.get("x-shopify-hmac-sha256");
   const computedHmac = crypto
     .createHmac("sha256", organization.shopifyWebhookSecret)
@@ -34,7 +30,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid HMAC signature" }, { status: 401 });
   }
 
-  // Unified Payload Type
   const payload = JSON.parse(rawBody) as {
     name: string;
     total_price: string;
@@ -43,7 +38,6 @@ export async function POST(req: Request) {
     financial_status?: string;
   };
 
-  // Logic for Egyptian Market (Manual/Draft = COD)
   const gateway = (payload.gateway || "").toLowerCase();
   const gatewayNames = (payload.payment_gateway_names || []).map((g: string) => g.toLowerCase());
 
@@ -51,13 +45,13 @@ export async function POST(req: Request) {
     gateway === "manual" ||
     gateway.includes("cod") ||
     gateway.includes("cash") ||
-    gatewayNames.includes("manual") ||
-    payload.financial_status === "pending";
+    gatewayNames.includes("manual");
 
+  // Status Logic: Only 'paid' becomes RECEIVED. Everything else is PENDING.
+  const isPaid = payload.financial_status === "paid";
+  const status = isPaid ? "RECEIVED" : "PENDING";
   const paymentMethod = isCod ? "COD" : "CARD";
-  const status = isCod ? "PENDING" : "RECEIVED";
 
-  // Find the first ADMIN to use as creator
   const adminMembership = await prisma.membership.findFirst({
     where: { organizationId: organization.id, role: "ADMIN" },
     select: { userId: true },
@@ -67,20 +61,42 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No admin found" }, { status: 500 });
   }
 
-  // Create the transaction
-  await prisma.transaction.create({
-    data: {
-      type: "INCOME",
-      amount: Number(payload.total_price),
-      date: new Date(),
-      category: "Sales Revenue",
-      paymentMethod,
-      status,
-      notes: `Shopify Order ${payload.name}`,
+  const orderNote = `Shopify Order ${payload.name}`;
+
+  // Check if this specific order already exists in our database
+  const existingTransaction = await prisma.transaction.findFirst({
+    where: {
       organizationId: organization.id,
-      createdById: adminMembership.userId,
+      notes: orderNote,
     },
   });
+
+  if (existingTransaction) {
+    // UPDATE: If we found it, just update the status and amount
+    await prisma.transaction.update({
+      where: { id: existingTransaction.id },
+      data: {
+        status: status,
+        amount: Number(payload.total_price),
+        paymentMethod: paymentMethod,
+      },
+    });
+  } else {
+    // CREATE: If it doesn't exist, create it new
+    await prisma.transaction.create({
+      data: {
+        type: "INCOME",
+        amount: Number(payload.total_price),
+        date: new Date(),
+        category: "Sales Revenue",
+        paymentMethod: paymentMethod,
+        status: status,
+        notes: orderNote,
+        organizationId: organization.id,
+        createdById: adminMembership.userId,
+      },
+    });
+  }
 
   return NextResponse.json({ success: true });
 }
