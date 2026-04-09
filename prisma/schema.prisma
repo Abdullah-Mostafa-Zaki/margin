@@ -8,69 +8,35 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// -----------------------------------------------------------------------------
-// ENUMS
-// -----------------------------------------------------------------------------
-
-enum Role {
-  ADMIN
-  ACCOUNTANT
-  MEMBER
-}
-
-enum TransactionType {
-  INCOME
-  EXPENSE
-}
-
-enum TransactionStatus {
-  PENDING   // e.g., cash with courier / Pending COD
-  RECEIVED  // Cleared / Paid
-}
-
-enum PaymentMethod {
-  CASH
-  CARD
-  INSTAPAY
-  COD
-}
-
-// -----------------------------------------------------------------------------
-// NEXTAUTH.JS MODELS
-// -----------------------------------------------------------------------------
-
 model User {
   id            String    @id @default(cuid())
   name          String?
   email         String?   @unique
   emailVerified DateTime?
+  password      String?   // <--- Add this line here
   image         String?
-  accounts      Account[]
-  sessions      Session[]
-
-  // Application Relations
-  memberships   Membership[]
-  transactions  Transaction[]
-
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  memberships   Membership[]
+  sessions      Session[]
+  transactions  Transaction[]
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -91,23 +57,17 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// -----------------------------------------------------------------------------
-// APPLICATION MODELS
-// -----------------------------------------------------------------------------
-
 model Organization {
-  id                    String   @id @default(cuid())
-  name                  String
-  slug                  String   @unique
-  courierFee            Float    @default(0)
-  shopifyWebhookSecret  String?
-
-  memberships   Membership[]
-  transactions  Transaction[]
-  tags          Tag[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   String        @id @default(cuid())
+  name                 String
+  slug                 String        @unique
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  courierFee           Float         @default(0)
+  shopifyWebhookSecret String?
+  memberships          Membership[]
+  tags                 Tag[]
+  transactions         Transaction[]
 
   @@index([slug])
 }
@@ -115,15 +75,12 @@ model Organization {
 model Membership {
   id             String       @id @default(cuid())
   role           Role         @default(MEMBER)
-  
   userId         String
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, organizationId])
   @@index([organizationId])
@@ -131,17 +88,14 @@ model Membership {
 }
 
 model Tag {
-  id             String       @id @default(cuid())
+  id             String           @id @default(cuid())
   name           String
   description    String?
-
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   transactions   TransactionTag[]
-
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
 
   @@unique([name, organizationId])
   @@index([organizationId])
@@ -156,20 +110,15 @@ model Transaction {
   status         TransactionStatus @default(PENDING)
   paymentMethod  PaymentMethod
   notes          String?
-  receiptUrl     String?           // For UploadThing image URLs
-
+  receiptUrl     String?
   organizationId String
-  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
   createdById    String
-  createdBy      User              @relation(fields: [createdById], references: [id])
-
-  tags           TransactionTag[]
-
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
+  createdBy      User              @relation(fields: [createdById], references: [id])
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tags           TransactionTag[]
 
-  // Composite indexes for performance on heavily queried dashboard metrics
   @@index([organizationId, date])
   @@index([organizationId, status])
 }
@@ -177,8 +126,31 @@ model Transaction {
 model TransactionTag {
   transactionId String
   tagId         String
-  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   tag           Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
   @@id([transactionId, tagId])
+}
+
+enum Role {
+  ADMIN
+  ACCOUNTANT
+  MEMBER
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionStatus {
+  PENDING
+  RECEIVED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  INSTAPAY
+  COD
 }
