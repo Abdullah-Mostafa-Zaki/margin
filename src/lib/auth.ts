@@ -14,6 +14,14 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      // This block forces Google to show the account selection screen
+      authorization: {
+        params: {
+          prompt: "select_account",
+          access_type: "offline",
+          response_type: "code",
+        },
+      },
     }),
     EmailProvider({
       server: {
@@ -39,4 +47,4 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
     verifyRequest: "/login?verifyRequest=1",
   },
-};  
+};
