@@ -89,27 +89,29 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 md:flex-row">
+    <div className="flex flex-col min-h-screen">
       {/* ── Ghost Mode Banner ──────────────────────────────────────────────── */}
       {isSuperAdmin && (
-        <div className="w-full bg-red-600 text-white text-center py-2 text-sm font-bold tracking-widest sticky top-0 z-50">
+        <div className="w-full bg-red-600 text-white text-center py-2 text-sm font-bold tracking-widest sticky top-0 z-[100] shrink-0">
           👻 SUPER ADMIN GHOST MODE: Viewing as {org.name}
         </div>
       )}
       {/* ───────────────────────────────────────────────────────────────────── */}
-      <Sidebar
-        orgSlug={org.slug}
-        orgName={org.name}
-      />
-      <div className="flex flex-1 flex-col min-w-0">
-        <TopNav
-          userName={user.name || user.email || "User"}
-          userImage={user.image}
+      <div className="flex flex-1 flex-col bg-zinc-50 md:flex-row min-w-0">
+        <Sidebar
+          orgSlug={org.slug}
+          orgName={org.name}
         />
-        {/* pb-20 ensures content clears the fixed mobile bottom tab bar */}
-        <main className="flex-1 px-4 py-6 pb-20 md:px-8 md:py-8 md:pb-8">
-          {children}
-        </main>
+        <div className="flex flex-1 flex-col min-w-0">
+          <TopNav
+            userName={user.name || user.email || "User"}
+            userImage={user.image}
+          />
+          {/* pb-20 ensures content clears the fixed mobile bottom tab bar */}
+          <main className="flex-1 px-4 py-6 pb-20 md:px-8 md:py-8 md:pb-8">
+            {children}
+          </main>
+        </div>
       </div>
     </div>
   );
