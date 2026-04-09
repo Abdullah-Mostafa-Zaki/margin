@@ -118,11 +118,11 @@ export default async function DashboardPage(props: {
           <h1 className="text-3xl font-bold tracking-tight">{organization.name} Dashboard</h1>
           <p className="text-zinc-500">Overview of your finances</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <DateRangePicker />
           <Link
             href={`/${resolvedParams.orgSlug}/transactions`}
-            className="inline-flex h-9 items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-900/90"
+            className="inline-flex h-9 w-full sm:w-auto items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 whitespace-nowrap hover:bg-zinc-900/90"
           >
             View Transactions
           </Link>
