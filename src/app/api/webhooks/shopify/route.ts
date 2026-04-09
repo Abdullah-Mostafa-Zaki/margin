@@ -26,13 +26,16 @@ export async function POST(req: Request) {
   // 1. Extract statuses and gateways
   const gateway = (payload.gateway || "").toLowerCase();
   const financialStatus = (payload.financial_status || "").toLowerCase();
-  const gatewayNames = (payload.payment_gateway_names || []).map((g: any) => String(g).toLowerCase());
+
+  // Explicitly type gatewayNames as string[] to help the compiler
+  const gatewayNames: string[] = (payload.payment_gateway_names || []).map((g: any) => String(g).toLowerCase());
 
   // 2. SMART PAYMENT DETECTION
-  // We define what a 'Card' looks like. If it's not one of these, it's COD.
   const cardKeywords = ["stripe", "paymob", "fawry", "visa", "mastercard", "card", "checkout"];
+
+  // Added (gn: string) to fix the "implicit any" build error
   const isExplicitlyCard = cardKeywords.some(k =>
-    gateway.includes(k) || gatewayNames.some(gn => gn.includes(k))
+    gateway.includes(k) || gatewayNames.some((gn: string) => gn.includes(k))
   );
 
   const paymentMethod = isExplicitlyCard ? "CARD" : "COD";
@@ -50,7 +53,7 @@ export async function POST(req: Request) {
       update: {
         status: status,
         amount: Number(payload.total_price),
-        paymentMethod: paymentMethod, // Will now correctly stay COD for manual payments
+        paymentMethod: paymentMethod,
       },
       create: {
         shopifyOrderId: String(payload.id),
