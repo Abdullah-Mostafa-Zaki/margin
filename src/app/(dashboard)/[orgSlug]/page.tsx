@@ -9,6 +9,7 @@ import { getDateRangeFromParams } from "@/lib/date-utils";
 import { IncomeExpenseChart } from "@/components/dashboard/income-expense-chart";
 import { ExpenseDonutChart } from "@/components/dashboard/expense-donut-chart";
 import { groupTransactionsByDate } from "@/lib/chart-utils";
+import TruthBanner from "@/components/TruthBanner";
 
 export default async function DashboardPage(props: {
   params: Promise<{ orgSlug: string }>;
@@ -112,6 +113,9 @@ export default async function DashboardPage(props: {
   return (
     <div className="space-y-6">
       <RealtimeListener orgSlug={resolvedParams.orgSlug} organizationId={organization.id} />
+
+      {/* ── Truth Banner (Insight Engine) ──────────────────────────────── */}
+      <TruthBanner organizationId={organization.id} />
       
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
