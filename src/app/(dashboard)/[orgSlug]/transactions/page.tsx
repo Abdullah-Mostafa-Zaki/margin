@@ -8,7 +8,7 @@ import TransactionForm from "@/components/transactions/transaction-form";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MarkReceivedButton, DeleteTransactionButton } from "@/components/transactions/action-buttons";
+import { MarkReceivedButton, DeleteTransactionButton, MarkAllReceivedButton } from "@/components/transactions/action-buttons";
 import { X } from "lucide-react";
 import RealtimeListener from "@/components/dashboard/realtime-listener";
 import { TagFilter } from "@/components/transactions/tag-filter";
@@ -102,11 +102,14 @@ export default async function TransactionsPage(props: {
 
       {!activeTag && pendingCODTransactions.length > 0 && (
         <Card className="border-amber-200 bg-amber-50">
-          <CardHeader>
-            <CardTitle className="text-amber-900">Pending COD Escrow</CardTitle>
-            <p className="text-sm text-amber-700">
-              Total pending amount: <span className="font-bold text-lg">EGP {totalPendingCod.toLocaleString()}</span>
-            </p>
+          <CardHeader className="flex flex-row items-center justify-between pb-4">
+            <div>
+              <CardTitle className="text-amber-900">Pending COD Escrow</CardTitle>
+              <p className="text-sm text-amber-700 mt-1">
+                Total pending amount: <span className="font-bold text-lg">EGP {totalPendingCod.toLocaleString()}</span>
+              </p>
+            </div>
+            <MarkAllReceivedButton orgSlug={resolvedParams.orgSlug} />
           </CardHeader>
           <CardContent>
             <div className="space-y-3">

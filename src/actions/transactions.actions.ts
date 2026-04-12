@@ -214,3 +214,32 @@ export async function updateTransactionStatus(id: string, status: "PENDING" | "R
 
   revalidatePath(`/${orgSlug}/transactions`);
 }
+
+export async function markAllPendingAsReceived(orgSlug: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const org = await prisma.organization.findUnique({
+    where: { slug: orgSlug },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
+
+  await prisma.transaction.updateMany({
+    where: {
+      organizationId: org.id,
+      type: "INCOME",
+      status: "PENDING",
+    },
+    data: {
+      status: "RECEIVED",
+    },
+  });
+
+  revalidatePath(`/${orgSlug}/transactions`);
+}
