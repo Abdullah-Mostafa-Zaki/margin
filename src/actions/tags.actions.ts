@@ -16,8 +16,9 @@ export async function createTag(orgSlug: string, name: string, description?: str
 
   if (!org) throw new Error("Organization not found");
 
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
   const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
-  if (!membership) throw new Error("Forbidden");
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
 
   await prisma.tag.create({
     data: {
@@ -41,8 +42,9 @@ export async function deleteTag(id: string, orgSlug: string) {
 
   if (!org) throw new Error("Organization not found");
 
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
   const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
-  if (!membership) throw new Error("Forbidden");
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
 
   const tag = await prisma.tag.findUnique({ where: { id } });
   if (!tag || tag.organizationId !== org.id) {
@@ -67,8 +69,9 @@ export async function getTagROI(tagId: string, orgSlug: string) {
 
   if (!org) throw new Error("Organization not found");
 
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
   const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
-  if (!membership) throw new Error("Forbidden");
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
 
   const tag = await prisma.tag.findUnique({ where: { id: tagId } });
   if (!tag || tag.organizationId !== org.id) {

@@ -16,8 +16,9 @@ export async function createTransaction(orgSlug: string, formData: FormData) {
 
   if (!org) throw new Error("Organization not found");
 
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
   const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
-  if (!membership) throw new Error("Forbidden: User does not belong to this organization");
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden: User does not belong to this organization");
 
   const type = formData.get("type") as "INCOME" | "EXPENSE";
   const amountStr = formData.get("amount") as string;
@@ -64,7 +65,7 @@ export async function createTransaction(orgSlug: string, formData: FormData) {
       notes,
       receiptUrl,
       organizationId: org.id,
-      createdById: membership.userId,
+      createdById: membership?.userId || (session.user as any).id,
       tags: {
         create: tagIds.map(tagId => ({ tagId })),
       },
@@ -85,8 +86,9 @@ export async function updateTransaction(id: string, orgSlug: string, formData: F
 
   if (!org) throw new Error("Organization not found");
 
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
   const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
-  if (!membership) throw new Error("Forbidden");
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
 
   const transaction = await prisma.transaction.findUnique({ where: { id } });
   if (!transaction || transaction.organizationId !== org.id) {
@@ -169,8 +171,9 @@ export async function deleteTransaction(id: string, orgSlug: string) {
 
   if (!org) throw new Error("Organization not found");
 
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
   const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
-  if (!membership) throw new Error("Forbidden");
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
 
   const transaction = await prisma.transaction.findUnique({ where: { id } });
   if (!transaction || transaction.organizationId !== org.id) {
@@ -195,8 +198,9 @@ export async function updateTransactionStatus(id: string, status: "PENDING" | "R
 
   if (!org) throw new Error("Organization not found");
 
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
   const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
-  if (!membership) throw new Error("Forbidden");
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
 
   const transaction = await prisma.transaction.findUnique({ where: { id } });
   if (!transaction || transaction.organizationId !== org.id) {

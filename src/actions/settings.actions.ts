@@ -29,16 +29,18 @@ export async function updateShopifySecret(
     return { error: "Organization not found." };
   }
 
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+
   // Verify the session user has a valid membership (ADMIN or MEMBER) in this org
   const membership = org.memberships.find(
     (m) => m.user.email === session.user?.email
   );
 
-  if (!membership) {
+  if (!membership && !isSuperAdmin) {
     return { error: "Forbidden: You do not have access to this organization." };
   }
 
-  if (membership.role !== "ADMIN" && membership.role !== "MEMBER") {
+  if (!isSuperAdmin && membership && membership.role !== "ADMIN" && membership.role !== "MEMBER") {
     return { error: "Forbidden: Insufficient permissions." };
   }
 
