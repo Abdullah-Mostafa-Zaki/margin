@@ -10,6 +10,9 @@ import { IncomeExpenseChart } from "@/components/dashboard/income-expense-chart"
 import { ExpenseDonutChart } from "@/components/dashboard/expense-donut-chart";
 import { groupTransactionsByDate } from "@/lib/chart-utils";
 import TruthBanner from "@/components/TruthBanner";
+import { getDashboardInsights } from "@/app/actions/getDashboardInsights";
+import { GodMetric } from "@/components/dashboard/GodMetric";
+import { ExcelInsightCard } from "@/components/dashboard/ExcelInsightCard";
 
 export default async function DashboardPage(props: {
   params: Promise<{ orgSlug: string }>;
@@ -40,6 +43,9 @@ export default async function DashboardPage(props: {
     }
   } : {};
 
+  // Fetch Actionable Insights Payload
+  const insights = await getDashboardInsights(organization.id, startDate, endDate);
+
   const aggregations = await prisma.transaction.groupBy({
     by: ['type'],
     where: {
@@ -52,11 +58,12 @@ export default async function DashboardPage(props: {
     },
   });
 
-  const pendingCOD = await prisma.transaction.aggregate({
+  const pendingCODQuery = await prisma.transaction.aggregate({
     where: {
       organizationId: organization.id,
       type: 'INCOME',
       status: 'PENDING',
+      ...dateFilter,
     },
     _sum: { amount: true }
   });
@@ -64,7 +71,7 @@ export default async function DashboardPage(props: {
   const totalIncome = Number(aggregations.find(a => a.type === 'INCOME')?._sum.amount || 0);
   const totalExpense = Number(aggregations.find(a => a.type === 'EXPENSE')?._sum.amount || 0);
   const netBalance = totalIncome - totalExpense;
-  const totalPendingCOD = Number(pendingCOD._sum.amount || 0);
+  const totalPendingCOD = Number(pendingCODQuery._sum.amount || 0);
 
   // --- NEW CHART QUERIES ---
 
@@ -115,7 +122,7 @@ export default async function DashboardPage(props: {
       <RealtimeListener orgSlug={resolvedParams.orgSlug} organizationId={organization.id} />
 
       {/* ── Truth Banner (Insight Engine) ──────────────────────────────── */}
-      <TruthBanner organizationId={organization.id} />
+      <TruthBanner insights={insights} />
       
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -126,13 +133,14 @@ export default async function DashboardPage(props: {
           <DateRangePicker />
           <Link
             href={`/${resolvedParams.orgSlug}/transactions`}
-            className="inline-flex h-9 w-full sm:w-auto items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 whitespace-nowrap hover:bg-zinc-900/90"
+            className="inline-flex h-9 w-full sm:w-auto items-center justify-center rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 whitespace-nowrap hover:bg-zinc-50 transition-colors shadow-sm"
           >
             View Transactions
           </Link>
         </div>
       </div>
 
+      {/* ── 4-Card Summary ────────────────────────────────────────────── */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
         <Card className="border-green-200 bg-green-50/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -170,24 +178,46 @@ export default async function DashboardPage(props: {
           </CardContent>
         </Card>
 
-        <Card className="border-amber-200 bg-amber-50">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-amber-900">Expected Inbound</CardTitle>
-            <Clock className="h-4 w-4 text-amber-700" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-700">
-              EGP {totalPendingCOD.toLocaleString()}
-            </div>
-            <p className="text-xs text-amber-600 mt-1 font-medium">Cash with couriers</p>
-          </CardContent>
-        </Card>
+        {totalPendingCOD === 0 ? (
+          <Card className="border-zinc-200 bg-zinc-50/50">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-zinc-500">Expected Inbound</CardTitle>
+              <Clock className="h-4 w-4 text-zinc-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl font-bold text-zinc-600">
+                EGP 0
+              </div>
+              <p className="text-xs text-zinc-500 mt-1">All cash collected. No pending COD.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-amber-200 bg-amber-50">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-amber-900">Expected Inbound</CardTitle>
+              <Clock className="h-4 w-4 text-amber-700" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-amber-700">
+                EGP {totalPendingCOD.toLocaleString()}
+              </div>
+              <p className="text-xs text-amber-600 mt-1 font-medium">Cash with couriers</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
+      {/* ── God Metric (Unit Economics) ────────────────────────────────── */}
+      <GodMetric insights={insights} />
+
+      {/* ── Charts ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <IncomeExpenseChart data={chartData} />
-        <ExpenseDonutChart data={donutData} />
+        <ExpenseDonutChart data={donutData} subtitle={insights.expenseSubtitle} />
       </div>
+
+      {/* ── Excel Insight Card ─────────────────────────────────────────── */}
+      <ExcelInsightCard insights={insights} />
 
       {activeFilterLabel && (
         <p className="text-sm text-zinc-500 font-medium">{activeFilterLabel}</p>

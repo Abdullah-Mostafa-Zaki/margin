@@ -6,11 +6,12 @@ import {
 
 interface Props {
   data: { category: string; amount: number }[];
+  subtitle?: string;
 }
 
 const COLORS = ["#dc2626", "#ea580c", "#d97706", "#65a30d", "#0891b2", "#7c3aed", "#db2777"];
 
-export function ExpenseDonutChart({ data }: Props) {
+export function ExpenseDonutChart({ data, subtitle }: Props) {
   const total = data.reduce((acc, curr) => acc + curr.amount, 0);
 
   if (data.length === 0) {
@@ -65,6 +66,12 @@ export function ExpenseDonutChart({ data }: Props) {
           </PieChart>
         </ResponsiveContainer>
       </div>
+
+      {subtitle && (
+        <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+          <p className="text-sm font-medium text-rose-600">{subtitle}</p>
+        </div>
+      )}
     </div>
   );
 }

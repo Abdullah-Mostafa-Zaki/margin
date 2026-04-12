@@ -10,6 +10,15 @@ export interface DashboardInsights {
   escrowText: string | null;
   /** Tailwind background, border, and text classes combined */
   colorClass: string;
+  
+  totalOrders: number;
+  realizedRevenue: number;
+  totalExpenses: number;
+  netProfit: number;
+  adSpend: number;
+  pendingCOD: number;
+  excelBullets: string[];
+  expenseSubtitle: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -25,21 +34,23 @@ function formatPercent(value: number): string {
 // ─── Main Action ──────────────────────────────────────────────────────────────
 
 export async function getDashboardInsights(
-  organizationId: string
+  organizationId: string,
+  startDate: Date | null,
+  endDate: Date | null
 ): Promise<DashboardInsights> {
-  // Current-month date boundaries
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-  // Fetch all transactions for this org in the current month
+  const dateFilter = startDate && endDate ? {
+    date: {
+      gte: startDate,
+      lte: endDate,
+    }
+  } : {};
+
+  // Fetch all transactions for this org in the filtered date range
   const transactions = await prisma.transaction.findMany({
     where: {
       organizationId,
-      date: {
-        gte: startOfMonth,
-        lte: endOfMonth,
-      },
+      ...dateFilter,
     },
     select: {
       type: true,
@@ -72,18 +83,46 @@ export async function getDashboardInsights(
       (t) =>
         t.type === "EXPENSE" &&
         (t.category.toLowerCase() === "ads" ||
-          t.category.toLowerCase() === "marketing")
+          t.category.toLowerCase() === "marketing" ||
+          t.category.toLowerCase() === "ad spend")
     )
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  // 5. Net Profit
+  // 5. Total Orders (God Metric Denominator)
+  const totalOrders = transactions.filter(
+    (t) => 
+      t.type === "INCOME" && 
+      t.status === "RECEIVED" && 
+      t.category.toLowerCase() === "sales revenue"
+  ).length;
+
+  // 6. Expense Breakdown & Top Category
+  const expenseByCategory = transactions
+    .filter((t) => t.type === "EXPENSE")
+    .reduce((acc, t) => {
+      acc[t.category] = (acc[t.category] || 0) + Number(t.amount);
+      return acc;
+    }, {} as Record<string, number>);
+
+  let topExpenseCategory: { category: string; pct: number } | null = null;
+  if (totalExpenses > 0) {
+    const sortedExpenses = Object.entries(expenseByCategory).sort((a, b) => b[1] - a[1]);
+    if (sortedExpenses.length > 0) {
+      topExpenseCategory = {
+        category: sortedExpenses[0][0],
+        pct: (sortedExpenses[0][1] / totalExpenses) * 100
+      };
+    }
+  }
+
+  // 7. Net Profit
   const netProfit = realizedRevenue - totalExpenses;
 
-  // 6. Margin % (guard against division by zero)
+  // 8. Margin % (guard against division by zero)
   const marginPct =
     realizedRevenue > 0 ? (netProfit / realizedRevenue) * 100 : 0;
 
-  // 7. Ad Spend % (guard against division by zero)
+  // 9. Ad Spend % (guard against division by zero)
   const adSpendPct =
     realizedRevenue > 0 ? (adSpend / realizedRevenue) * 100 : 0;
 
@@ -91,10 +130,29 @@ export async function getDashboardInsights(
 
   const fRevenue = formatCurrency(realizedRevenue);
   const fEscrow = formatCurrency(pendingEscrow);
-  const fProfit = formatCurrency(Math.abs(netProfit));
   const fNetProfit = formatCurrency(netProfit);
   const fMargin = formatPercent(marginPct);
   const fAdPct = formatPercent(adSpendPct);
+
+  // ─── Excel Bullets ────────────────────────────────────────────────────────
+  const excelBullets: string[] = [];
+  excelBullets.push(`You generated ${fRevenue} in top-line revenue, but your actual take-home profit is only ${fNetProfit}.`);
+  if (adSpend > 0) {
+    excelBullets.push(`You spent ${formatCurrency(adSpend)} to acquire these sales.`);
+  }
+  if (pendingEscrow > 0) {
+    excelBullets.push(`You have ${fEscrow} floating with couriers right now.`);
+  }
+
+  // ─── Expense Chart Subtitle ───────────────────────────────────────────────
+  let expenseSubtitle = "";
+  if (topExpenseCategory && topExpenseCategory.pct > 70 && topExpenseCategory.category.toLowerCase() === "raw materials") {
+    expenseSubtitle = "Raw materials dominate your costs. Negotiate bulk pricing.";
+  } else if (adSpendPct > 40) {
+    expenseSubtitle = "Ads are consuming a massive portion of revenue. Drill down on ROAS.";
+  } else if (topExpenseCategory) {
+    expenseSubtitle = `${topExpenseCategory.category} is your highest expense at ${Math.round(topExpenseCategory.pct)}%. Monitor closely.`;
+  }
 
   // ─── Escrow Text (universal rule) ─────────────────────────────────────────
 
@@ -107,61 +165,56 @@ export async function getDashboardInsights(
 
   // ─── Insight Rules (evaluated in strict order) ────────────────────────────
 
+  let mainText = "";
+  let actionText = "";
+  let colorClass = "";
+
   // Rule 1: No revenue
   if (realizedRevenue === 0) {
-    return {
-      mainText: "No revenue yet this month.",
-      actionText: "Start generating sales to see insights.",
-      escrowText,
-      colorClass: "bg-gray-100 border-gray-200 text-gray-800",
-    };
+    mainText = "No revenue found for this period.";
+    actionText = "Start generating sales to see actionable insights.";
+    colorClass = "bg-zinc-50 border-zinc-200 text-zinc-900";
+  }
+  // Rule 2: Losing money
+  else if (netProfit < 0) {
+    mainText = `You made ${fRevenue} revenue, but you're losing money.`;
+    actionText = adSpendPct > 30
+      ? `Ads are eating ${fAdPct} of it. Reduce acquisition costs.`
+      : "Cut costs immediately to reach profitability.";
+    colorClass = "bg-rose-50 border-rose-200 text-rose-900";
+  }
+  // Rule 3: Warning state (low profitability or high ad spend)
+  else if (marginPct > 0 && marginPct <= 15) {
+    mainText = `You made ${fNetProfit} true profit. Your margins are tight at ${fMargin}.`;
+    actionText = adSpendPct > 20
+      ? `Watch your acquisition costs. Ads represent ${fAdPct} of revenue.`
+      : "Increase prices or reduce costs.";
+    colorClass = "bg-amber-50 border-amber-200 text-amber-900";
+  }
+  // Rule 4: Green State (Healthy)
+  else {
+    mainText = `You made ${fNetProfit} in true profit. Your margins are healthy at ${fMargin}.`;
+    actionText = "Keep it up. Focus on scaling what's working.";
+    colorClass = "bg-emerald-50 border-emerald-200 text-emerald-900";
   }
 
-  // Rule 2: Low data
-  if (realizedRevenue < 5000) {
-    return {
-      mainText: "Data is still limited this month.",
-      actionText: "More sales are needed for accurate insights.",
-      escrowText,
-      colorClass: "bg-gray-100 border-gray-200 text-gray-800",
-    };
+  // Dynamic injection for expense ratios (e.g. Raw Materials > 70%)
+  if (realizedRevenue > 0 && topExpenseCategory && topExpenseCategory.pct > 70 && topExpenseCategory.category.toLowerCase() === "raw materials") {
+    actionText += ` Raw materials are taking up ${Math.round(topExpenseCategory.pct)}% of expenses. Check supplier pricing.`;
   }
 
-  // Rule 3: Losing money
-  if (netProfit < 0) {
-    const actionText =
-      adSpendPct > 30
-        ? `Ads are taking ${fAdPct} of your revenue. Reduce ad spend or improve conversion now.`
-        : "Your costs are too high. Reduce expenses or increase pricing.";
-
-    return {
-      mainText: `You made ${fRevenue} but lost ${fProfit}.`,
-      actionText,
-      escrowText,
-      colorClass: "bg-red-50 border-red-200 text-red-900",
-    };
-  }
-
-  // Rule 4: Low profitability (0% – 15%)
-  if (marginPct >= 0 && marginPct <= 15) {
-    const actionText =
-      adSpendPct > 20
-        ? `Ad spend is high at ${fAdPct}. Watch your acquisition costs.`
-        : "Margins are tight. Increase prices or reduce costs.";
-
-    return {
-      mainText: `You made ${fRevenue} but kept only ${fNetProfit} (${fMargin} margin).`,
-      actionText,
-      escrowText,
-      colorClass: "bg-yellow-50 border-yellow-200 text-yellow-900",
-    };
-  }
-
-  // Rule 5: Strong profitability (> 15%)
   return {
-    mainText: `You made ${fNetProfit} in profit (${fMargin} margin).`,
-    actionText: "This is working. Focus on scaling what's already bringing results.",
+    mainText,
+    actionText,
     escrowText,
-    colorClass: "bg-green-50 border-green-200 text-green-900",
+    colorClass,
+    totalOrders,
+    realizedRevenue,
+    totalExpenses,
+    netProfit,
+    adSpend,
+    pendingCOD: pendingEscrow,
+    excelBullets,
+    expenseSubtitle,
   };
 }

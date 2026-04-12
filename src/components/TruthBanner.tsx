@@ -1,16 +1,15 @@
-import { getDashboardInsights } from "@/app/actions/getDashboardInsights";
+import { DashboardInsights } from "@/app/actions/getDashboardInsights";
 
 interface TruthBannerProps {
-  organizationId: string;
+  insights: DashboardInsights;
 }
 
 /**
- * Server component that surfaces a plain-English financial snapshot for the
- * current month — no corporate fluff, just the truth.
+ * Server component that surfaces a plain-English financial snapshot — 
+ * no corporate fluff, just the truth.
  */
-export default async function TruthBanner({ organizationId }: TruthBannerProps) {
-  const { mainText, actionText, escrowText, colorClass } =
-    await getDashboardInsights(organizationId);
+export default function TruthBanner({ insights }: TruthBannerProps) {
+  const { mainText, actionText, escrowText, colorClass } = insights;
 
   return (
     <div
