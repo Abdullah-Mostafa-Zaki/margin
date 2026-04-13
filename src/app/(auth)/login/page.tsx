@@ -1,6 +1,7 @@
 "use client";
 
 import { signIn } from "next-auth/react";
+import Image from "next/image";
 import { useState, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -94,6 +95,9 @@ function LoginForm() {
       <div className="flex items-center justify-center min-h-screen bg-zinc-50 p-4">
         <Card className="w-full max-w-sm shadow-sm">
           <CardHeader className="space-y-1 text-center pb-4">
+            <div className="flex justify-center mb-2">
+              <Image src="/logo.svg" alt="Margin Logo" width={48} height={48} />
+            </div>
             <CardTitle className="text-2xl font-bold tracking-tight">Reset Password</CardTitle>
             <CardDescription>
               Enter your email and we&apos;ll send you a reset link.
@@ -148,6 +152,9 @@ function LoginForm() {
     <div className="flex items-center justify-center min-h-screen bg-zinc-50 p-4">
       <Card className="w-full max-w-sm shadow-sm">
         <CardHeader className="space-y-1 text-center pb-4">
+          <div className="flex justify-center mb-2">
+            <Image src="/logo.svg" alt="Margin Logo" width={48} height={48} />
+          </div>
           <CardTitle className="text-2xl font-bold tracking-tight">
             {mode === "login" ? "Login to Margin" : "Create an Account"}
           </CardTitle>

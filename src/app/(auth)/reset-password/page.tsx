@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,9 @@ function ResetPasswordForm() {
       <div className="flex items-center justify-center min-h-screen bg-zinc-50 p-4">
         <Card className="w-full max-w-sm shadow-sm">
           <CardHeader className="text-center pb-2">
+            <div className="flex justify-center mb-2">
+              <Image src="/logo.svg" alt="Margin Logo" width={48} height={48} />
+            </div>
             <CardTitle className="text-2xl font-bold tracking-tight">Invalid Link</CardTitle>
             <CardDescription>
               This reset link is missing or malformed. Please request a new one.
@@ -80,6 +84,9 @@ function ResetPasswordForm() {
       <div className="flex items-center justify-center min-h-screen bg-zinc-50 p-4">
         <Card className="w-full max-w-sm shadow-sm">
           <CardHeader className="text-center space-y-1 pb-4">
+            <div className="flex justify-center mb-2">
+              <Image src="/logo.svg" alt="Margin Logo" width={48} height={48} />
+            </div>
             <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
               <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -105,6 +112,9 @@ function ResetPasswordForm() {
     <div className="flex items-center justify-center min-h-screen bg-zinc-50 p-4">
       <Card className="w-full max-w-sm shadow-sm">
         <CardHeader className="space-y-1 text-center pb-4">
+          <div className="flex justify-center mb-2">
+            <Image src="/logo.svg" alt="Margin Logo" width={48} height={48} />
+          </div>
           <CardTitle className="text-2xl font-bold tracking-tight">Choose New Password</CardTitle>
           <CardDescription>
             Enter a new password for your account. Make it strong.

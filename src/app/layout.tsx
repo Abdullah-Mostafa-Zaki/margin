@@ -11,6 +11,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Margin",
   description: "Financial dashboard for clothing brands and local e-commerce",
+  icons: { icon: '/logo.svg' },
 };
 
 export default function RootLayout({

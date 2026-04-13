@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Receipt, Tags, Settings } from "lucide-react";
 
@@ -23,8 +24,9 @@ export default function Sidebar({ orgSlug, orgName }: SidebarProps) {
     <>
       {/* ── Desktop: left sidebar ── */}
       <div className="hidden md:flex w-64 flex-col border-r bg-white shrink-0">
-        <div className="flex h-16 items-center border-b px-6">
-          <span className="font-semibold text-lg truncate">{orgName}</span>
+        <div className="flex h-16 items-center border-b px-6 gap-2">
+          <Image src="/logo.svg" alt="Margin Logo" width={32} height={32} />
+          <span className="font-bold text-xl tracking-tight">Margin</span>
         </div>
         <nav className="flex-1 space-y-1 p-4">
           {navigation.map((item) => {
