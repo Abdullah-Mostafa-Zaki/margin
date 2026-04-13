@@ -41,7 +41,7 @@ export default async function TransactionsPage(props: {
           ...(tagFilter ? { tags: { some: { tagId: tagFilter } } } : {}),
           ...(dateFilter ? { date: dateFilter } : {})
         },
-        orderBy: { date: "desc" },
+        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
       },
     },
   });
@@ -68,7 +68,7 @@ export default async function TransactionsPage(props: {
       type: "INCOME",
       status: "PENDING"
     },
-    orderBy: { date: "desc" }
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }]
   });
 
   const totalPendingCod = pendingCODTransactions.reduce((sum: number, t: Transaction) => sum + Number(t.amount), 0);
