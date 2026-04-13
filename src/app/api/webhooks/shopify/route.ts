@@ -39,6 +39,14 @@ export async function POST(req: Request) {
       .update(rawBody, "utf8")
       .digest("base64");
 
+    console.log("=== WEBHOOK DIAGNOSTICS ===");
+    console.log("1. Webhook triggered for slug:", orgSlug);
+    console.log("2. Secret Key found in DB?", !!organization.shopifySecretKey);
+    console.log("3. Raw Body Length:", rawBody.length);
+    console.log("4. Received HMAC:", hmacHeader);
+    console.log("5. Calculated HMAC:", generatedHash);
+    console.log("===========================");
+
     if (generatedHash !== hmacHeader) {
       return new NextResponse("Unauthorized - HMAC Invalid", { status: 401 });
     }
