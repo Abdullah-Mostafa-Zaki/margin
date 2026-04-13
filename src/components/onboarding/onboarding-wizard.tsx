@@ -13,7 +13,7 @@ export function OnboardingWizard() {
     courierFee: 45,
     startingCapital: 0,
     shopifyWebhookUrl: "",
-    shopifySecretKey: "",
+    shopifyWebhookSecret: "",
     firstDropName: "",
   });
 
@@ -133,8 +133,8 @@ export function OnboardingWizard() {
               <label className="text-sm font-medium">Webhook Signature Secret</label>
               <input
                 type="text" placeholder="whsec_..."
-                value={formData.shopifySecretKey}
-                onChange={(e) => setFormData({ ...formData, shopifySecretKey: e.target.value })}
+                value={formData.shopifyWebhookSecret}
+                onChange={(e) => setFormData({ ...formData, shopifyWebhookSecret: e.target.value })}
                 className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2"
               />
             </div>

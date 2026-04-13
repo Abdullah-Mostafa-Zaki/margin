@@ -24,7 +24,7 @@ export async function POST(req: Request) {
       },
     });
 
-    if (!organization || !organization.shopifySecretKey) {
+    if (!organization || !organization.shopifyWebhookSecret) {
       return new NextResponse("Unauthorized - Organization or secret key not found", { status: 401 });
     }
 
@@ -35,13 +35,13 @@ export async function POST(req: Request) {
     }
 
     const generatedHash = crypto
-      .createHmac("sha256", Buffer.from(organization.shopifySecretKey.trim(), "hex"))
+      .createHmac("sha256", Buffer.from(organization.shopifyWebhookSecret.trim(), "hex"))
       .update(rawBody, "utf8")
       .digest("base64");
 
     console.log("=== WEBHOOK DIAGNOSTICS ===");
     console.log("1. Webhook triggered for slug:", orgSlug);
-    console.log("2. Secret Key found in DB?", !!organization.shopifySecretKey);
+    console.log("2. Secret Key found in DB?", !!organization.shopifyWebhookSecret);
     console.log("3. Raw Body Length:", rawBody.length);
     console.log("4. Received HMAC:", hmacHeader);
     console.log("5. Calculated HMAC:", generatedHash);
