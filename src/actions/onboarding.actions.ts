@@ -10,6 +10,8 @@ export async function completeOnboarding(data: {
   courierFee: number;
   startingCapital: number;
   firstDropName: string;
+  shopifyWebhookUrl?: string; // <-- Added
+  shopifySecretKey?: string;  // <-- Added
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
@@ -29,6 +31,8 @@ export async function completeOnboarding(data: {
       name: data.brandName,
       slug: slug,
       courierFee: data.courierFee || 0,
+      shopifyWebhookUrl: data.shopifyWebhookUrl || null, // <-- Saved to DB
+      shopifySecretKey: data.shopifySecretKey || null,   // <-- Saved to DB
       memberships: {
         create: { userId: user.id, role: "ADMIN" }
       }

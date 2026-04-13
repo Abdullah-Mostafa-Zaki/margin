@@ -1,77 +1,100 @@
-import crypto from "crypto";
 import { NextResponse } from "next/server";
+import crypto from "crypto";
 import prisma from "@/lib/prisma";
 
 export async function POST(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const orgSlug = searchParams.get("orgSlug");
-
-  if (!orgSlug) return NextResponse.json({ error: "No orgSlug" }, { status: 400 });
-
-  const organization = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
-    select: { id: true, shopifyWebhookSecret: true },
-  });
-
-  if (!organization?.shopifyWebhookSecret) return NextResponse.json({ error: "Secret not found" }, { status: 404 });
-
-  const rawBody = await req.text();
-  const shopifyHmac = req.headers.get("x-shopify-hmac-sha256");
-  const computedHmac = crypto.createHmac("sha256", organization.shopifyWebhookSecret).update(rawBody, "utf8").digest("base64");
-
-  if (computedHmac !== shopifyHmac) return NextResponse.json({ error: "Invalid HMAC" }, { status: 401 });
-
-  const payload = JSON.parse(rawBody);
-
-  // 1. Extract statuses and gateways
-  const gateway = (payload.gateway || "").toLowerCase();
-  const financialStatus = (payload.financial_status || "").toLowerCase();
-
-  // Explicitly type gatewayNames as string[] to help the compiler
-  const gatewayNames: string[] = (payload.payment_gateway_names || []).map((g: any) => String(g).toLowerCase());
-
-  // 2. SMART PAYMENT DETECTION
-  const cardKeywords = ["stripe", "paymob", "fawry", "visa", "mastercard", "card", "checkout"];
-
-  // Added (gn: string) to fix the "implicit any" build error
-  const isExplicitlyCard = cardKeywords.some(k =>
-    gateway.includes(k) || gatewayNames.some((gn: string) => gn.includes(k))
-  );
-
-  const paymentMethod = isExplicitlyCard ? "CARD" : "COD";
-  const status = financialStatus === "paid" ? "RECEIVED" : "PENDING";
-
-  const admin = await prisma.membership.findFirst({
-    where: { organizationId: organization.id, role: "ADMIN" },
-  });
-
-  if (!admin) return NextResponse.json({ error: "No admin" }, { status: 500 });
-
   try {
-    await prisma.transaction.upsert({
-      where: { shopifyOrderId: String(payload.id) },
-      update: {
-        status: status,
-        amount: Number(payload.total_price),
-        paymentMethod: paymentMethod,
-      },
-      create: {
-        shopifyOrderId: String(payload.id),
-        type: "INCOME",
-        amount: Number(payload.total_price),
-        date: new Date(),
-        category: "Sales Revenue",
-        paymentMethod: paymentMethod,
-        status: status,
-        notes: `Shopify Order ${payload.name}`,
-        organizationId: organization.id,
-        createdById: admin.userId,
+    const { searchParams } = new URL(req.url);
+    const orgSlug = searchParams.get("orgSlug");
+
+    if (!orgSlug) {
+      return new NextResponse("Missing orgSlug", { status: 400 });
+    }
+
+    // 1. Fetch Organization based on orgSlug
+    const organization = await prisma.organization.findUnique({
+      where: { slug: orgSlug },
+      include: {
+        memberships: {
+          orderBy: { createdAt: "asc" },
+          take: 1, // Grab the first user (likely the creator/owner)
+        },
       },
     });
 
-    return NextResponse.json({ success: true });
+    if (!organization || !organization.shopifySecretKey) {
+      return new NextResponse("Unauthorized - Organization or secret key not found", { status: 401 });
+    }
+
+    // 2. Exact HMAC Verification
+    const hmacHeader = req.headers.get("x-shopify-hmac-sha256");
+    if (!hmacHeader) {
+      return new NextResponse("Unauthorized - Missing HMAC header", { status: 401 });
+    }
+
+    const rawBody = await req.text();
+
+    const generatedHash = crypto
+      .createHmac("sha256", organization.shopifySecretKey)
+      .update(rawBody, "utf8")
+      .digest("base64");
+
+    if (generatedHash !== hmacHeader) {
+      return new NextResponse("Unauthorized - HMAC Invalid", { status: 401 });
+    }
+
+    // 3. Process the Order
+    let order;
+    try {
+      order = JSON.parse(rawBody);
+    } catch {
+      return new NextResponse("Invalid JSON body", { status: 400 });
+    }
+
+    const price = order.current_total_price || order.total_price;
+    if (!price || isNaN(Number(price))) {
+      // If there is no price, ack to Shopify so they stop sending it
+      return new NextResponse("OK", { status: 200 });
+    }
+
+    const ownerId = organization.memberships[0]?.userId;
+    if (!ownerId) {
+      return new NextResponse("Organization has no owner", { status: 400 });
+    }
+
+    const shopifyOrderId = order.id ? String(order.id) : undefined;
+
+    // Prevent duplicate webhook processing
+    if (shopifyOrderId) {
+      const existingTx = await prisma.transaction.findUnique({
+        where: { shopifyOrderId },
+      });
+      if (existingTx) {
+        return new NextResponse("OK", { status: 200 });
+      }
+    }
+
+    // 4. Log the Transaction
+    await prisma.transaction.create({
+      data: {
+        type: "INCOME",
+        amount: Number(price),
+        date: new Date(),
+        category: "Shopify Sale",
+        status: "RECEIVED",
+        paymentMethod: "CARD", // Defaulting to CARD for Shopify
+        organizationId: organization.id,
+        createdById: ownerId,
+        shopifyOrderId,
+        notes: `Shopify Order ${order.name || "\x23" + order.order_number}`,
+      },
+    });
+
+    // 5. Respond 200 OK so Shopify knows we successfully received it
+    return new NextResponse("OK", { status: 200 });
+
   } catch (error) {
-    console.error("UPSERT ERROR:", error);
-    return NextResponse.json({ error: "DB Write Failed" }, { status: 500 });
+    console.error("Shopify Webhook Processing Error:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
