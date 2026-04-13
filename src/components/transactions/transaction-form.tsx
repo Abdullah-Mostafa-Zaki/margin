@@ -11,6 +11,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 
 const EXPENSE_CATEGORIES = [
   "Raw Materials",
+  "Manufacturing",
   "Packaging",
   "Logistics (Shipping)",
   "Ads",
