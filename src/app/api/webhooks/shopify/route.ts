@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     }
 
     const generatedHash = crypto
-      .createHmac("sha256", Buffer.from(organization.shopifyWebhookSecret.trim(), "hex"))
+      .createHmac("sha256", organization.shopifyWebhookSecret.trim())
       .update(rawBody, "utf8")
       .digest("base64");
 
