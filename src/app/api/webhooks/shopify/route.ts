@@ -4,6 +4,8 @@ import prisma from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
+    const rawBody = await req.text();
+    
     const { searchParams } = new URL(req.url);
     const orgSlug = searchParams.get("orgSlug");
 
@@ -31,8 +33,6 @@ export async function POST(req: Request) {
     if (!hmacHeader) {
       return new NextResponse("Unauthorized - Missing HMAC header", { status: 401 });
     }
-
-    const rawBody = await req.text();
 
     const generatedHash = crypto
       .createHmac("sha256", organization.shopifySecretKey)
