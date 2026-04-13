@@ -5,7 +5,7 @@ import prisma from "@/lib/prisma";
 export async function POST(req: Request) {
   try {
     const rawBody = await req.text();
-    
+
     const { searchParams } = new URL(req.url);
     const orgSlug = searchParams.get("orgSlug");
 
