@@ -27,7 +27,7 @@ export default async function TransactionsPage(props: {
   if (!session?.user?.email) redirect("/login");
 
   const { startDate, endDate } = getDateRangeFromParams(resolvedSearchParams);
-  
+
   const dateFilter = startDate && endDate ? {
     gte: startDate,
     lte: endDate,
