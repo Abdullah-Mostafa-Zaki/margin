@@ -12,6 +12,8 @@ export function OnboardingWizard() {
     brandName: "",
     courierFee: 45,
     startingCapital: 0,
+    shopifyWebhookUrl: "",
+    shopifySecretKey: "",
     firstDropName: "",
   });
 
@@ -32,7 +34,7 @@ export function OnboardingWizard() {
     <div className="w-full max-w-md rounded-xl border bg-card p-8 shadow-sm">
       {/* Progress Bar */}
       <div className="mb-8 flex gap-2">
-        {[1, 2, 3].map((i) => (
+        {[1, 2, 3, 4].map((i) => (
           <div key={i} className={`h-2 flex-1 rounded-full ${step >= i ? "bg-primary" : "bg-muted"}`} />
         ))}
       </div>
@@ -91,6 +93,67 @@ export function OnboardingWizard() {
       )}
 
       {step === 3 && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">Do you want to connect your Shopify store?</h1>
+            <p className="text-sm text-muted-foreground mt-2">Automatically log your daily sales and shipping income directly into your Margin ledger.</p>
+          </div>
+          
+          <div className="aspect-video w-full overflow-hidden rounded-xl bg-zinc-100 border relative">
+            <video 
+              autoPlay 
+              loop 
+              muted 
+              playsInline 
+              src="/shopify-tutorial.mp4" 
+              className="object-cover w-full h-full"
+            />
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Shopify Webhook URL</label>
+              <input 
+                type="text" placeholder="https://..."
+                value={formData.shopifyWebhookUrl}
+                onChange={(e) => setFormData({ ...formData, shopifyWebhookUrl: e.target.value })}
+                className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Shopify Secret Key</label>
+              <input 
+                type="text" placeholder="whsec_..."
+                value={formData.shopifySecretKey}
+                onChange={(e) => setFormData({ ...formData, shopifySecretKey: e.target.value })}
+                className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 pt-2">
+            <div className="flex gap-3">
+              <button 
+                onClick={handleNext} 
+                className="h-10 flex-1 rounded-md bg-zinc-900 border border-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors"
+              >
+                Connect Store
+              </button>
+              <button 
+                onClick={handleNext} 
+                className="h-10 flex-1 rounded-md border border-input bg-transparent text-sm font-medium hover:bg-muted"
+              >
+                Skip for now
+              </button>
+            </div>
+            <button onClick={handleBack} className="text-sm text-muted-foreground hover:underline text-center">
+              Go Back
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step === 4 && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
           <div className="text-center">
             <h1 className="text-2xl font-bold">Your First Drop</h1>
