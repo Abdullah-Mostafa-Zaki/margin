@@ -164,7 +164,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
         <Plus className="h-6 w-6" />
       </button>
 
-      <DialogContent className="sm:max-w-lg max-h-[100dvh] md:max-h-[85vh] min-h-[100dvh] md:min-h-0 md:h-auto w-full max-w-full rounded-none md:rounded-lg p-4 md:p-6 pt-[env(safe-area-inset-top)] flex flex-col overscroll-contain overscroll-x-none overflow-x-hidden overflow-y-hidden touch-pan-y box-border">
+      <DialogContent className="!top-0 !left-0 !translate-x-0 !translate-y-0 md:!top-1/2 md:!left-1/2 md:!-translate-x-1/2 md:!-translate-y-1/2 !m-0 !border-0 md:!border sm:max-w-lg max-h-[100dvh] md:max-h-[85vh] min-h-[100dvh] md:min-h-0 md:h-auto w-full max-w-full rounded-none md:rounded-lg p-4 md:p-6 pt-[env(safe-area-inset-top)] flex flex-col overscroll-contain overscroll-x-none overflow-x-hidden overflow-y-hidden touch-pan-y box-border">
         <DialogHeader>
           <DialogTitle>Add Transaction</DialogTitle>
         </DialogHeader>
