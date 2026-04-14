@@ -179,13 +179,13 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
         <form onSubmit={handleSubmit} className="space-y-4 pt-4 mb-24 md:mb-0">
           
           {/* Quick Templates (Scrollable Chips) */}
-          <div className="flex overflow-x-auto gap-2 pb-2 [&::-webkit-scrollbar]:hidden w-full">
+          <div className="flex flex-wrap gap-2 pb-2 w-full">
             {QUICK_TEMPLATES.map((tmpl, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => applyTemplate(tmpl.type, tmpl.category)}
-                className="whitespace-nowrap flex items-center justify-center min-h-[44px] px-4 rounded-full border border-zinc-200 bg-white shadow-sm text-sm font-medium active:scale-95 transition-transform duration-75 text-zinc-700"
+                className="flex items-center justify-center min-h-[44px] px-4 rounded-full border border-zinc-200 bg-white shadow-sm text-sm font-medium active:scale-95 transition-transform duration-75 text-zinc-700"
               >
                 {tmpl.label}
               </button>

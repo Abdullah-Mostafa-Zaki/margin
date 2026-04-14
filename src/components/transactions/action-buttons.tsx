@@ -23,15 +23,17 @@ export function MarkReceivedButton({ id, orgSlug }: { id: string; orgSlug: strin
   );
 }
 
-export function DeleteTransactionButton({ id, orgSlug }: { id: string; orgSlug: string }) {
+export function DeleteTransactionButton({ id, orgSlug, className }: { id: string; orgSlug: string; className?: string }) {
   const [isPending, startTransition] = useTransition();
 
   return (
     <Button
       variant="destructive"
       size="sm"
+      className={className}
       disabled={isPending}
-      onClick={() => {
+      onClick={(e) => {
+        e.stopPropagation();
         if (confirm("Are you sure you want to delete this transaction?")) {
           startTransition(async () => {
             await deleteTransaction(id, orgSlug);
