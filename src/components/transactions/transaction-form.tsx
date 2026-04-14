@@ -164,7 +164,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
         <Plus className="h-6 w-6" />
       </button>
 
-      <DialogContent className="sm:max-w-lg max-h-[100dvh] md:max-h-[85vh] min-h-[100dvh] md:min-h-0 md:h-auto w-full max-w-[100vw] rounded-none md:rounded-lg p-4 md:p-6 pt-[env(safe-area-inset-top)] flex flex-col overscroll-contain overflow-x-hidden overflow-y-hidden touch-pan-y box-border">
+      <DialogContent className="sm:max-w-lg max-h-[100dvh] md:max-h-[85vh] min-h-[100dvh] md:min-h-0 md:h-auto w-full max-w-full rounded-none md:rounded-lg p-4 md:p-6 pt-[env(safe-area-inset-top)] flex flex-col overscroll-contain overscroll-x-none overflow-x-hidden overflow-y-hidden touch-pan-y box-border">
         <DialogHeader>
           <DialogTitle>Add Transaction</DialogTitle>
         </DialogHeader>
@@ -180,7 +180,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
           
           <div className="flex-1 overflow-y-auto space-y-4 pt-4 pb-6">
           {/* Quick Templates (Scrollable Chips) */}
-          <div className="flex overflow-x-auto whitespace-nowrap gap-2 pb-2 w-full max-w-full box-border [&::-webkit-scrollbar]:hidden">
+          <div className="flex flex-wrap gap-2 pb-2 w-full max-w-full box-border">
             {QUICK_TEMPLATES.map((tmpl, idx) => (
               <button
                 key={idx}
