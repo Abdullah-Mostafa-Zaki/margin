@@ -57,7 +57,7 @@ export default async function SettingsPage({
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto p-4 md:p-8 w-full overflow-x-hidden">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Brand Settings</h1>
         <p className="text-zinc-500">Manage your brand and team members.</p>
@@ -74,7 +74,7 @@ export default async function SettingsPage({
               <input
                 disabled
                 value={organization.slug}
-                className="flex h-10 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-500"
+                className="flex h-10 w-full min-w-0 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-500"
               />
             </div>
             <p className="text-xs text-zinc-500">Contact support to change these details.</p>

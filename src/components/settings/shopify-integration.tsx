@@ -92,7 +92,7 @@ export function ShopifyIntegration({
               <p className="text-xs font-semibold text-blue-800">
                 Setup Instructions
               </p>
-              <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
+              <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside whitespace-normal break-words">
                 <li>
                   Paste the Webhook URL below into{" "}
                   <span className="font-medium">
@@ -115,18 +115,18 @@ export function ShopifyIntegration({
           <label className="text-sm font-medium text-zinc-700">
             Webhook URL
           </label>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 w-full">
             <input
               id="shopify-webhook-url"
               readOnly
               value={webhookUrl}
-              className="flex h-10 flex-1 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600 font-mono focus:outline-none cursor-text select-all"
+              className="flex h-10 flex-1 min-w-0 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600 font-mono focus:outline-none cursor-text select-all"
             />
             <button
               id="copy-webhook-url-btn"
               type="button"
               onClick={handleCopy}
-              className="inline-flex h-10 items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-300"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-300 whitespace-nowrap"
             >
               {copied ? (
                 <>
@@ -169,7 +169,7 @@ export function ShopifyIntegration({
             value={secret}
             onChange={(e) => setSecret(e.target.value)}
             disabled={isPending}
-            className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent disabled:opacity-50 transition"
+            className="flex h-10 w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent disabled:opacity-50 transition"
           />
         </div>
 

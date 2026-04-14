@@ -29,11 +29,12 @@ export function EditOrgForm({ organization }: { organization: { id: string; name
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium">Brand Name</label>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2 w-full">
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
           disabled={isPending}
+          className="flex-1 min-w-0 w-full"
         />
         <Button onClick={handleSave} disabled={isPending || name === organization.name || name.trim() === ""}>
           {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
