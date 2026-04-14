@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { createTransaction } from "@/actions/transactions.actions";
 import { UploadButton } from "@/lib/uploadthing";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, AlertCircle } from "lucide-react";
 
 const EXPENSE_CATEGORIES = [
   "Raw Materials",
@@ -40,6 +40,13 @@ const EXPENSE_PAYMENT_METHODS = [
   { value: "INSTAPAY", label: "Instapay" },
 ];
 
+const QUICK_TEMPLATES = [
+  { label: "Meta Ads", type: "EXPENSE", category: "Ads" },
+  { label: "Raw Materials", type: "EXPENSE", category: "Raw Materials" },
+  { label: "Packaging", type: "EXPENSE", category: "Packaging" },
+  { label: "Sales Revenue", type: "INCOME", category: "Sales Revenue" },
+];
+
 interface TagProp {
   id: string;
   name: string;
@@ -60,26 +67,32 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
   const [showTags, setShowTags] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
+  const [error, setError] = useState<string | null>(null);
+
   const autoStatus = paymentMethod === "COD" ? "PENDING" : "RECEIVED";
   const displayStatus = statusOverride || autoStatus;
 
-  const form = {
-    watch: (field: string) => type,
-    getValues: (field: string) => paymentMethod,
-    setValue: (field: string, value: string) => setPaymentMethod(value),
-  };
-
-  const selectedType = form.watch("type");
+  // form helpers for useEffect sync
+  const selectedType = type;
   const activePaymentMethods = selectedType === "INCOME" ? INCOME_PAYMENT_METHODS : EXPENSE_PAYMENT_METHODS;
 
   useEffect(() => {
-    if (selectedType === "EXPENSE" && form.getValues("paymentMethod") === "COD") {
-      form.setValue("paymentMethod", "CASH");
+    if (selectedType === "EXPENSE" && paymentMethod === "COD") {
+      setPaymentMethod("CASH");
     }
-  }, [selectedType]);
+  }, [selectedType, paymentMethod]);
+
+  // Clean error when opening modal
+  useEffect(() => {
+    if (isOpen) {
+      setError(null);
+    }
+  }, [isOpen]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isPending) return;
+
     const formData = new FormData(e.currentTarget);
     
     formData.set("type", type);
@@ -95,10 +108,14 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
       formData.append("tagIds", tagId);
     });
 
+    // Optimistic Modal Close
+    setIsOpen(false);
+    setError(null);
+
     startTransition(async () => {
       try {
         await createTransaction(orgSlug, formData);
-        setIsOpen(false);
+        // Reset form on success
         setReceiptUrl(null);
         setType("EXPENSE");
         setCategory("Raw Materials");
@@ -107,9 +124,13 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
         setShowStatusOverride(false);
         setSelectedTags([]);
         setShowTags(false);
+        
+        // This will sync the transaction list on the page
         router.refresh();
-      } catch (err) {
-        console.error(err);
+      } catch (err: any) {
+        // Rollback state visually
+        setIsOpen(true);
+        setError(err.message || "Failed to save transaction.");
       }
     });
   };
@@ -122,17 +143,55 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
     );
   };
 
+  const applyTemplate = (templateType: string, templateCategory: string) => {
+    setType(templateType as "EXPENSE" | "INCOME");
+    setCategory(templateCategory);
+  };
+
   const activeCategories = type === "INCOME" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild><Button>Add Transaction</Button></DialogTrigger>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto w-full">
+      {/* Desktop Button */}
+      <Button className="hidden md:flex" onClick={() => setIsOpen(true)}>Add Transaction</Button>
+      
+      {/* Mobile FAB */}
+      <button 
+        className="md:hidden flex items-center justify-center fixed right-6 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg active:scale-95 transition-transform duration-75 z-50"
+        onClick={() => setIsOpen(true)}
+        aria-label="Add Transaction"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+
+      <DialogContent className="sm:max-w-lg max-h-[100dvh] md:max-h-[85vh] h-[100dvh] md:h-auto w-full max-w-full rounded-none md:rounded-lg p-4 md:p-6 pt-[env(safe-area-inset-top)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Transaction</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+
+        {error && (
+          <div className="flex items-center gap-2 p-3 mt-4 text-sm font-medium text-red-800 rounded-lg bg-red-50 border border-red-200">
+            <AlertCircle className="h-4 w-4" />
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4 pt-4 mb-24 md:mb-0">
           
+          {/* Quick Templates (Scrollable Chips) */}
+          <div className="flex overflow-x-auto gap-2 pb-2 [&::-webkit-scrollbar]:hidden w-full">
+            {QUICK_TEMPLATES.map((tmpl, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => applyTemplate(tmpl.type, tmpl.category)}
+                className="whitespace-nowrap flex items-center justify-center min-h-[44px] px-4 rounded-full border border-zinc-200 bg-white shadow-sm text-sm font-medium active:scale-95 transition-transform duration-75 text-zinc-700"
+              >
+                {tmpl.label}
+              </button>
+            ))}
+          </div>
+
           <div className="space-y-2 mb-6">
             <label className="text-sm font-medium text-muted-foreground">Amount (EGP)</label>
             <div className="relative">
@@ -142,6 +201,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
                 name="amount"
                 min="0"
                 step="0.01"
+                inputMode="decimal"
                 required
                 className="flex w-full rounded-xl border border-input bg-background py-4 pl-14 pr-4 text-3xl font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 placeholder="0.00"
@@ -326,9 +386,11 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
             </div>
           </div>
 
-          <Button type="submit" className="w-full flex h-10" disabled={isPending}>
-            {isPending ? "Saving..." : "Save Transaction"}
-          </Button>
+          <div className="fixed md:static bottom-0 left-0 w-full p-4 md:p-0 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-white/90 backdrop-blur md:bg-transparent border-t md:border-t-0 z-50">
+            <Button type="submit" className="w-full flex h-12 md:h-10 text-base md:text-sm font-semibold" disabled={isPending}>
+              {isPending ? "Saving..." : "Save Transaction"}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
