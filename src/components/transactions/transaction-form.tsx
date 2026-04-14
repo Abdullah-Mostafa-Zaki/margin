@@ -181,7 +181,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
         <Plus className="h-6 w-6" />
       </button>
 
-      <DialogContent className="w-full md:max-w-lg max-h-[100dvh] md:max-h-[85vh] min-h-[100dvh] md:min-h-0 md:h-auto rounded-none md:rounded-lg p-0 flex flex-col overflow-hidden">
+      <DialogContent className="w-full md:max-w-lg max-h-[100dvh] md:max-h-[85vh] min-h-[100dvh] md:min-h-0 md:h-auto rounded-none md:rounded-lg p-0 md:p-6 flex flex-col overflow-hidden">
         <DialogHeader className="px-4 pt-4 md:pt-0 md:px-0 shrink-0">
           <DialogTitle>Add Transaction</DialogTitle>
         </DialogHeader>
@@ -195,7 +195,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           {/* Scrollable body — px-4 keeps content inset from edges */}
-          <div className="flex-1 overflow-y-auto overscroll-contain space-y-4 px-4 pt-4 pb-6">
+          <div className="flex-1 overflow-y-auto overscroll-contain space-y-4 px-4 md:px-0 pt-4 pb-6 md:pr-2">
             {/* Quick Templates (Scrollable Chips) */}
             <div className="flex flex-wrap gap-2 pb-2 w-full max-w-full">
               {QUICK_TEMPLATES.map((tmpl, idx) => (
@@ -203,7 +203,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
                   key={idx}
                   type="button"
                   onClick={() => applyTemplate(tmpl.type, tmpl.category)}
-                  className="flex items-center justify-center min-h-[44px] px-4 rounded-full border border-zinc-200 bg-white shadow-sm text-sm font-medium active:scale-95 transition-transform duration-75 text-zinc-700 max-w-full shrink-0"
+                  className="flex items-center justify-center min-h-[44px] md:min-h-[32px] px-4 md:px-3 rounded-full border border-zinc-200 bg-white shadow-sm text-sm md:text-xs font-medium active:scale-95 transition-transform duration-75 text-zinc-700 max-w-full shrink-0"
                 >
                   {tmpl.label}
                 </button>
@@ -213,7 +213,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
             <div className="space-y-2 mb-6">
               <label className="text-sm font-medium text-muted-foreground">Amount (EGP)</label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-muted-foreground">EGP</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl md:text-lg font-bold text-muted-foreground">EGP</span>
                 <input
                   type="number"
                   name="amount"
@@ -221,7 +221,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
                   step="0.01"
                   inputMode="decimal"
                   required
-                  className="flex w-full max-w-full rounded-xl border border-input bg-background py-4 pl-14 pr-4 text-3xl font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="flex w-full max-w-full rounded-xl border border-input bg-background py-4 md:py-3 pl-14 md:pl-12 pr-4 text-3xl md:text-2xl font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   placeholder="0.00"
                 />
               </div>
@@ -403,7 +403,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
             </div>
           </div>
 
-          <div className="shrink-0 px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-zinc-100 bg-white md:bg-transparent md:border-transparent">
+          <div className="shrink-0 px-4 md:px-0 pt-3 md:pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-0 border-t md:border-t-0 border-zinc-100 bg-white md:bg-transparent">
             <Button type="submit" className="w-full flex h-14 md:h-10 text-base md:text-sm font-semibold" disabled={isPending}>
               {isPending ? "Saving..." : "Save Transaction"}
             </Button>
