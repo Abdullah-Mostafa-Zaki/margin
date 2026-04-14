@@ -116,12 +116,12 @@ export function ShopifyIntegration({
             Webhook URL
           </label>
           <div className="flex flex-wrap gap-2 w-full">
-            <input
+            <div
               id="shopify-webhook-url"
-              readOnly
-              value={webhookUrl}
-              className="flex h-10 flex-1 min-w-0 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600 font-mono focus:outline-none cursor-text select-all"
-            />
+              className="flex-1 min-w-0 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600 font-mono break-all whitespace-normal overflow-hidden select-all"
+            >
+              {webhookUrl}
+            </div>
             <button
               id="copy-webhook-url-btn"
               type="button"
@@ -189,13 +189,13 @@ export function ShopifyIntegration({
         )}
 
         {/* Save Button */}
-        <div className="flex justify-end pt-1">
+        <div className="flex flex-wrap justify-end pt-1 w-full max-w-full">
           <button
             id="save-shopify-secret-btn"
             type="button"
             onClick={handleSave}
             disabled={isPending || !secret.trim()}
-            className="inline-flex h-10 items-center gap-2 rounded-md bg-zinc-900 px-5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-zinc-900 px-5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed w-full sm:w-auto"
           >
             {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             {hasSecret ? "Update Connection" : "Save Connection"}

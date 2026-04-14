@@ -57,7 +57,7 @@ export default async function SettingsPage({
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto p-4 md:p-8 w-full overflow-x-hidden">
+    <div className="space-y-6 max-w-[100vw] mx-auto p-4 md:p-8 w-full overflow-x-hidden">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Brand Settings</h1>
         <p className="text-zinc-500">Manage your brand and team members.</p>
@@ -65,9 +65,9 @@ export default async function SettingsPage({
 
       <div className="grid gap-6">
         {/* Brand Details */}
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
+        <div className="rounded-lg border bg-white p-6 shadow-sm w-full max-w-full overflow-hidden">
           <h2 className="mb-4 text-lg font-medium">General Information</h2>
-          <div className="space-y-4 w-full max-w-md">
+          <div className="space-y-4 w-full max-w-full">
             <EditOrgForm organization={{ id: organization.id, name: organization.name }} />
             <div className="space-y-2">
               <label className="text-sm font-medium">Brand URL Slug</label>
@@ -89,7 +89,7 @@ export default async function SettingsPage({
         />
 
         {/* Team Members */}
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
+        <div className="rounded-lg border bg-white p-6 shadow-sm w-full max-w-full overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
             <h2 className="text-lg font-medium">Team Members</h2>
             <button className="inline-flex h-9 items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-900/90">
