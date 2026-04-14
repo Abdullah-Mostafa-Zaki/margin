@@ -164,7 +164,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
         <Plus className="h-6 w-6" />
       </button>
 
-      <DialogContent className="sm:max-w-lg max-h-[100dvh] md:max-h-[85vh] h-[100dvh] md:h-auto w-full max-w-full rounded-none md:rounded-lg p-4 md:p-6 pt-[env(safe-area-inset-top)] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[100dvh] md:max-h-[85vh] min-h-[100dvh] md:min-h-0 md:h-auto w-full max-w-full rounded-none md:rounded-lg p-4 md:p-6 pt-[env(safe-area-inset-top)] flex flex-col overscroll-contain overflow-hidden">
         <DialogHeader>
           <DialogTitle>Add Transaction</DialogTitle>
         </DialogHeader>
@@ -176,8 +176,9 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4 mb-24 md:mb-0">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           
+          <div className="flex-1 overflow-y-auto space-y-4 pt-4 pb-6">
           {/* Quick Templates (Scrollable Chips) */}
           <div className="flex flex-wrap gap-2 pb-2 w-full">
             {QUICK_TEMPLATES.map((tmpl, idx) => (
@@ -384,10 +385,11 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
                 </div>
               )}
             </div>
+            </div>
           </div>
 
-          <div className="fixed md:static bottom-0 left-0 w-full p-4 md:p-0 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-white/90 backdrop-blur md:bg-transparent border-t md:border-t-0 z-50">
-            <Button type="submit" className="w-full flex h-12 md:h-10 text-base md:text-sm font-semibold" disabled={isPending}>
+          <div className="sticky bottom-0 left-0 w-full pt-4 pb-[env(safe-area-inset-bottom)] mt-auto bg-white border-t border-zinc-100 md:bg-transparent md:border-transparent z-50">
+            <Button type="submit" className="w-full flex h-14 md:h-10 text-base md:text-sm font-semibold shadow-none md:shadow-sm" disabled={isPending}>
               {isPending ? "Saving..." : "Save Transaction"}
             </Button>
           </div>
