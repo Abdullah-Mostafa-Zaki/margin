@@ -49,7 +49,7 @@ export function ShopifyIntegration({
   };
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
+    <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden w-full max-w-full">
       {/* Card Header */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-zinc-100 bg-gradient-to-r from-zinc-50 to-white">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#96bf48]/10 border border-[#96bf48]/20">
@@ -85,14 +85,14 @@ export function ShopifyIntegration({
 
       <div className="px-6 py-5 space-y-6">
         {/* Setup Instructions */}
-        <div className="rounded-lg bg-blue-50 border border-blue-100 p-4">
+        <div className="rounded-lg bg-blue-50 border border-blue-100 p-4 w-full max-w-full">
           <div className="flex items-start gap-2">
             <Zap className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-            <div className="space-y-1.5">
-              <p className="text-xs font-semibold text-blue-800">
+            <div className="space-y-1.5 min-w-0 flex-1">
+              <p className="text-xs font-semibold text-blue-800 whitespace-normal break-words text-wrap">
                 Setup Instructions
               </p>
-              <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside whitespace-normal break-words">
+              <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside whitespace-normal break-words text-wrap">
                 <li>
                   Paste the Webhook URL below into{" "}
                   <span className="font-medium">
