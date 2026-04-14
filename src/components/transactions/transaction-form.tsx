@@ -181,30 +181,29 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
         <Plus className="h-6 w-6" />
       </button>
 
-      <DialogContent className="sm:max-w-lg max-h-[100dvh] md:max-h-[85vh] min-h-[100dvh] md:min-h-0 md:h-auto !w-full !max-w-full !overflow-x-hidden rounded-none md:rounded-lg p-0 md:p-6 pt-[env(safe-area-inset-top)] flex flex-col overscroll-none touch-pan-y box-border">
-        <div style={{ width: '100%', maxWidth: '100%', overflowX: 'hidden', boxSizing: 'border-box' }} className="flex flex-col flex-1 min-h-0 p-4 md:p-0">
-        <DialogHeader>
+      <DialogContent className="w-full md:max-w-lg max-h-[100dvh] md:max-h-[85vh] min-h-[100dvh] md:min-h-0 md:h-auto rounded-none md:rounded-lg p-0 flex flex-col overflow-hidden">
+        <DialogHeader className="px-4 pt-4 md:pt-0 md:px-0 shrink-0">
           <DialogTitle>Add Transaction</DialogTitle>
         </DialogHeader>
 
         {error && (
-          <div className="flex items-center gap-2 p-3 mt-4 text-sm font-medium text-red-800 rounded-lg bg-red-50 border border-red-200">
+          <div className="flex items-center gap-2 p-3 mx-4 mt-2 text-sm font-medium text-red-800 rounded-lg bg-red-50 border border-red-200">
             <AlertCircle className="h-4 w-4" />
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-          
-          <div className="flex-1 overflow-y-auto space-y-4 pt-4 pb-6">
+          {/* Scrollable body — px-4 keeps content inset from edges */}
+          <div className="flex-1 overflow-y-auto overscroll-contain space-y-4 px-4 pt-4 pb-6">
           {/* Quick Templates (Scrollable Chips) */}
-          <div className="flex flex-wrap gap-2 pb-2 w-full max-w-[calc(100vw-32px)] md:max-w-full box-border">
+          <div className="flex flex-wrap gap-2 pb-2 w-full max-w-full">
             {QUICK_TEMPLATES.map((tmpl, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => applyTemplate(tmpl.type, tmpl.category)}
-                className="flex items-center justify-center min-h-[44px] px-4 rounded-full border border-zinc-200 bg-white shadow-sm text-sm font-medium active:scale-95 transition-transform duration-75 text-zinc-700 max-w-[calc(100vw-32px)] md:max-w-full box-border shrink-0"
+                className="flex items-center justify-center min-h-[44px] px-4 rounded-full border border-zinc-200 bg-white shadow-sm text-sm font-medium active:scale-95 transition-transform duration-75 text-zinc-700 max-w-full shrink-0"
               >
                 {tmpl.label}
               </button>
@@ -222,7 +221,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
                 step="0.01"
                 inputMode="decimal"
                 required
-                className="flex w-full max-w-[calc(100vw-32px)] md:max-w-full box-border rounded-xl border border-input bg-background py-4 pl-14 pr-4 text-3xl font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="flex w-full max-w-full rounded-xl border border-input bg-background py-4 pl-14 pr-4 text-3xl font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 placeholder="0.00"
               />
             </div>
@@ -234,7 +233,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
                 setType("INCOME");
                 setCategory("Sales Revenue");
               }}
-              className={`h-10 w-full max-w-[calc(100vw-32px)] md:max-w-full box-border rounded-lg border-2 font-medium text-sm transition-colors ${
+              className={`h-10 w-full max-w-full rounded-lg border-2 font-medium text-sm transition-colors ${
                 type === "INCOME"
                   ? "bg-green-50 border-green-500 text-green-700"
                   : "border-input text-muted-foreground hover:bg-muted"
@@ -247,7 +246,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
                 setType("EXPENSE");
                 setCategory("Raw Materials");
               }}
-              className={`h-10 w-full max-w-[calc(100vw-32px)] md:max-w-full box-border rounded-lg border-2 font-medium text-sm transition-colors ${
+              className={`h-10 w-full max-w-full rounded-lg border-2 font-medium text-sm transition-colors ${
                 type === "EXPENSE"
                   ? "bg-red-50 border-red-500 text-red-700"
                   : "border-input text-muted-foreground hover:bg-muted"
@@ -266,7 +265,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
                 onValueChange={(val) => { if (val) setCategory(val); }}
                 required
               >
-                <SelectTrigger className="flex h-10 w-full max-w-[calc(100vw-32px)] md:max-w-full box-border rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <SelectTrigger className="flex h-10 w-full max-w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -284,7 +283,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
                 onValueChange={(val) => { if (val) setPaymentMethod(val); }}
                 required
               >
-                <SelectTrigger className="flex h-10 w-full max-w-[calc(100vw-32px)] md:max-w-full box-border rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <SelectTrigger className="flex h-10 w-full max-w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <SelectValue placeholder="Select method" />
                 </SelectTrigger>
                 <SelectContent>
@@ -305,7 +304,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
               name="date" 
               required 
               defaultValue={new Date().toISOString().split('T')[0]} 
-              className="flex h-10 w-full max-w-[calc(100vw-32px)] md:max-w-full box-border rounded-md border border-input bg-background px-3 py-2 text-sm" 
+              className="flex h-10 w-full max-w-full rounded-md border border-input bg-background px-3 py-2 text-sm" 
             />
           </div>
 
@@ -327,7 +326,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
                 value={statusOverride}
                 onValueChange={(val) => { if (val) setStatusOverride(val); }}
               >
-                <SelectTrigger className="flex h-10 w-full max-w-[calc(100vw-32px)] md:max-w-full box-border rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <SelectTrigger className="flex h-10 w-full max-w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <SelectValue placeholder="Auto-set by Payment" />
                 </SelectTrigger>
                 <SelectContent>
@@ -336,7 +335,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
                 </SelectContent>
               </Select>
             ) : (
-              <div className="flex h-10 w-full max-w-[calc(100vw-32px)] md:max-w-full box-border items-center rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-muted-foreground font-medium">
+              <div className="flex h-10 w-full max-w-full items-center rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-muted-foreground font-medium">
                 Auto: {autoStatus}
               </div>
             )}
@@ -350,7 +349,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
                 <button 
                   type="button" 
                   onClick={() => setShowTags(!showTags)}
-                  className="flex w-full max-w-[calc(100vw-32px)] md:max-w-full box-border items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-muted transition-colors"
+                  className="flex w-full max-w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-muted transition-colors"
                 >
                   <span className={selectedTags.length > 0 ? "font-medium text-primary" : "text-muted-foreground"}>
                     {selectedTags.length > 0 ? `● ${selectedTags.length} Drop${selectedTags.length > 1 ? 's' : ''} selected` : "+ Add to Drop"}
@@ -359,7 +358,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
                 </button>
                 
                 {showTags && (
-                  <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto rounded-md border border-input p-2 bg-background mt-2 w-full max-w-[calc(100vw-32px)] md:max-w-full box-border">
+                  <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto rounded-md border border-input p-2 bg-background mt-2 w-full max-w-full">
                     {tags.map((tag) => (
                       <label key={tag.id} className="flex items-center space-x-2 text-sm cursor-pointer hover:bg-muted p-1 rounded-md">
                         <input 
@@ -378,7 +377,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-muted-foreground">Notes</label>
-              <textarea name="notes" placeholder="E.g. Courier Name..." className="flex min-h-[60px] w-full max-w-[calc(100vw-32px)] md:max-w-full box-border rounded-md border border-input bg-background px-3 py-2 text-sm" />
+              <textarea name="notes" placeholder="E.g. Courier Name..." className="flex min-h-[60px] w-full max-w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
             </div>
             
             <div className="space-y-2">
@@ -406,13 +405,12 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
             </div>
           </div>
 
-          <div className="sticky bottom-0 !left-0 !right-0 !w-screen md:!w-full pt-4 pb-[env(safe-area-inset-bottom)] mt-auto bg-white border-t border-zinc-100 md:bg-transparent md:border-transparent z-50 overflow-x-hidden">
-            <Button type="submit" className="w-full max-w-[calc(100vw-32px)] md:max-w-full box-border flex h-14 md:h-10 text-base md:text-sm font-semibold shadow-none md:shadow-sm" disabled={isPending}>
+          <div className="shrink-0 px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-zinc-100 bg-white md:bg-transparent md:border-transparent">
+            <Button type="submit" className="w-full flex h-14 md:h-10 text-base md:text-sm font-semibold" disabled={isPending}>
               {isPending ? "Saving..." : "Save Transaction"}
             </Button>
           </div>
         </form>
-        </div>
       </DialogContent>
     </Dialog>
   );
