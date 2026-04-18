@@ -26,7 +26,7 @@ export function GodMetric({ insights }: GodMetricProps) {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
       {/* Revenue Per Order */}
       <div className="rounded-xl border bg-white p-5 flex flex-col justify-between shadow-sm">
-        <p className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-2">Revenue / Order</p>
+        <p className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-2">AVG Revenue / Order</p>
         <p className="text-2xl font-bold text-zinc-900 truncate" title={`EGP ${revenuePerOrder}`}>
           EGP {Math.round(revenuePerOrder).toLocaleString()}
         </p>
@@ -34,7 +34,7 @@ export function GodMetric({ insights }: GodMetricProps) {
 
       {/* Cost Per Order */}
       <div className="rounded-xl border bg-white p-5 flex flex-col justify-between shadow-sm">
-        <p className="text-sm font-medium text-rose-600 uppercase tracking-wider mb-2">Cost / Order</p>
+        <p className="text-sm font-medium text-rose-600 uppercase tracking-wider mb-2">AVG Cost / Order</p>
         <p className="text-2xl font-bold text-rose-700 truncate" title={`EGP ${costPerOrder}`}>
           EGP {Math.round(costPerOrder).toLocaleString()}
         </p>
@@ -44,7 +44,7 @@ export function GodMetric({ insights }: GodMetricProps) {
       <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 flex flex-col justify-between shadow-sm relative overflow-hidden">
         {/* Subtle accent background line */}
         <div className="absolute top-0 left-0 w-[4px] h-full bg-emerald-500"></div>
-        <p className="text-sm font-bold text-emerald-800 uppercase tracking-wider mb-2 pl-2">Profit / Order</p>
+        <p className="text-sm font-bold text-emerald-800 uppercase tracking-wider mb-2 pl-2">AVG Profit / Order</p>
         <p className="text-3xl font-extrabold text-emerald-600 pl-2 truncate" title={`EGP ${profitPerOrder}`}>
           EGP {Math.round(profitPerOrder).toLocaleString()}
         </p>
