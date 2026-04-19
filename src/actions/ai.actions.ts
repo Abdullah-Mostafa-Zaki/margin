@@ -24,10 +24,10 @@ export async function parseVoiceTransaction(
     throw new Error("GEMINI_API_KEY is not configured.");
   }
 
-  console.log("DEBUG: Calling Gemini with model gemini-1.5-flash-latest");
+  console.log("🚀 [HARD-RELOAD-V4] ACTIVE MODEL: gemini-2.5-flash");
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash-latest",
+    model: "gemini-2.5-flash",
   });
 
   // Dynamic date context so the model can resolve relative references
