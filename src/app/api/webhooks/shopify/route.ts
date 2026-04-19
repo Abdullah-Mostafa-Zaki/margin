@@ -9,9 +9,9 @@ import prisma from "@/lib/prisma";
 function mapPaymentMethod(
   gateway: string | undefined | null
 ): "CASH" | "CARD" | "INSTAPAY" | "COD" {
-  if (!gateway) return "CARD";
+  if (!gateway || gateway.trim() === "") return "COD";
   const g = gateway.toLowerCase();
-  if (g.includes("cash") || g.includes("cod") || g.includes("delivery") || g.includes("manual")) {
+  if (g.includes("cash") || g.includes("cod") || g.includes("delivery") || g.includes("manual") || g.includes("custom")) {
     return "COD";
   }
   if (g.includes("instapay")) {
