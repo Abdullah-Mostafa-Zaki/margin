@@ -24,6 +24,17 @@ export async function parseVoiceTransaction(
     throw new Error("GEMINI_API_KEY is not configured.");
   }
 
+  // Guard: reject silent or too-short recordings before wasting an API call
+  if (!base64Audio || base64Audio.length < 100) {
+    throw new Error("Audio was too short or silent. Please speak clearly and try again.");
+  }
+
+  // Normalize MIME: Safari sometimes sends video/mp4 for audio-only recordings
+  let normalizedMime = mimeType;
+  if (normalizedMime.includes("mp4")) {
+    normalizedMime = "audio/mp4";
+  }
+
   console.log("🚀 [HARD-RELOAD-V4] ACTIVE MODEL: gemini-2.5-flash");
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
@@ -90,7 +101,7 @@ Return ONLY the JSON object. No explanation, no markdown.`;
           { text: systemPrompt },
           {
             inlineData: {
-              mimeType: mimeType,
+              mimeType: normalizedMime,
               data: base64Audio,
             },
           },

@@ -91,7 +91,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tag
   // Expose imperative handle so external components (MagicVoiceButton) can open the form with defaults
   useImperativeHandle(ref, () => ({
     openWithDefaults(defaults: TransactionDefaultValues) {
-      // Apply all provided defaults
+      // Apply all provided defaults via React state
       if (defaults.type) {
         setType(defaults.type);
       }
@@ -102,27 +102,34 @@ const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tag
         setPaymentMethod(defaults.paymentMethod);
       }
 
-      // Open the dialog first, then set native input values after render
+      // Reset optional state to clean baseline
+      setStatusOverride("");
+      setShowStatusOverride(false);
       setError(null);
+
+      // Open the dialog first
       setIsOpen(true);
 
-      // Use requestAnimationFrame to ensure refs are attached after dialog opens
+      // Double rAF: first frame lets React render the dialog,
+      // second frame ensures refs are attached — fixes iOS Safari lazy rendering
       requestAnimationFrame(() => {
-        if (defaults.amount != null && amountRef.current) {
-          const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-          setter?.call(amountRef.current, String(defaults.amount));
-          amountRef.current.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-        if (defaults.date && dateRef.current) {
-          const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-          setter?.call(dateRef.current, defaults.date);
-          dateRef.current.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-        if (defaults.notes && notesRef.current) {
-          const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
-          setter?.call(notesRef.current, defaults.notes);
-          notesRef.current.dispatchEvent(new Event('input', { bubbles: true }));
-        }
+        requestAnimationFrame(() => {
+          if (defaults.amount != null && amountRef.current) {
+            const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+            setter?.call(amountRef.current, String(defaults.amount));
+            amountRef.current.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          if (defaults.date && dateRef.current) {
+            const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+            setter?.call(dateRef.current, defaults.date);
+            dateRef.current.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          if (defaults.notes && notesRef.current) {
+            const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+            setter?.call(notesRef.current, defaults.notes);
+            notesRef.current.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        });
       });
     },
   }));
@@ -183,14 +190,19 @@ const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tag
       formData.append("tagIds", tagId);
     });
 
-    // Optimistic Modal Close
-    setIsOpen(false);
+    // Debug: log exactly what we're sending to the server
+    console.log("📝 Submitting Transaction:", Object.fromEntries(formData));
+
     setError(null);
 
     startTransition(async () => {
       try {
         await createTransaction(orgSlug, formData);
-        // Reset form on success
+
+        // Close modal only AFTER server confirms success
+        setIsOpen(false);
+
+        // Reset React state
         setReceiptUrl(null);
         setType("EXPENSE");
         setCategory("Raw Materials");
@@ -200,11 +212,15 @@ const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tag
         setSelectedTags([]);
         setShowTags(false);
 
-        // This will sync the transaction list on the page
+        // Reset native input refs (clears voice-filled values)
+        if (amountRef.current) amountRef.current.value = "";
+        if (dateRef.current) dateRef.current.value = new Date().toISOString().split('T')[0];
+        if (notesRef.current) notesRef.current.value = "";
+
+        // Sync the transaction list on the page
         router.refresh();
       } catch (err: any) {
-        // Rollback state visually
-        setIsOpen(true);
+        // Keep modal open so user can see the error and retry
         setError(err.message || "Failed to save transaction.");
       }
     });

@@ -15,6 +15,11 @@ interface AudioRecorderResult {
  * Cross-browser audio recorder hook.
  * Handles WebM (Chrome/Firefox) and MP4 (Safari/iOS) MIME negotiation,
  * converts the recorded Blob to a base64 string for API transport.
+ *
+ * iOS Safari fixes:
+ * - Prioritizes audio/mp4 for Safari (which may report video/mp4 for audio-only)
+ * - Resumes a suspended AudioContext to unlock the mic on iOS
+ * - Filters out 0-byte chunks that Safari sometimes emits
  */
 export function useAudioRecorder(): AudioRecorderResult {
   const [isRecording, setIsRecording] = useState(false);
@@ -26,10 +31,37 @@ export function useAudioRecorder(): AudioRecorderResult {
   const chunksRef = useRef<Blob[]>([]);
 
   /**
+   * Detects if we're on iOS/Safari.
+   */
+  const isIOSSafari = (): boolean => {
+    if (typeof navigator === "undefined") return false;
+    const ua = navigator.userAgent;
+    return /iPad|iPhone|iPod/.test(ua) || (ua.includes("Mac") && "ontouchend" in document);
+  };
+
+  /**
    * Determines the best supported MIME type for the current browser.
-   * Safari/iOS doesn't support audio/webm, so we fall back to audio/mp4.
+   * On iOS/Safari, we prioritize audio/mp4 since Safari doesn't support webm
+   * and sometimes reports video/mp4 for audio-only recordings.
    */
   const getSupportedMimeType = (): string => {
+    // iOS/Safari priority — check mp4 first
+    if (isIOSSafari()) {
+      const safariCandidates = [
+        "audio/mp4",
+        "audio/aac",
+        "audio/webm",
+      ];
+      for (const candidate of safariCandidates) {
+        if (MediaRecorder.isTypeSupported(candidate)) {
+          return candidate;
+        }
+      }
+      // Safari fallback — let browser pick, we'll normalize the MIME later
+      return "";
+    }
+
+    // Non-Safari priority
     const candidates = [
       "audio/webm;codecs=opus",
       "audio/webm",
@@ -68,6 +100,22 @@ export function useAudioRecorder(): AudioRecorderResult {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // iOS Safari: Resume AudioContext if suspended (required to "unlock" the mic)
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          if (ctx.state === "suspended") {
+            await ctx.resume();
+          }
+          // Connect the stream to the context to ensure iOS processes it
+          ctx.createMediaStreamSource(stream);
+        }
+      } catch {
+        // AudioContext not critical — continue without it
+      }
+
       const detectedMime = getSupportedMimeType();
 
       const recorder = detectedMime
@@ -75,10 +123,11 @@ export function useAudioRecorder(): AudioRecorderResult {
         : new MediaRecorder(stream);
 
       // Store the actual mimeType the recorder is using
-      const activeMime = recorder.mimeType || detectedMime || "audio/webm";
+      const activeMime = recorder.mimeType || detectedMime || "audio/mp4";
 
       recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
+        // Filter out 0-byte chunks (iOS Safari sometimes emits empty first chunks)
+        if (e.data && e.data.size > 0) {
           chunksRef.current.push(e.data);
         }
       };
@@ -87,19 +136,35 @@ export function useAudioRecorder(): AudioRecorderResult {
         // Stop all tracks to release the microphone
         stream.getTracks().forEach((track) => track.stop());
 
+        if (chunksRef.current.length === 0) {
+          setError("Recording was empty. Please try again and speak clearly.");
+          return;
+        }
+
         const blob = new Blob(chunksRef.current, { type: activeMime });
+
+        if (blob.size < 100) {
+          setError("Recording was too short. Please try again.");
+          return;
+        }
+
         try {
           const b64 = await blobToBase64(blob);
           setBase64Audio(b64);
-          // Normalize to a simple MIME (strip codecs param for the API)
-          setMimeType(activeMime.split(";")[0]);
+          // Normalize MIME: strip codecs param and fix video/mp4 → audio/mp4
+          let normalizedMime = activeMime.split(";")[0];
+          if (normalizedMime === "video/mp4") {
+            normalizedMime = "audio/mp4";
+          }
+          setMimeType(normalizedMime);
         } catch {
           setError("Failed to process audio recording.");
         }
       };
 
       mediaRecorderRef.current = recorder;
-      recorder.start();
+      // Use timeslice to ensure data is captured periodically (helps iOS)
+      recorder.start(1000);
       setIsRecording(true);
     } catch (err: any) {
       if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
