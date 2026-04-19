@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { createTransaction } from "@/actions/transactions.actions";
+import { parseVoiceTransaction } from "@/actions/ai.actions";
+import { useAudioRecorder } from "@/hooks/use-audio-recorder";
 import { UploadButton } from "@/lib/uploadthing";
-import { ChevronDown, ChevronRight, Plus, AlertCircle } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, AlertCircle, Mic, Loader2 } from "lucide-react";
 
 const EXPENSE_CATEGORIES = [
   "Raw Materials",
@@ -68,6 +70,61 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const [error, setError] = useState<string | null>(null);
+
+  // ── Magic Fill (Voice-to-Transaction) ─────────────────────────────────────
+  const { isRecording, base64Audio, mimeType, startRecording, stopRecording, error: micError } = useAudioRecorder();
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const dateRef = useRef<HTMLInputElement>(null);
+  const notesRef = useRef<HTMLTextAreaElement>(null);
+
+  // When recording stops and we have audio, send it to Gemini
+  useEffect(() => {
+    if (!base64Audio || !mimeType || isAiProcessing) return;
+
+    setIsAiProcessing(true);
+    setError(null);
+
+    parseVoiceTransaction(base64Audio, mimeType)
+      .then((result) => {
+        // Auto-fill all form fields from AI response
+        setType(result.type);
+        setCategory(result.category);
+        setPaymentMethod(result.paymentMethod);
+
+        // Set native input values via refs + trigger React change
+        if (amountRef.current) {
+          const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+          nativeInputValueSetter?.call(amountRef.current, String(result.amount));
+          amountRef.current.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        if (dateRef.current) {
+          const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+          nativeInputValueSetter?.call(dateRef.current, result.date);
+          dateRef.current.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        if (notesRef.current) {
+          const nativeTextareaSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+          nativeTextareaSetter?.call(notesRef.current, result.notes || '');
+          notesRef.current.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      })
+      .catch((err: any) => {
+        setError(err.message || "Voice processing failed. Please try again.");
+      })
+      .finally(() => {
+        setIsAiProcessing(false);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [base64Audio, mimeType]);
+
+  const handleMicToggle = async () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      await startRecording();
+    }
+  };
 
   const autoStatus = paymentMethod === "COD" ? "PENDING" : "RECEIVED";
   const displayStatus = statusOverride || autoStatus;
@@ -215,16 +272,40 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl md:text-lg font-bold text-muted-foreground">EGP</span>
                 <input
+                  ref={amountRef}
                   type="number"
                   name="amount"
                   min="0"
                   step="0.01"
                   inputMode="decimal"
                   required
-                  className="flex w-full max-w-full rounded-xl border border-input bg-background py-4 md:py-3 pl-14 md:pl-12 pr-4 text-3xl md:text-2xl font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="flex w-full max-w-full rounded-xl border border-input bg-background py-4 md:py-3 pl-14 md:pl-12 pr-14 text-3xl md:text-2xl font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   placeholder="0.00"
                 />
+                {/* Magic Fill Mic Button */}
+                <button
+                  type="button"
+                  onClick={handleMicToggle}
+                  disabled={isAiProcessing}
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center h-10 w-10 rounded-full transition-all duration-200 ${
+                    isAiProcessing
+                      ? "bg-zinc-100 text-zinc-400 cursor-wait"
+                      : isRecording
+                        ? "bg-red-500 text-white shadow-lg shadow-red-200 animate-pulse"
+                        : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 active:scale-95"
+                  }`}
+                  title={isRecording ? "Stop recording" : "Magic Fill — speak your transaction"}
+                >
+                  {isAiProcessing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Mic className="h-4 w-4" />
+                  )}
+                </button>
               </div>
+              {(micError) && (
+                <p className="text-xs text-red-500 mt-1">{micError}</p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-2 mb-4">
@@ -298,6 +379,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
             <div className="space-y-2">
               <label className="text-sm font-medium">Date</label>
               <input
+                ref={dateRef}
                 type="date"
                 name="date"
                 required
@@ -375,7 +457,7 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">Notes</label>
-                <textarea name="notes" placeholder="E.g. Courier Name..." className="flex min-h-[60px] w-full max-w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                <textarea ref={notesRef} name="notes" placeholder="E.g. Courier Name..." className="flex min-h-[60px] w-full max-w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
               </div>
 
               <div className="space-y-2">
