@@ -1,15 +1,13 @@
 "use client";
 
-import { useState, useTransition, useEffect, useRef } from "react";
+import { useState, useTransition, useEffect, useRef, useImperativeHandle, forwardRef } from "react";
 import { useRouter } from "next/navigation";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { createTransaction } from "@/actions/transactions.actions";
-import { parseVoiceTransaction } from "@/actions/ai.actions";
-import { useAudioRecorder } from "@/hooks/use-audio-recorder";
 import { UploadButton } from "@/lib/uploadthing";
-import { ChevronDown, ChevronRight, Plus, AlertCircle, Mic, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, AlertCircle } from "lucide-react";
 
 const EXPENSE_CATEGORIES = [
   "Raw Materials",
@@ -54,7 +52,21 @@ interface TagProp {
   name: string;
 }
 
-export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: string; tags?: TagProp[] }) {
+export interface TransactionDefaultValues {
+  amount?: number;
+  type?: "INCOME" | "EXPENSE";
+  category?: string;
+  paymentMethod?: "CASH" | "CARD" | "COD" | "INSTAPAY";
+  date?: string;
+  notes?: string;
+}
+
+export interface TransactionFormHandle {
+  openWithDefaults: (defaults: TransactionDefaultValues) => void;
+}
+
+const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tags?: TagProp[] }>(
+  function TransactionForm({ orgSlug, tags = [] }, ref) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -71,60 +83,49 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
 
   const [error, setError] = useState<string | null>(null);
 
-  // ── Magic Fill (Voice-to-Transaction) ─────────────────────────────────────
-  const { isRecording, base64Audio, mimeType, startRecording, stopRecording, error: micError } = useAudioRecorder();
-  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  // Refs for native inputs that need imperative value setting
   const amountRef = useRef<HTMLInputElement>(null);
   const dateRef = useRef<HTMLInputElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
 
-  // When recording stops and we have audio, send it to Gemini
-  useEffect(() => {
-    if (!base64Audio || !mimeType || isAiProcessing) return;
+  // Expose imperative handle so external components (MagicVoiceButton) can open the form with defaults
+  useImperativeHandle(ref, () => ({
+    openWithDefaults(defaults: TransactionDefaultValues) {
+      // Apply all provided defaults
+      if (defaults.type) {
+        setType(defaults.type);
+      }
+      if (defaults.category) {
+        setCategory(defaults.category);
+      }
+      if (defaults.paymentMethod) {
+        setPaymentMethod(defaults.paymentMethod);
+      }
 
-    setIsAiProcessing(true);
-    setError(null);
+      // Open the dialog first, then set native input values after render
+      setError(null);
+      setIsOpen(true);
 
-    parseVoiceTransaction(base64Audio, mimeType)
-      .then((result) => {
-        // Auto-fill all form fields from AI response
-        setType(result.type);
-        setCategory(result.category);
-        setPaymentMethod(result.paymentMethod);
-
-        // Set native input values via refs + trigger React change
-        if (amountRef.current) {
-          const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-          nativeInputValueSetter?.call(amountRef.current, String(result.amount));
+      // Use requestAnimationFrame to ensure refs are attached after dialog opens
+      requestAnimationFrame(() => {
+        if (defaults.amount != null && amountRef.current) {
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+          setter?.call(amountRef.current, String(defaults.amount));
           amountRef.current.dispatchEvent(new Event('input', { bubbles: true }));
         }
-        if (dateRef.current) {
-          const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-          nativeInputValueSetter?.call(dateRef.current, result.date);
+        if (defaults.date && dateRef.current) {
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+          setter?.call(dateRef.current, defaults.date);
           dateRef.current.dispatchEvent(new Event('input', { bubbles: true }));
         }
-        if (notesRef.current) {
-          const nativeTextareaSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
-          nativeTextareaSetter?.call(notesRef.current, result.notes || '');
+        if (defaults.notes && notesRef.current) {
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+          setter?.call(notesRef.current, defaults.notes);
           notesRef.current.dispatchEvent(new Event('input', { bubbles: true }));
         }
-      })
-      .catch((err: any) => {
-        setError(err.message || "Voice processing failed. Please try again.");
-      })
-      .finally(() => {
-        setIsAiProcessing(false);
       });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [base64Audio, mimeType]);
-
-  const handleMicToggle = async () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      await startRecording();
-    }
-  };
+    },
+  }));
 
   const autoStatus = paymentMethod === "COD" ? "PENDING" : "RECEIVED";
   const displayStatus = statusOverride || autoStatus;
@@ -279,33 +280,10 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
                   step="0.01"
                   inputMode="decimal"
                   required
-                  className="flex w-full max-w-full rounded-xl border border-input bg-background py-4 md:py-3 pl-14 md:pl-12 pr-14 text-3xl md:text-2xl font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="flex w-full max-w-full rounded-xl border border-input bg-background py-4 md:py-3 pl-14 md:pl-12 pr-4 text-3xl md:text-2xl font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   placeholder="0.00"
                 />
-                {/* Magic Fill Mic Button */}
-                <button
-                  type="button"
-                  onClick={handleMicToggle}
-                  disabled={isAiProcessing}
-                  className={`absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center h-10 w-10 rounded-full transition-all duration-200 ${
-                    isAiProcessing
-                      ? "bg-zinc-100 text-zinc-400 cursor-wait"
-                      : isRecording
-                        ? "bg-red-500 text-white shadow-lg shadow-red-200 animate-pulse"
-                        : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 active:scale-95"
-                  }`}
-                  title={isRecording ? "Stop recording" : "Magic Fill — speak your transaction"}
-                >
-                  {isAiProcessing ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Mic className="h-4 w-4" />
-                  )}
-                </button>
               </div>
-              {(micError) && (
-                <p className="text-xs text-red-500 mt-1">{micError}</p>
-              )}
             </div>
 
             <div className="grid grid-cols-2 gap-2 mb-4">
@@ -494,5 +472,6 @@ export default function TransactionForm({ orgSlug, tags = [] }: { orgSlug: strin
       </DialogContent>
     </Dialog>
   );
-}
+});
 
+export default TransactionForm;

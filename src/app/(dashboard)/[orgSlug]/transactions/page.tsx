@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { Transaction } from "@prisma/client";
-import TransactionForm from "@/components/transactions/transaction-form";
+import { TransactionActions } from "@/components/transactions/transaction-actions";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,7 +84,7 @@ export default async function TransactionsPage(props: {
         <div className="flex items-center flex-wrap gap-2">
           <DateRangePicker />
           <TagFilter tags={tags} />
-          <TransactionForm orgSlug={resolvedParams.orgSlug} tags={tags} />
+          <TransactionActions orgSlug={resolvedParams.orgSlug} tags={tags} />
         </div>
       </div>
 
