@@ -65,7 +65,6 @@ model Organization {
   updatedAt            DateTime      @updatedAt
   courierFee           Float         @default(0)
   shopifyWebhookUrl    String?
-  shopifySecretKey     String?
   shopifyWebhookSecret String?
   memberships          Membership[]
   tags                 Tag[]

@@ -2,10 +2,29 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import prisma from "@/lib/prisma";
 
+/**
+ * Maps a Shopify payment gateway string to one of Margin's PaymentMethod enum values.
+ * Handles common Egyptian payment methods (COD, InstaPay) with a CARD fallback.
+ */
+function mapPaymentMethod(
+  gateway: string | undefined | null
+): "CASH" | "CARD" | "INSTAPAY" | "COD" {
+  if (!gateway) return "CARD";
+  const g = gateway.toLowerCase();
+  if (g.includes("cash") || g.includes("cod") || g.includes("delivery")) {
+    return "COD";
+  }
+  if (g.includes("instapay")) {
+    return "INSTAPAY";
+  }
+  return "CARD";
+}
+
 export async function POST(req: Request) {
   try {
     const rawBody = await req.text();
 
+    // ── 1. Validate required query parameter ────────────────────────────────
     const { searchParams } = new URL(req.url);
     const orgSlug = searchParams.get("orgSlug");
 
@@ -13,7 +32,13 @@ export async function POST(req: Request) {
       return new NextResponse("Missing orgSlug", { status: 400 });
     }
 
-    // 1. Fetch Organization based on orgSlug
+    // ── 2. Event filtering — only process order creation events ─────────────
+    const shopifyTopic = req.headers.get("x-shopify-topic");
+    if (shopifyTopic && shopifyTopic !== "orders/create") {
+      return new NextResponse("Ignored non-order event", { status: 200 });
+    }
+
+    // ── 3. Fetch Organization ───────────────────────────────────────────────
     const organization = await prisma.organization.findUnique({
       where: { slug: orgSlug },
       include: {
@@ -28,7 +53,7 @@ export async function POST(req: Request) {
       return new NextResponse("Unauthorized - Organization or secret key not found", { status: 401 });
     }
 
-    // 2. Exact HMAC Verification
+    // ── 4. HMAC-SHA256 verification (timing-safe) ───────────────────────────
     const hmacHeader = req.headers.get("x-shopify-hmac-sha256");
     if (!hmacHeader) {
       return new NextResponse("Unauthorized - Missing HMAC header", { status: 401 });
@@ -39,19 +64,19 @@ export async function POST(req: Request) {
       .update(rawBody, "utf8")
       .digest("base64");
 
-    console.log("=== WEBHOOK DIAGNOSTICS ===");
-    console.log("1. Webhook triggered for slug:", orgSlug);
-    console.log("2. Secret Key found in DB?", !!organization.shopifyWebhookSecret);
-    console.log("3. Raw Body Length:", rawBody.length);
-    console.log("4. Received HMAC:", hmacHeader);
-    console.log("5. Calculated HMAC:", generatedHash);
-    console.log("===========================");
+    // Convert both to Buffers of equal length for constant-time comparison.
+    // If lengths differ the comparison will safely return false.
+    const generatedBuf = Buffer.from(generatedHash, "base64");
+    const receivedBuf = Buffer.from(hmacHeader, "base64");
 
-    if (generatedHash !== hmacHeader) {
+    if (
+      generatedBuf.length !== receivedBuf.length ||
+      !crypto.timingSafeEqual(generatedBuf, receivedBuf)
+    ) {
       return new NextResponse("Unauthorized - HMAC Invalid", { status: 401 });
     }
 
-    // 3. Process the Order
+    // ── 5. Parse the order payload ──────────────────────────────────────────
     let order;
     try {
       order = JSON.parse(rawBody);
@@ -72,7 +97,7 @@ export async function POST(req: Request) {
 
     const shopifyOrderId = order.id ? String(order.id) : undefined;
 
-    // Prevent duplicate webhook processing
+    // ── 6. Prevent duplicate webhook processing ─────────────────────────────
     if (shopifyOrderId) {
       const existingTx = await prisma.transaction.findUnique({
         where: { shopifyOrderId },
@@ -82,7 +107,12 @@ export async function POST(req: Request) {
       }
     }
 
-    // 4. Log the Transaction
+    // ── 7. Map the Shopify payment gateway to Margin's PaymentMethod enum ──
+    const shopifyGateway: string | undefined =
+      order.payment_gateway_names?.[0] || order.gateway;
+    const paymentMethod = mapPaymentMethod(shopifyGateway);
+
+    // ── 8. Log the Transaction ──────────────────────────────────────────────
     await prisma.transaction.create({
       data: {
         type: "INCOME",
@@ -90,7 +120,7 @@ export async function POST(req: Request) {
         date: new Date(),
         category: "Shopify Sale",
         status: "RECEIVED",
-        paymentMethod: "CARD", // Defaulting to CARD for Shopify
+        paymentMethod,
         organizationId: organization.id,
         createdById: ownerId,
         shopifyOrderId,
@@ -98,7 +128,7 @@ export async function POST(req: Request) {
       },
     });
 
-    // 5. Respond 200 OK so Shopify knows we successfully received it
+    // ── 9. Respond 200 OK so Shopify knows we successfully received it ─────
     return new NextResponse("OK", { status: 200 });
 
   } catch (error) {
