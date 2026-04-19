@@ -11,7 +11,7 @@ function mapPaymentMethod(
 ): "CASH" | "CARD" | "INSTAPAY" | "COD" {
   if (!gateway) return "CARD";
   const g = gateway.toLowerCase();
-  if (g.includes("cash") || g.includes("cod") || g.includes("delivery")) {
+  if (g.includes("cash") || g.includes("cod") || g.includes("delivery") || g.includes("manual")) {
     return "COD";
   }
   if (g.includes("instapay")) {
@@ -90,6 +90,10 @@ export async function POST(req: Request) {
       return new NextResponse("OK", { status: 200 });
     }
 
+    // Derive transaction status from Shopify's financial_status (e.g. COD = "pending")
+    const financialStatus = order.financial_status?.toLowerCase();
+    const txStatus = financialStatus === "pending" ? "PENDING" : "RECEIVED";
+
     const ownerId = organization.memberships[0]?.userId;
     if (!ownerId) {
       return new NextResponse("Organization has no owner", { status: 400 });
@@ -119,7 +123,7 @@ export async function POST(req: Request) {
         amount: Number(price),
         date: new Date(),
         category: "Shopify Sale",
-        status: "RECEIVED",
+        status: txStatus,
         paymentMethod,
         organizationId: organization.id,
         createdById: ownerId,
