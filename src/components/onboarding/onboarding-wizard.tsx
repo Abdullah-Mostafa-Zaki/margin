@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { completeOnboarding } from "@/actions/onboarding.actions";
 import { Loader2, Zap } from "lucide-react";
 
@@ -16,6 +16,12 @@ export function OnboardingWizard() {
     shopifyWebhookSecret: "",
     firstDropName: "",
   });
+
+  // Dynamic base URL — works on localhost, preview deploys, and production
+  const [baseUrl, setBaseUrl] = useState("");
+  useEffect(() => {
+    setBaseUrl(window.location.origin);
+  }, []);
 
   const handleNext = () => setStep((s) => s + 1);
   const handleBack = () => setStep((s) => s - 1);
@@ -99,7 +105,20 @@ export function OnboardingWizard() {
             <p className="text-sm text-muted-foreground mt-2">Automatically log your daily sales and shipping income directly into your Margin ledger.</p>
           </div>
 
-          <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm mt-4">
+          {/* Video Tutorial */}
+          <div className="rounded-xl overflow-hidden border shadow-sm w-full aspect-video bg-muted">
+            <video
+              className="w-full h-full object-cover"
+              controls
+              autoPlay
+              muted
+              loop
+              playsInline
+              src="/videos/shopify-setup-tutorial.mp4"
+            />
+          </div>
+
+          <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm">
             <div className="flex items-center gap-2 font-medium mb-2 text-blue-900">
               <Zap className="h-4 w-4" /> Setup Instructions
             </div>
@@ -117,12 +136,12 @@ export function OnboardingWizard() {
                 <input
                   type="text"
                   readOnly
-                  value={"https://margin-eg.vercel.app/api/webhooks/shopify?orgSlug=" + (formData.brandName ? formData.brandName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'your-brand')}
+                  value={`${baseUrl}/api/webhooks/shopify?orgSlug=${formData.brandName ? formData.brandName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'your-brand'}`}
                   className="flex h-10 w-full rounded-l-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground outline-none"
                 />
                 <button
                   type="button"
-                  onClick={() => navigator.clipboard.writeText("https://margin-eg.vercel.app/api/webhooks/shopify?orgSlug=" + (formData.brandName ? formData.brandName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'your-brand'))}
+                  onClick={() => navigator.clipboard.writeText(`${baseUrl}/api/webhooks/shopify?orgSlug=${formData.brandName ? formData.brandName.toLowerCase().replace(/[^a-z0-9]+/g, '-') : 'your-brand'}`)}
                   className="h-10 px-4 rounded-r-md border border-l-0 border-input bg-zinc-100 hover:bg-zinc-200 text-sm font-medium transition-colors text-zinc-900"
                 >
                   Copy
@@ -132,7 +151,7 @@ export function OnboardingWizard() {
             <div>
               <label className="text-sm font-medium">Webhook Signature Secret</label>
               <input
-                type="text" placeholder="whsec_..."
+                type="password" placeholder="whsec_..."
                 value={formData.shopifyWebhookSecret}
                 onChange={(e) => setFormData({ ...formData, shopifyWebhookSecret: e.target.value })}
                 className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2"
@@ -150,7 +169,8 @@ export function OnboardingWizard() {
               </button>
               <button
                 onClick={handleNext}
-                className="h-10 flex-1 rounded-md bg-zinc-900 border border-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors"
+                disabled={!formData.shopifyWebhookSecret.trim()}
+                className="h-10 flex-1 rounded-md bg-zinc-900 border border-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Connect Store
               </button>
