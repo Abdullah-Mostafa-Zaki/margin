@@ -23,7 +23,7 @@ export default function Sidebar({ orgSlug, orgName }: SidebarProps) {
   return (
     <>
       {/* ── Desktop: left sidebar ── */}
-      <div className="hidden md:flex w-64 flex-col border-r bg-white shrink-0">
+      <div className="hidden w-64 flex-col border-r bg-white shrink-0">
         <div className="flex h-16 items-center border-b px-6 gap-2">
           <Image src="/logo.svg" alt="Margin Logo" width={32} height={32} />
           <span className="font-bold text-xl tracking-tight">Margin</span>
@@ -54,8 +54,8 @@ export default function Sidebar({ orgSlug, orgName }: SidebarProps) {
         </nav>
       </div>
 
-      {/* ── Mobile: fixed bottom tab bar ── */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 flex border-t bg-white md:hidden">
+      {/* ── Mobile: fixed bottom tab bar (Disabled in favor of mobile TopNav) ── */}
+      <nav className="hidden fixed bottom-0 left-0 right-0 z-50 md:hidden border-t bg-white">
         {navigation.map((item) => {
           const isActive = pathname === item.href;
           return (
