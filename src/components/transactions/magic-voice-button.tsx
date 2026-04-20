@@ -44,9 +44,14 @@ export function MagicVoiceButton({ onResult }: MagicVoiceButtonProps) {
 
     parseVoiceTransaction(base64Audio, mimeType)
       .then((result) => {
-        onResult(result);
+        if (result.success) {
+          onResult(result.data);
+        } else {
+          setError(result.error);
+        }
       })
       .catch((err: any) => {
+        // Fallback: unexpected client-side failure (e.g. network error)
         setError(err.message || "Voice processing failed. Please try again.");
       })
       .finally(() => {

@@ -11,6 +11,10 @@ interface ParsedTransaction {
   notes: string;
 }
 
+type VoiceActionResult =
+  | { success: true; data: ParsedTransaction }
+  | { success: false; error: string };
+
 /**
  * Sends audio to Gemini 1.5 Flash for transcription and structured extraction.
  * Returns a strongly-typed transaction object ready for form auto-fill.
@@ -18,38 +22,39 @@ interface ParsedTransaction {
 export async function parseVoiceTransaction(
   base64Audio: string,
   mimeType: string
-): Promise<ParsedTransaction> {
+): Promise<VoiceActionResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured.");
+    return { success: false, error: "GEMINI_API_KEY is not configured." };
   }
 
   // Guard: reject silent or too-short recordings before wasting an API call
   if (!base64Audio || base64Audio.length < 100) {
-    throw new Error("Audio was too short or silent. Please speak clearly and try again.");
+    return { success: false, error: "Audio was too short or silent. Please speak clearly and try again." };
   }
 
-  // Normalize MIME: Safari sometimes sends video/mp4 for audio-only recordings
-  let normalizedMime = mimeType;
-  if (normalizedMime.includes("mp4")) {
-    normalizedMime = "audio/mp4";
-  }
+  try {
+    // Normalize MIME: Safari sometimes sends video/mp4 for audio-only recordings
+    let normalizedMime = mimeType;
+    if (normalizedMime.includes("mp4")) {
+      normalizedMime = "audio/mp4";
+    }
 
-  console.log("🚀 [HARD-RELOAD-V4] ACTIVE MODEL: gemini-2.5-flash");
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
-  });
+    console.log("🚀 [HARD-RELOAD-V4] ACTIVE MODEL: gemini-2.5-flash");
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+    });
 
-  // Dynamic date context so the model can resolve relative references
-  const today = new Date();
-  const currentDate = today.toLocaleDateString("en-CA"); // YYYY-MM-DD format
+    // Dynamic date context so the model can resolve relative references
+    const today = new Date();
+    const currentDate = today.toLocaleDateString("en-CA"); // YYYY-MM-DD format
 
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayDate = yesterday.toLocaleDateString("en-CA");
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayDate = yesterday.toLocaleDateString("en-CA");
 
-  const systemPrompt = `You are a financial assistant for an Egyptian brand owner. Today's date is ${currentDate}. Yesterday's date is ${yesterdayDate}.
+    const systemPrompt = `You are a financial assistant for an Egyptian brand owner. Today's date is ${currentDate}. Yesterday's date is ${yesterdayDate}.
 
 The user will speak in Egyptian Arabic (Ammiya) or a mix of Arabic and English. Your job is to extract transaction details from their voice and return ONLY a valid JSON object matching this exact schema:
 
@@ -93,35 +98,32 @@ The user will speak in Egyptian Arabic (Ammiya) or a mix of Arabic and English. 
 
 Return ONLY the JSON object. No explanation, no markdown.`;
 
-  const result = await model.generateContent({
-    contents: [
-      {
-        role: "user",
-        parts: [
-          { text: systemPrompt },
-          {
-            inlineData: {
-              mimeType: normalizedMime,
-              data: base64Audio,
+    const result = await model.generateContent({
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: systemPrompt },
+            {
+              inlineData: {
+                mimeType: normalizedMime,
+                data: base64Audio,
+              },
             },
-          },
-        ],
+          ],
+        },
+      ],
+      generationConfig: {
+        responseMimeType: "application/json",
       },
-    ],
-    generationConfig: {
-      responseMimeType: "application/json",
-    },
-  });
+    });
 
-  const response = result.response;
-  const text = response.text();
-
-  try {
+    const text = result.response.text();
     const parsed: ParsedTransaction = JSON.parse(text);
 
     // Validate and sanitize the response
     if (!parsed.amount || typeof parsed.amount !== "number" || parsed.amount <= 0) {
-      throw new Error("Could not extract a valid amount from your voice.");
+      return { success: false, error: "Could not extract a valid amount from your voice. Please try again." };
     }
 
     if (!["INCOME", "EXPENSE"].includes(parsed.type)) {
@@ -133,15 +135,32 @@ Return ONLY the JSON object. No explanation, no markdown.`;
     }
 
     // Validate date format (YYYY-MM-DD)
+    const today2 = new Date().toLocaleDateString("en-CA");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) {
-      parsed.date = currentDate;
+      parsed.date = today2;
     }
 
-    return parsed;
-  } catch (e: any) {
-    if (e.message?.includes("Could not extract")) {
-      throw e;
+    return { success: true, data: parsed };
+  } catch (error: any) {
+    console.error("AI Processing Error:", error);
+
+    // Detect rate-limit / quota errors (HTTP 429)
+    const isRateLimit =
+      error?.status === 429 ||
+      error?.message?.toLowerCase().includes("rate") ||
+      error?.message?.toLowerCase().includes("quota") ||
+      error?.message?.toLowerCase().includes("resource_exhausted");
+
+    if (isRateLimit) {
+      return {
+        success: false,
+        error: "AI service is currently busy or rate-limited. Please try typing your transaction or wait a minute.",
+      };
     }
-    throw new Error("Failed to parse AI response. Please try again.");
+
+    return {
+      success: false,
+      error: error?.message || "Voice processing failed. Please try again.",
+    };
   }
 }
