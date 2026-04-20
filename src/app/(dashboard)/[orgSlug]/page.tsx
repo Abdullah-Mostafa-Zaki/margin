@@ -204,6 +204,26 @@ export default async function DashboardPage(props: {
         productBreakdown={productBreakdown} 
       />
 
+      {/* ── Catalog Velocity ───────────────────────────────────────────── */}
+      {productBreakdown.length > 0 && (
+        <div className="bg-white p-8 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100">
+          <h3 className="uppercase tracking-[0.2em] text-[11px] font-bold text-slate-400 mb-8">Catalog Velocity (Top Movers)</h3>
+          <div className="space-y-2">
+            {productBreakdown.map((item, idx) => (
+              <div key={idx} className="mb-2">
+                <div className="flex justify-between text-sm font-medium text-slate-800 mb-2">
+                  <span>{item.name}</span>
+                  <span>{item.revenue.toLocaleString("en-EG")} EGP ({item.percent}%)</span>
+                </div>
+                <div className="h-2 bg-slate-100 rounded-full w-full overflow-hidden mb-4">
+                  <div className="h-full bg-[#27A67A] transition-all duration-500" style={{ width: `${item.percent}%` }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── 3-Card Summary ────────────────────────────────────────────── */}
       <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
         <Card className="border-0">

@@ -72,25 +72,6 @@ export function Insights({ insights, productBreakdown = [] }: InsightsProps) {
           </div>
         )}
       </div>
-
-      {productBreakdown.length > 0 && (
-        <div className="mt-8 p-6 bg-slate-50/80 border border-slate-100 rounded-2xl">
-          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Catalog Velocity (Top Movers)</h4>
-          <div className="space-y-4">
-            {productBreakdown.map((item, idx) => (
-              <div key={idx}>
-                <div className="flex justify-between text-sm font-medium text-slate-800">
-                  <span>{item.name}</span>
-                  <span>{item.revenue.toLocaleString("en-EG")} EGP ({item.percent}%)</span>
-                </div>
-                <div className="h-1.5 bg-slate-100 rounded-full mt-1.5 mb-3">
-                  <div className="h-full bg-[#27A67A] rounded-full" style={{ width: `${item.percent}%` }}></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
