@@ -113,7 +113,10 @@ export default async function TransactionsPage(props: {
       )}
 
       <TransactionsShell
-        transactions={organization.transactions}
+        transactions={organization.transactions.map((t: any) => ({
+          ...t,
+          amount: Number(t.amount)
+        }))}
         orgSlug={resolvedParams.orgSlug}
         tags={tags}
         activeTagLabel={activeTag?.name}
