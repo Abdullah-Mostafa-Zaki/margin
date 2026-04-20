@@ -148,14 +148,35 @@ export default async function DashboardPage(props: {
     activeFilterLabel = `Showing data for: ${new Date(resolvedSearchParams.from).toLocaleDateString()} - ${new Date(resolvedSearchParams.to).toLocaleDateString()}`;
   }
 
+  // --- ELITE MOOD ENGINE ---
+  let mood;
+  const marginPct = insights.marginPct;
+  if (marginPct >= 30) {
+    mood = { text: "Untouchable", emoji: "💎", color: "border-purple-300 bg-purple-100 text-purple-900 font-extrabold" };
+  } else if (marginPct >= 20) {
+    mood = { text: "King", emoji: "👑", color: "border-amber-300 bg-amber-100 text-amber-900 font-extrabold" };
+  } else if (marginPct >= 10) {
+    mood = { text: "Satisfied", emoji: "👌", color: "border-emerald-300 bg-emerald-100 text-emerald-900 font-extrabold" };
+  } else if (marginPct > 0) {
+    mood = { text: "Unimpressed", emoji: "🥱", color: "border-slate-300 bg-slate-100 text-slate-900 font-extrabold" };
+  } else {
+    mood = { text: "Disgusted", emoji: "🤢", color: "border-red-300 bg-red-100 text-red-900 font-extrabold" };
+  }
+
   return (
     <div className="space-y-6">
       <RealtimeListener orgSlug={resolvedParams.orgSlug} organizationId={organization.id} />
       
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{organization.name} Dashboard</h1>
-          <p className="text-zinc-500">Overview of your finances</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">{organization.name} Dashboard</h1>
+            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border shadow-sm ${mood.color}`}>
+              <span>{mood.emoji}</span>
+              <span>Mood: {mood.text}</span>
+            </div>
+          </div>
+          <p className="text-zinc-500 md:mt-1 mt-2">Overview of your finances</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <DateRangePicker />
