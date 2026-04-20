@@ -61,13 +61,10 @@ export function TransactionsShell({
     formHandleRef.current?.openForEdit(payload);
   }, []);
 
-  // Unique categories for the active tab
-  const availableCategories = useMemo(() => {
-    const cats = transactions
-      .filter((t) => t.type === activeTab)
-      .map((t) => t.category);
-    return Array.from(new Set(cats)).sort();
-  }, [transactions, activeTab]);
+  // Static category lists — mirrors the TransactionForm constants
+  const EXPENSE_CATEGORIES = ["Raw Materials", "Manufacturing", "Packaging", "Logistics (Shipping)", "Ads", "Content Creation", "Other"];
+  const INCOME_CATEGORIES  = ["Sales Revenue", "Pop-up / Bazaar Sales", "Wholesale / B2B", "Supplier Refund", "Other"];
+  const availableCategories = activeTab === "INCOME" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
   // 3-step pipeline: type → category → sort
   const displayedTransactions = useMemo(() => {
@@ -176,13 +173,13 @@ export function TransactionsShell({
       </div>
 
       {/* ── Filter / Sort Bar ── */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-row gap-3 mb-4">
         {/* Category filter */}
-        <div className="relative flex-1">
+        <div className="relative w-1/2 sm:w-64">
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full appearance-none rounded-xl border border-zinc-200 bg-white px-4 py-2.5 pr-9 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 cursor-pointer"
+            className="w-full appearance-none rounded-xl border border-zinc-200 bg-white px-4 py-2.5 pr-9 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 cursor-pointer truncate"
           >
             <option value="All">All Categories</option>
             {availableCategories.map((cat) => (
@@ -196,7 +193,7 @@ export function TransactionsShell({
         </div>
 
         {/* Sort order */}
-        <div className="relative sm:w-52">
+        <div className="relative w-1/2 sm:w-48">
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
