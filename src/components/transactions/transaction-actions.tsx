@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import TransactionForm from "@/components/transactions/transaction-form";
-import type { TransactionFormHandle } from "@/components/transactions/transaction-form";
+import type { TransactionFormHandle, TransactionToEdit } from "@/components/transactions/transaction-form";
 import { MagicVoiceButton } from "@/components/transactions/magic-voice-button";
 import type { VoiceTransactionData } from "@/components/transactions/magic-voice-button";
 
@@ -11,11 +11,19 @@ interface TagProp {
   name: string;
 }
 
+interface TransactionActionsProps {
+  orgSlug: string;
+  tags: TagProp[];
+  /** Called with the form ref so parent can wire row-clicks to openForEdit */
+  onFormReady?: (handle: TransactionFormHandle) => void;
+}
+
 /**
  * Client wrapper that coordinates MagicVoiceButton and TransactionForm.
  * The voice button captures audio → AI extracts data → opens the form pre-filled.
+ * Also exposes the form handle via onFormReady so sibling islands can trigger edit mode.
  */
-export function TransactionActions({ orgSlug, tags }: { orgSlug: string; tags: TagProp[] }) {
+export function TransactionActions({ orgSlug, tags, onFormReady }: TransactionActionsProps) {
   const formRef = useRef<TransactionFormHandle>(null);
 
   const handleVoiceResult = (data: VoiceTransactionData) => {
@@ -32,7 +40,16 @@ export function TransactionActions({ orgSlug, tags }: { orgSlug: string; tags: T
   return (
     <>
       <MagicVoiceButton onResult={handleVoiceResult} />
-      <TransactionForm ref={formRef} orgSlug={orgSlug} tags={tags} />
+      <TransactionForm
+        ref={(handle) => {
+          // Keep our local ref in sync
+          (formRef as any).current = handle;
+          // Notify parent shell so it can wire row clicks
+          if (handle && onFormReady) onFormReady(handle);
+        }}
+        orgSlug={orgSlug}
+        tags={tags}
+      />
     </>
   );
 }

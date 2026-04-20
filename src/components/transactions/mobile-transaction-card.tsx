@@ -3,11 +3,12 @@
 import type { Transaction } from "@prisma/client";
 import { DeleteTransactionButton } from "@/components/transactions/action-buttons";
 
-export function MobileTransactionCard({ transaction, orgSlug }: { transaction: Transaction; orgSlug: string }) {
+export function MobileTransactionCard({ transaction, orgSlug, onEdit }: { transaction: Transaction; orgSlug: string; onEdit?: () => void }) {
   const t = transaction;
   return (
     <div 
       className="flex items-center justify-between p-4 rounded-xl shadow-sm border bg-white active:scale-95 transition-transform duration-75 min-h-[44px] cursor-pointer"
+      onClick={onEdit}
     >
       <div className="flex flex-col">
         <div className="flex items-center gap-2">

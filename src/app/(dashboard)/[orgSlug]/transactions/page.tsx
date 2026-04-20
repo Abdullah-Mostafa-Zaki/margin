@@ -4,18 +4,16 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { Transaction } from "@prisma/client";
-import { TransactionActions } from "@/components/transactions/transaction-actions";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MarkReceivedButton, MarkAllReceivedButton } from "@/components/transactions/action-buttons";
 import { X } from "lucide-react";
 import RealtimeListener from "@/components/dashboard/realtime-listener";
 import { TagFilter } from "@/components/transactions/tag-filter";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
-
-import { TransactionsView } from "@/components/transactions/transactions-view";
+import { TransactionsShell } from "@/components/transactions/transactions-shell";
 import { getDateRangeFromParams } from "@/lib/date-utils";
+
 export default async function TransactionsPage(props: {
   params: Promise<{ orgSlug: string }>;
   searchParams: Promise<{ tag?: string; range?: string; from?: string; to?: string }>;
@@ -59,10 +57,7 @@ export default async function TransactionsPage(props: {
     activeTag = tags.find((t) => t.id === tagFilter);
   }
 
-  // Pending COD always shows all, so we use the organization's transactions which are already filtered by Date Range!
-  // Wait, if Date Range is applied, the COD list will ONLY show pending COD from that date range!
-  // The Prompt says: "Pending COD card shows correct total regardless of date filter (it always shows all pending)"
-  // Thus we must fetch Pending COD un-filtered by date.
+  // Pending COD always fetched unfiltered by date
   const pendingCODTransactions = await prisma.transaction.findMany({
     where: {
       organizationId: organization.id,
@@ -77,17 +72,6 @@ export default async function TransactionsPage(props: {
   return (
     <div className="space-y-8">
       <RealtimeListener orgSlug={resolvedParams.orgSlug} organizationId={organization.id} />
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
-          <p className="text-zinc-500">Manage your income and expenses.</p>
-        </div>
-        <div className="flex items-center flex-wrap gap-2">
-          <DateRangePicker />
-          <TagFilter tags={tags} />
-          <TransactionActions orgSlug={resolvedParams.orgSlug} tags={tags} />
-        </div>
-      </div>
 
       {activeTag && (
         <div className="flex items-center gap-2">
@@ -130,10 +114,18 @@ export default async function TransactionsPage(props: {
         </Card>
       )}
 
-      <TransactionsView
+      {/* Single client island: header + segmented control + table/cards + form */}
+      <TransactionsShell
         transactions={organization.transactions}
         orgSlug={resolvedParams.orgSlug}
+        tags={tags}
         activeTagLabel={activeTag?.name}
+        headerControls={
+          <>
+            <DateRangePicker />
+            <TagFilter tags={tags} />
+          </>
+        }
       />
     </div>
   );

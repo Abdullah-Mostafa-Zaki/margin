@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { createTransaction } from "@/actions/transactions.actions";
+import { createTransaction, updateTransaction } from "@/actions/transactions.actions";
 import { UploadButton } from "@/lib/uploadthing";
 import { ChevronDown, ChevronRight, Plus, AlertCircle } from "lucide-react";
 
@@ -61,8 +61,20 @@ export interface TransactionDefaultValues {
   notes?: string;
 }
 
+export interface TransactionToEdit {
+  id: string;
+  amount: number;
+  type: "INCOME" | "EXPENSE";
+  category: string;
+  paymentMethod: "CASH" | "CARD" | "COD" | "INSTAPAY";
+  date: Date | string;
+  notes?: string | null;
+  status?: "PENDING" | "RECEIVED";
+}
+
 export interface TransactionFormHandle {
   openWithDefaults: (defaults: TransactionDefaultValues) => void;
+  openForEdit: (transaction: TransactionToEdit) => void;
 }
 
 const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tags?: TagProp[] }>(
@@ -71,6 +83,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tag
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [type, setType] = useState<"EXPENSE" | "INCOME">("EXPENSE");
   const [category, setCategory] = useState("Raw Materials");
@@ -89,48 +102,64 @@ const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tag
   const notesRef = useRef<HTMLTextAreaElement>(null);
 
   // Expose imperative handle so external components (MagicVoiceButton) can open the form with defaults
+  const fillRefs = (amount?: number, date?: string, notes?: string | null) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (amount != null && amountRef.current) {
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+          setter?.call(amountRef.current, String(amount));
+          amountRef.current.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        if (date && dateRef.current) {
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+          setter?.call(dateRef.current, date);
+          dateRef.current.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        if (notesRef.current) {
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+          setter?.call(notesRef.current, notes ?? '');
+          notesRef.current.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+    });
+  };
+
   useImperativeHandle(ref, () => ({
     openWithDefaults(defaults: TransactionDefaultValues) {
-      // Apply all provided defaults via React state
-      if (defaults.type) {
-        setType(defaults.type);
-      }
-      if (defaults.category) {
-        setCategory(defaults.category);
-      }
-      if (defaults.paymentMethod) {
-        setPaymentMethod(defaults.paymentMethod);
-      }
-
-      // Reset optional state to clean baseline
+      if (defaults.type) setType(defaults.type);
+      if (defaults.category) setCategory(defaults.category);
+      if (defaults.paymentMethod) setPaymentMethod(defaults.paymentMethod);
+      setEditingId(null);
       setStatusOverride("");
       setShowStatusOverride(false);
       setError(null);
-
-      // Open the dialog first
       setIsOpen(true);
+      fillRefs(defaults.amount, defaults.date, defaults.notes);
+    },
 
-      // Double rAF: first frame lets React render the dialog,
-      // second frame ensures refs are attached — fixes iOS Safari lazy rendering
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          if (defaults.amount != null && amountRef.current) {
-            const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-            setter?.call(amountRef.current, String(defaults.amount));
-            amountRef.current.dispatchEvent(new Event('input', { bubbles: true }));
-          }
-          if (defaults.date && dateRef.current) {
-            const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-            setter?.call(dateRef.current, defaults.date);
-            dateRef.current.dispatchEvent(new Event('input', { bubbles: true }));
-          }
-          if (defaults.notes && notesRef.current) {
-            const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
-            setter?.call(notesRef.current, defaults.notes);
-            notesRef.current.dispatchEvent(new Event('input', { bubbles: true }));
-          }
-        });
-      });
+    openForEdit(t: TransactionToEdit) {
+      setEditingId(t.id);
+      setType(t.type);
+      setCategory(t.category);
+      setPaymentMethod(t.paymentMethod);
+      // Convert status override only if it differs from the auto value
+      const autoStatus = t.paymentMethod === 'COD' ? 'PENDING' : 'RECEIVED';
+      if (t.status && t.status !== autoStatus) {
+        setStatusOverride(t.status);
+        setShowStatusOverride(true);
+      } else {
+        setStatusOverride("");
+        setShowStatusOverride(false);
+      }
+      setReceiptUrl(null); // receipt editing not supported in edit mode
+      setSelectedTags([]);
+      setShowTags(false);
+      setError(null);
+      setIsOpen(true);
+      const dateStr = typeof t.date === 'string'
+        ? t.date.slice(0, 10)
+        : new Date(t.date).toISOString().slice(0, 10);
+      fillRefs(t.amount, dateStr, t.notes);
     },
   }));
 
@@ -197,12 +226,17 @@ const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tag
 
     startTransition(async () => {
       try {
-        await createTransaction(orgSlug, formData);
+        if (editingId) {
+          await updateTransaction(editingId, orgSlug, formData);
+        } else {
+          await createTransaction(orgSlug, formData);
+        }
 
         // Close modal only AFTER server confirms success
         setIsOpen(false);
 
         // Reset React state
+        setEditingId(null);
         setReceiptUrl(null);
         setType("EXPENSE");
         setCategory("Raw Materials");
@@ -212,15 +246,13 @@ const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tag
         setSelectedTags([]);
         setShowTags(false);
 
-        // Reset native input refs (clears voice-filled values)
+        // Reset native input refs
         if (amountRef.current) amountRef.current.value = "";
         if (dateRef.current) dateRef.current.value = new Date().toISOString().split('T')[0];
         if (notesRef.current) notesRef.current.value = "";
 
-        // Sync the transaction list on the page
         router.refresh();
       } catch (err: any) {
-        // Keep modal open so user can see the error and retry
         setError(err.message || "Failed to save transaction.");
       }
     });
@@ -257,7 +289,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tag
 
       <DialogContent className="w-full md:max-w-lg max-h-[100dvh] md:max-h-[85vh] min-h-[100dvh] md:min-h-0 md:h-auto rounded-none md:rounded-lg p-0 md:p-6 flex flex-col overflow-hidden">
         <DialogHeader className="px-4 pt-4 md:pt-0 md:px-0 shrink-0">
-          <DialogTitle>Add Transaction</DialogTitle>
+          <DialogTitle>{editingId ? "Edit Transaction" : "Add Transaction"}</DialogTitle>
         </DialogHeader>
 
         {error && (
@@ -481,7 +513,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tag
 
           <div className="shrink-0 px-4 md:px-0 pt-3 md:pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-0 border-t md:border-t-0 border-zinc-100 bg-white md:bg-transparent">
             <Button type="submit" className="w-full flex h-14 md:h-10 text-base md:text-sm font-semibold" disabled={isPending}>
-              {isPending ? "Saving..." : "Save Transaction"}
+              {isPending ? (editingId ? "Updating..." : "Saving...") : (editingId ? "Update Transaction" : "Save Transaction")}
             </Button>
           </div>
         </form>
