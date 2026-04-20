@@ -1,6 +1,6 @@
 "use server";
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 
 interface ParsedTransaction {
   amount: number;
@@ -16,16 +16,19 @@ type VoiceActionResult =
   | { success: false; error: string };
 
 /**
- * Sends audio to Gemini 1.5 Flash for transcription and structured extraction.
- * Returns a strongly-typed transaction object ready for form auto-fill.
+ * Two-step Groq pipeline:
+ *   1. Whisper (whisper-large-v3)  — transcribes the raw audio
+ *   2. Llama 3 (llama3-8b-8192)   — extracts structured JSON from the transcript
+ *
+ * Keeps the same function signature and return shape so the frontend is untouched.
  */
 export async function parseVoiceTransaction(
   base64Audio: string,
   mimeType: string
 ): Promise<VoiceActionResult> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    return { success: false, error: "GEMINI_API_KEY is not configured." };
+    return { success: false, error: "GROQ_API_KEY is not configured." };
   }
 
   // Guard: reject silent or too-short recordings before wasting an API call
@@ -34,94 +37,128 @@ export async function parseVoiceTransaction(
   }
 
   try {
-    // Normalize MIME: Safari sometimes sends video/mp4 for audio-only recordings
-    let normalizedMime = mimeType;
-    if (normalizedMime.includes("mp4")) {
-      normalizedMime = "audio/mp4";
-    }
+    const groq = new Groq({ apiKey });
 
-    console.log("🚀 [MODEL-SWAP] ACTIVE MODEL: gemini-2.5-flash-lite");
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-lite",
+    // ── Normalize MIME ────────────────────────────────────────────────────────
+    // Safari sometimes sends video/mp4 for audio-only recordings.
+    // Whisper accepts: mp3, mp4, mpeg, mpga, m4a, wav, webm, ogg, flac
+    let normalizedMime = mimeType;
+    if (normalizedMime.includes("mp4")) normalizedMime = "audio/mp4";
+
+    // Derive the file extension Whisper needs from the MIME type
+    const extMap: Record<string, string> = {
+      "audio/webm":  "webm",
+      "audio/mp4":   "mp4",
+      "audio/mpeg":  "mp3",
+      "audio/ogg":   "ogg",
+      "audio/wav":   "wav",
+      "audio/flac":  "flac",
+      "audio/m4a":   "m4a",
+    };
+    const ext = extMap[normalizedMime] ?? "webm";
+    const filename = `audio.${ext}`;
+
+    // ── Phase 1: Transcription via Whisper ───────────────────────────────────
+    console.log("🎙️ [GROQ] Phase 1 — Whisper transcription starting");
+
+    const audioBuffer = Buffer.from(base64Audio, "base64");
+    const audioFile   = new File([audioBuffer], filename, { type: normalizedMime });
+
+    const transcription = await groq.audio.transcriptions.create({
+      file: audioFile,
+      model: "whisper-large-v3",
+      language: "ar",
+      prompt: "جنيه مصري، قماش، خامات، إعلانات، شحن، إنستاباي، كاش، مبيعات، أوردر، اشتريت، دفعت، ألف، تالاف، جنيه.",
+      temperature: 0,
     });
 
-    // Dynamic date context so the model can resolve relative references
+    const transcript = transcription.text?.trim();
+    console.log("✅ [GROQ] Transcript:", transcript);
+
+    if (!transcript) {
+      return { success: false, error: "Could not transcribe audio. Please speak clearly and try again." };
+    }
+
+    // ── Dynamic date context ─────────────────────────────────────────────────
     const today = new Date();
-    const currentDate = today.toLocaleDateString("en-CA"); // YYYY-MM-DD format
+    const currentDate   = today.toLocaleDateString("en-CA"); // YYYY-MM-DD
 
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayDate = yesterday.toLocaleDateString("en-CA");
 
+    // ── Phase 2: JSON Extraction via Llama 3 ────────────────────────────────
+    console.log("🧠 [GROQ] Phase 2 — Llama 3 JSON extraction starting");
+
     const systemPrompt = `You are a financial assistant for an Egyptian brand owner. Today's date is ${currentDate}. Yesterday's date is ${yesterdayDate}.
 
-The user will speak in Egyptian Arabic (Ammiya) or a mix of Arabic and English. Your job is to extract transaction details from their voice and return ONLY a valid JSON object matching this exact schema:
+The user will speak in Egyptian Arabic (Ammiya) or a mix of Arabic and English. Your job is to extract transaction details from their voice transcript and return ONLY a valid JSON object matching this exact schema:
 
 {
-  "amount": number,
-  "type": "INCOME" | "EXPENSE",
-  "category": string,
-  "paymentMethod": "CASH" | "CARD" | "COD" | "INSTAPAY",
-  "date": "YYYY-MM-DD",
+  "amount": number, // Default: 0 if not found
+  "type": "INCOME" | "EXPENSE", // Default: EXPENSE
+  "category": string, // Default: Other
+  "paymentMethod": "CASH" | "CARD" | "COD" | "INSTAPAY", // Default: CASH
+  "date": "YYYY-MM-DD", // Default: ${currentDate}
   "notes": string
 }
 
-**Category Mapping Rules:**
-- "قماش", "أماش", "amash", "raw materials", "خامات" → "Raw Materials"
-- "تصنيع", "manufacturing" → "Manufacturing"
-- "تغليف", "packaging", "باكدجينج" → "Packaging"
-- "شحن", "شاحن", "logistics", "shipping" → "Logistics (Shipping)"
-- "إعلانات", "ads", "فيسبوك", "ميتا", "facebook", "meta" → "Ads"
-- "كونتنت", "content", "تصوير" → "Content Creation"
+### Numerical Extraction Rules (Critical)
+The transcript contains numbers written as text. Resolve them before saving:
+- "ألف", "الف", "بألف" → 1000
+- "ألفين", "الفين", "بألفين" → 2000
+- "تالاف", "تلاف", "ثلاثة آلاف", "بتلاتالاف", "تلاتالاف" → 3000
+- "خمسة آلاف", "خمس تالاف", "بخمستالاف", "بخمستلاف" → 5000
+- Strip any leading 'ب' (e.g., "بخمستالاف" means 5000).
+
+### Whisper Auto-Correct & Typo Tolerance (CRITICAL)
+The voice transcript often mishears Egyptian Ammiya. Intelligently infer the intended term:
+- "وماشي", "وماش", "اماش" → interpret as "قماش" (Raw Materials).
+- "كيني", "جني", "جنية" → interpret as "جنيه" (Egyptian Pounds). Ignore Kenya.
+
+### Category Mapping Rules
+- "قماش", "أماش", "raw materials", "خامات", "أقمشة" → "Raw Materials"
+- "تصنيع", "manufacturing", "مصنع", "تقفيل" → "Manufacturing"
+- "تغليف", "packaging", "باكدجينج", "أكياس", "علب" → "Packaging"
+- "شحن", "شاحن", "logistics", "shipping", "مندوب", "توصيل" → "Logistics (Shipping)"
+- "إعلانات", "ads", "فيسبوك", "ميتا", "ممولة", "ads cost" → "Ads"
+- "كونتنت", "content", "تصوير", "سيشن", "موديل" → "Content Creation"
 - "مبيعات", "sales", "أوردر", "order" → "Sales Revenue"
 - If nothing matches → "Other"
 
-**Payment Method Mapping:**
+### Payment Method Mapping
 - "كاش", "cash", "نقدي" → "CASH"
 - "كارت", "card", "فيزا", "visa" → "CARD"
 - "إنستاباي", "instapay" → "INSTAPAY"
 - "كاش أون ديليفري", "cod", "تحصيل" → "COD"
 - Default → "CASH"
 
-**Date Mapping:**
+### Date Mapping
 - "النهاردة", "today", "اليوم" → ${currentDate}
 - "إمبارح", "امبارح", "yesterday" → ${yesterdayDate}
-- If a specific date is mentioned, use it. Otherwise default to ${currentDate}.
+- Otherwise default to ${currentDate}.
 
-**Type Inference:**
-- If the user mentions buying, paying, spending, or any expense context → "EXPENSE"
-- If the user mentions receiving money, sales, income, orders → "INCOME"
+### Type Inference
+- Buying, paying, spending, expenses, "دفعت", "اشتريت", "صرفت", "فاتورة" → "EXPENSE"
+- Receiving money, sales, income, orders, "دخل", "قبضت", "بعت" → "INCOME"
 - Default → "EXPENSE"
-
-**Notes:** Include a brief, clean Arabic or English summary of what the user said.
 
 Return ONLY the JSON object. No explanation, no markdown.`;
 
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            { text: systemPrompt },
-            {
-              inlineData: {
-                mimeType: normalizedMime,
-                data: base64Audio,
-              },
-            },
-          ],
-        },
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user",   content: transcript },
       ],
-      generationConfig: {
-        responseMimeType: "application/json",
-      },
+      temperature: 0.1, // low temperature = more deterministic JSON
     });
 
-    const text = result.response.text();
+    const text = completion.choices[0]?.message?.content ?? "";
     const parsed: ParsedTransaction = JSON.parse(text);
 
-    // Validate and sanitize the response
+    // ── Validation & sanitization ────────────────────────────────────────────
     if (!parsed.amount || typeof parsed.amount !== "number" || parsed.amount <= 0) {
       return { success: false, error: "Could not extract a valid amount from your voice. Please try again." };
     }
@@ -134,22 +171,22 @@ Return ONLY the JSON object. No explanation, no markdown.`;
       parsed.paymentMethod = "CASH";
     }
 
-    // Validate date format (YYYY-MM-DD)
-    const today2 = new Date().toLocaleDateString("en-CA");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) {
-      parsed.date = today2;
+      parsed.date = currentDate;
     }
 
+    console.log("✅ [GROQ] Pipeline complete:", parsed);
     return { success: true, data: parsed };
+
   } catch (error: any) {
-    console.error("AI Processing Error:", error);
+    console.error("Groq Pipeline Error:", error);
 
     // Detect rate-limit / quota errors (HTTP 429)
     const isRateLimit =
       error?.status === 429 ||
       error?.message?.toLowerCase().includes("rate") ||
       error?.message?.toLowerCase().includes("quota") ||
-      error?.message?.toLowerCase().includes("resource_exhausted");
+      error?.message?.toLowerCase().includes("too many");
 
     if (isRateLimit) {
       return {
