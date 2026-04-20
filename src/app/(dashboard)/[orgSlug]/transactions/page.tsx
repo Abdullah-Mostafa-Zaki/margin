@@ -8,12 +8,13 @@ import { TransactionActions } from "@/components/transactions/transaction-action
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MarkReceivedButton, DeleteTransactionButton, MarkAllReceivedButton } from "@/components/transactions/action-buttons";
+import { MarkReceivedButton, MarkAllReceivedButton } from "@/components/transactions/action-buttons";
 import { X } from "lucide-react";
 import RealtimeListener from "@/components/dashboard/realtime-listener";
 import { TagFilter } from "@/components/transactions/tag-filter";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
-import { MobileTransactionCard } from "@/components/transactions/mobile-transaction-card";
+
+import { TransactionsView } from "@/components/transactions/transactions-view";
 import { getDateRangeFromParams } from "@/lib/date-utils";
 export default async function TransactionsPage(props: {
   params: Promise<{ orgSlug: string }>;
@@ -129,77 +130,11 @@ export default async function TransactionsPage(props: {
         </Card>
       )}
 
-      <div className="w-full">
-        {/* Desktop Table (Hidden on Mobile) */}
-        <div className="hidden md:block overflow-x-auto rounded-md border bg-white">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="whitespace-nowrap">Date</TableHead>
-                <TableHead className="whitespace-nowrap">Type</TableHead>
-                <TableHead className="whitespace-nowrap">Category</TableHead>
-                <TableHead className="whitespace-nowrap">Payment</TableHead>
-                <TableHead className="whitespace-nowrap">Status</TableHead>
-                <TableHead className="text-right whitespace-nowrap">Amount (EGP)</TableHead>
-                <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {organization.transactions.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center text-zinc-500">
-                    {activeTag ? "No transactions found for this drop." : "No transactions found."}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                organization.transactions.map((t: Transaction) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="whitespace-nowrap">{new Date(t.date).toLocaleDateString()}</TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <Badge variant="outline" className={t.type === "INCOME" ? "text-blue-600 bg-blue-50" : "text-red-600 bg-red-50"}>
-                        {t.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">{t.category}</TableCell>
-                    <TableCell className="whitespace-nowrap">{t.paymentMethod}</TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      <Badge variant="outline" className={t.status === "RECEIVED" ? "text-green-600 bg-green-50" : "text-amber-600 bg-amber-50"}>
-                        {t.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-medium whitespace-nowrap">
-                      {Number(t.amount).toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right whitespace-nowrap">
-                      <div className="flex justify-end gap-2">
-                        {t.receiptUrl && (
-                          <a href={t.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
-                            Receipt
-                          </a>
-                        )}
-                        <DeleteTransactionButton id={t.id} orgSlug={resolvedParams.orgSlug} />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Mobile List (Hidden on Desktop) */}
-        <div className="md:hidden space-y-3">
-          {organization.transactions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 rounded-xl border border-dashed bg-zinc-50">
-              <p className="text-zinc-500 font-medium">No transactions yet.</p>
-            </div>
-          ) : (
-            organization.transactions.map((t: Transaction) => (
-              <MobileTransactionCard key={t.id} transaction={t} orgSlug={resolvedParams.orgSlug} />
-            ))
-          )}
-        </div>
-      </div>
+      <TransactionsView
+        transactions={organization.transactions}
+        orgSlug={resolvedParams.orgSlug}
+        activeTagLabel={activeTag?.name}
+      />
     </div>
   );
 }
