@@ -9,10 +9,9 @@ import { getDateRangeFromParams } from "@/lib/date-utils";
 import { IncomeExpenseChart } from "@/components/dashboard/income-expense-chart";
 import { ExpenseDonutChart } from "@/components/dashboard/expense-donut-chart";
 import { groupTransactionsByDate } from "@/lib/chart-utils";
-import TruthBanner from "@/components/TruthBanner";
 import { getDashboardInsights } from "@/app/actions/getDashboardInsights";
 import { GodMetric } from "@/components/dashboard/GodMetric";
-import { ExcelInsightCard } from "@/components/dashboard/ExcelInsightCard";
+import { Insights } from "@/components/dashboard/Insights";
 
 export default async function DashboardPage(props: {
   params: Promise<{ orgSlug: string }>;
@@ -120,9 +119,6 @@ export default async function DashboardPage(props: {
   return (
     <div className="space-y-6">
       <RealtimeListener orgSlug={resolvedParams.orgSlug} organizationId={organization.id} />
-
-      {/* ── Truth Banner (Insight Engine) ──────────────────────────────── */}
-      <TruthBanner insights={insights} />
       
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -149,6 +145,8 @@ export default async function DashboardPage(props: {
           </div>
         </div>
       </div>
+
+      <Insights insights={insights} />
 
       {/* ── 3-Card Summary ────────────────────────────────────────────── */}
       <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
@@ -213,9 +211,6 @@ export default async function DashboardPage(props: {
         <IncomeExpenseChart data={chartData} />
         <ExpenseDonutChart data={donutData} subtitle={insights.expenseSubtitle} />
       </div>
-
-      {/* ── Excel Insight Card ─────────────────────────────────────────── */}
-      <ExcelInsightCard insights={insights} />
 
       {activeFilterLabel && (
         <p className="text-sm text-zinc-500 font-medium">{activeFilterLabel}</p>

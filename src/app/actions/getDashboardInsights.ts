@@ -19,6 +19,9 @@ export interface DashboardInsights {
   pendingCOD: number;
   excelBullets: string[];
   expenseSubtitle: string;
+  marginPct: number;
+  rawPercent: number;
+  ordersToBreakeven: number;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -126,6 +129,16 @@ export async function getDashboardInsights(
   const adSpendPct =
     realizedRevenue > 0 ? (adSpend / realizedRevenue) * 100 : 0;
 
+  // 10. Raw Materials %
+  const rawExpense = expenseByCategory["Raw Materials"] || 0;
+  const rawPercent = totalExpenses > 0 ? (rawExpense / totalExpenses) * 100 : 0;
+
+  // 11. Orders to Breakeven
+  const averageOrderValue = totalOrders > 0 ? realizedRevenue / totalOrders : 0;
+  const ordersToBreakeven = netProfit < 0 && averageOrderValue > 0 
+    ? Math.ceil(Math.abs(netProfit) / averageOrderValue) 
+    : 0;
+
   // ─── Formatted values ──────────────────────────────────────────────────────
 
   const fRevenue = formatCurrency(realizedRevenue);
@@ -216,5 +229,8 @@ export async function getDashboardInsights(
     pendingCOD: pendingEscrow,
     excelBullets,
     expenseSubtitle,
+    marginPct,
+    rawPercent,
+    ordersToBreakeven,
   };
 }
