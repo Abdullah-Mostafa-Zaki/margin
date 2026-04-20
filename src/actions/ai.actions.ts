@@ -40,10 +40,10 @@ export async function parseVoiceTransaction(
       normalizedMime = "audio/mp4";
     }
 
-    console.log("🚀 [MODEL-SWAP] ACTIVE MODEL: gemini-3.1-flash-lite");
+    console.log("🚀 [MODEL-SWAP] ACTIVE MODEL: gemini-2.5-flash-lite");
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: "gemini-3.1-flash-lite",
+      model: "gemini-2.5-flash-lite",
     });
 
     // Dynamic date context so the model can resolve relative references
