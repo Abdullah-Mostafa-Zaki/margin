@@ -30,6 +30,10 @@ export function DateRangePicker() {
 
   const [customFrom, setCustomFrom] = useState(currentFrom || "");
   const [customTo,   setCustomTo]   = useState(currentTo   || "");
+  // Controls whether the custom date row is visible (local UI state)
+  const [showCustom, setShowCustom] = useState(
+    !!(currentFrom && currentTo)
+  );
 
   // Derive the <select> value from URL state
   const selectValue =
@@ -38,15 +42,19 @@ export function DateRangePicker() {
     "all";
 
   const handleChange = (value: string) => {
+    if (value === "custom") {
+      // Reveal the custom date inputs immediately; navigate only on Apply
+      setShowCustom(true);
+      return;
+    }
+
+    // Preset selected — hide custom row and push URL
+    setShowCustom(false);
     const params = new URLSearchParams(searchParams.toString());
     params.delete("from");
     params.delete("to");
     params.delete("range");
 
-    if (value === "custom") {
-      // Don't navigate yet — wait for Apply
-      return;
-    }
     if (value !== "all") {
       params.set("range", value);
     }
@@ -66,13 +74,11 @@ export function DateRangePicker() {
     });
   };
 
-  const showCustomRow = selectValue === "custom" || (currentFrom && currentTo);
-
   return (
     <div className="flex flex-col gap-2 w-full" style={{ opacity: isPending ? 0.6 : 1 }}>
       <div className="relative w-full">
         <select
-          value={showCustomRow ? "custom" : selectValue}
+          value={showCustom ? "custom" : selectValue}
           onChange={(e) => handleChange(e.target.value)}
           disabled={isPending}
           className={SELECT_CLS}
@@ -86,7 +92,7 @@ export function DateRangePicker() {
         {CHEVRON}
       </div>
 
-      {showCustomRow && (
+      {showCustom && (
         <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-150">
           <input
             type="date"
