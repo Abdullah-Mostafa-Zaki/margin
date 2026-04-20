@@ -16,6 +16,8 @@ import { MobileTransactionCard } from "@/components/transactions/mobile-transact
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { TransactionActions } from "@/components/transactions/transaction-actions";
 import type { TransactionFormHandle, TransactionToEdit } from "@/components/transactions/transaction-form";
+import { DateRangePicker } from "@/components/dashboard/date-range-picker";
+import { TagFilter } from "@/components/transactions/tag-filter";
 
 interface TagProp {
   id: string;
@@ -27,8 +29,6 @@ interface TransactionsShellProps {
   orgSlug: string;
   tags: TagProp[];
   activeTagLabel?: string;
-  /** Slot for the DateRangePicker + TagFilter server-rendered controls */
-  headerControls?: React.ReactNode;
 }
 
 export function TransactionsShell({
@@ -36,7 +36,6 @@ export function TransactionsShell({
   orgSlug,
   tags,
   activeTagLabel,
-  headerControls,
 }: TransactionsShellProps) {
   const [activeTab, setActiveTab] = useState<"INCOME" | "EXPENSE">("INCOME");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
@@ -93,26 +92,27 @@ export function TransactionsShell({
       ? `No expenses recorded for "${activeTagLabel}".`
       : "No expenses recorded yet.";
 
+  const DROPDOWN_CLS = "h-11 w-full appearance-none rounded-xl border border-zinc-200 bg-white px-3 pr-9 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 cursor-pointer truncate";
+  const CHEVRON_SVG = (
+    <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+
   return (
-    <div className="space-y-8">
-      {/* ── Page Header Row ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-4">
+      {/* ── Page Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
           <p className="text-zinc-500">Manage your income and expenses.</p>
         </div>
-        <div className="flex items-center flex-wrap gap-2">
-          {headerControls}
-          <TransactionActions
-            orgSlug={orgSlug}
-            tags={tags}
-            onFormReady={handleFormReady}
-          />
-        </div>
+        <TransactionActions orgSlug={orgSlug} tags={tags} onFormReady={handleFormReady} />
       </div>
 
-      {/* ── Segmented Control ── */}
-      <div className="flex w-full bg-zinc-100/80 p-1 rounded-2xl gap-1 shadow-inner"
+      {/* ── Layer 1: Revenue / Expenses Toggle ── */}
+      <div
+        className="flex w-full bg-zinc-100/80 p-1 rounded-2xl gap-1 shadow-inner mb-4"
         onClick={() => setSelectedCategory("All")}
       >
         {/* Revenue */}
@@ -131,13 +131,9 @@ export function TransactionsShell({
           <TrendingUp className="w-4 h-4 shrink-0" />
           Revenue
           {incomeCount > 0 && (
-            <span
-              className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                activeTab === "INCOME"
-                  ? "bg-emerald-500/40 text-white"
-                  : "bg-zinc-200 text-zinc-600"
-              }`}
-            >
+            <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-medium ${
+              activeTab === "INCOME" ? "bg-emerald-500/40 text-white" : "bg-zinc-200 text-zinc-600"
+            }`}>
               {incomeCount}
             </span>
           )}
@@ -159,55 +155,55 @@ export function TransactionsShell({
           <TrendingDown className="w-4 h-4 shrink-0" />
           Expenses
           {expenseCount > 0 && (
-            <span
-              className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                activeTab === "EXPENSE"
-                  ? "bg-red-400/40 text-white"
-                  : "bg-zinc-200 text-zinc-600"
-              }`}
-            >
+            <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-medium ${
+              activeTab === "EXPENSE" ? "bg-red-400/40 text-white" : "bg-zinc-200 text-zinc-600"
+            }`}>
               {expenseCount}
             </span>
           )}
         </button>
       </div>
 
-      {/* ── Filter / Sort Bar ── */}
-      <div className="flex flex-row gap-3 mb-4">
+      {/* ── Layer 2: Date | Drops ── */}
+      <div className="flex flex-row gap-3 w-full mb-3">
+        <div className="flex-1">
+          <DateRangePicker />
+        </div>
+        <div className="flex-1">
+          <TagFilter tags={tags} />
+        </div>
+      </div>
+
+      {/* ── Layer 3: Category | Sort ── */}
+      <div className="flex flex-row gap-3 w-full mb-6">
         {/* Category filter */}
-        <div className="relative w-1/2 sm:w-64">
+        <div className="relative flex-1">
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full appearance-none rounded-xl border border-zinc-200 bg-white px-4 py-2.5 pr-9 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 cursor-pointer truncate"
+            className={DROPDOWN_CLS}
           >
             <option value="All">All Categories</option>
             {availableCategories.map((cat) => (
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>
-          {/* Chevron icon */}
-          <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
+          {CHEVRON_SVG}
         </div>
 
         {/* Sort order */}
-        <div className="relative w-1/2 sm:w-48">
+        <div className="relative flex-1">
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
-            className="w-full appearance-none rounded-xl border border-zinc-200 bg-white px-4 py-2.5 pr-9 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 cursor-pointer"
+            className={DROPDOWN_CLS}
           >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
             <option value="highest">Highest Amount</option>
             <option value="lowest">Lowest Amount</option>
           </select>
-          {/* Chevron icon */}
-          <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
+          {CHEVRON_SVG}
         </div>
       </div>
 

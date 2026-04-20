@@ -9,8 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MarkReceivedButton, MarkAllReceivedButton } from "@/components/transactions/action-buttons";
 import { X } from "lucide-react";
 import RealtimeListener from "@/components/dashboard/realtime-listener";
-import { TagFilter } from "@/components/transactions/tag-filter";
-import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { TransactionsShell } from "@/components/transactions/transactions-shell";
 import { getDateRangeFromParams } from "@/lib/date-utils";
 
@@ -114,18 +112,11 @@ export default async function TransactionsPage(props: {
         </Card>
       )}
 
-      {/* Single client island: header + segmented control + table/cards + form */}
       <TransactionsShell
         transactions={organization.transactions}
         orgSlug={resolvedParams.orgSlug}
         tags={tags}
         activeTagLabel={activeTag?.name}
-        headerControls={
-          <>
-            <DateRangePicker />
-            <TagFilter tags={tags} />
-          </>
-        }
       />
     </div>
   );
