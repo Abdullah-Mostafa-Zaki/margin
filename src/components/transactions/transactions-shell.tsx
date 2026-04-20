@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import type { Transaction } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -39,6 +39,8 @@ export function TransactionsShell({
   headerControls,
 }: TransactionsShellProps) {
   const [activeTab, setActiveTab] = useState<"INCOME" | "EXPENSE">("INCOME");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "highest" | "lowest">("newest");
   const formHandleRef = useRef<TransactionFormHandle | null>(null);
 
   const handleFormReady = useCallback((handle: TransactionFormHandle) => {
@@ -59,9 +61,28 @@ export function TransactionsShell({
     formHandleRef.current?.openForEdit(payload);
   }, []);
 
-  const displayedTransactions = transactions.filter(
-    (t) => t.type === activeTab
-  );
+  // Unique categories for the active tab
+  const availableCategories = useMemo(() => {
+    const cats = transactions
+      .filter((t) => t.type === activeTab)
+      .map((t) => t.category);
+    return Array.from(new Set(cats)).sort();
+  }, [transactions, activeTab]);
+
+  // 3-step pipeline: type → category → sort
+  const displayedTransactions = useMemo(() => {
+    let filtered = transactions.filter((t) => t.type === activeTab);
+    if (selectedCategory !== "All") {
+      filtered = filtered.filter((t) => t.category === selectedCategory);
+    }
+    return [...filtered].sort((a, b) => {
+      if (sortOrder === "newest") return new Date(b.date).getTime() - new Date(a.date).getTime();
+      if (sortOrder === "oldest") return new Date(a.date).getTime() - new Date(b.date).getTime();
+      if (sortOrder === "highest") return Number(b.amount) - Number(a.amount);
+      if (sortOrder === "lowest") return Number(a.amount) - Number(b.amount);
+      return 0;
+    });
+  }, [transactions, activeTab, selectedCategory, sortOrder]);
 
   const incomeCount = transactions.filter((t) => t.type === "INCOME").length;
   const expenseCount = transactions.filter((t) => t.type === "EXPENSE").length;
@@ -94,10 +115,12 @@ export function TransactionsShell({
       </div>
 
       {/* ── Segmented Control ── */}
-      <div className="flex w-full bg-zinc-100/80 p-1 rounded-2xl gap-1 shadow-inner">
+      <div className="flex w-full bg-zinc-100/80 p-1 rounded-2xl gap-1 shadow-inner"
+        onClick={() => setSelectedCategory("All")}
+      >
         {/* Revenue */}
         <button
-          onClick={() => setActiveTab("INCOME")}
+          onClick={(e) => { e.stopPropagation(); setActiveTab("INCOME"); setSelectedCategory("All"); }}
           className={`
             relative flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold
             transition-all duration-200 ease-in-out select-none
@@ -125,7 +148,7 @@ export function TransactionsShell({
 
         {/* Expenses */}
         <button
-          onClick={() => setActiveTab("EXPENSE")}
+          onClick={(e) => { e.stopPropagation(); setActiveTab("EXPENSE"); setSelectedCategory("All"); }}
           className={`
             relative flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold
             transition-all duration-200 ease-in-out select-none
@@ -150,6 +173,45 @@ export function TransactionsShell({
             </span>
           )}
         </button>
+      </div>
+
+      {/* ── Filter / Sort Bar ── */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        {/* Category filter */}
+        <div className="relative flex-1">
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="w-full appearance-none rounded-xl border border-zinc-200 bg-white px-4 py-2.5 pr-9 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 cursor-pointer"
+          >
+            <option value="All">All Categories</option>
+            {availableCategories.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+          {/* Chevron icon */}
+          <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+
+        {/* Sort order */}
+        <div className="relative sm:w-52">
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
+            className="w-full appearance-none rounded-xl border border-zinc-200 bg-white px-4 py-2.5 pr-9 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 cursor-pointer"
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="highest">Highest Amount</option>
+            <option value="lowest">Lowest Amount</option>
+          </select>
+          {/* Chevron icon */}
+          <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
       </div>
 
       {/* ── Desktop Table ── */}
