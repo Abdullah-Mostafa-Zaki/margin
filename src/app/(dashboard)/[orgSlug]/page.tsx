@@ -128,15 +128,15 @@ export default async function DashboardPage(props: {
     totalLineItemRevenue += rev;
   });
 
-  let heroProductName = "Unknown";
-  let heroProductPercent = 0;
+  let productBreakdown: { name: string; revenue: number; percent: number }[] = [];
 
   if (totalLineItemRevenue > 0) {
     const sortedProducts = Object.entries(productRevenue).sort((a, b) => b[1] - a[1]);
-    if (sortedProducts.length > 0) {
-      heroProductName = sortedProducts[0][0];
-      heroProductPercent = Math.round((sortedProducts[0][1] / totalLineItemRevenue) * 100);
-    }
+    productBreakdown = sortedProducts.slice(0, 4).map(([name, rev]) => ({
+      name,
+      revenue: rev,
+      percent: Math.round((rev / totalLineItemRevenue) * 100)
+    }));
   }
 
   // -------------------------
@@ -201,8 +201,7 @@ export default async function DashboardPage(props: {
 
       <Insights 
         insights={insights} 
-        heroProductName={heroProductName} 
-        heroProductPercent={heroProductPercent} 
+        productBreakdown={productBreakdown} 
       />
 
       {/* ── 3-Card Summary ────────────────────────────────────────────── */}
