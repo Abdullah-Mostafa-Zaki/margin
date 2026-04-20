@@ -276,11 +276,11 @@ const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tag
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       {/* Desktop Button */}
-      <Button className="hidden md:flex" onClick={() => setIsOpen(true)}>Add Transaction</Button>
+      <Button className="hidden md:flex bg-[#27A67A] hover:bg-[#27A67A]/90 text-white" onClick={() => setIsOpen(true)}>Add Transaction</Button>
 
       {/* Mobile FAB */}
       <button
-        className="md:hidden flex items-center justify-center fixed right-6 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg active:scale-95 transition-transform duration-75 z-50"
+        className="md:hidden flex items-center justify-center fixed right-6 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] h-14 w-14 rounded-full bg-[#27A67A] text-white hover:bg-[#27A67A]/90 shadow-lg active:scale-95 transition-all duration-200 z-50"
         onClick={() => setIsOpen(true)}
         aria-label="Add Transaction"
       >
@@ -512,7 +512,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tag
           </div>
 
           <div className="shrink-0 px-4 md:px-0 pt-3 md:pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-0 border-t md:border-t-0 border-zinc-100 bg-white md:bg-transparent">
-            <Button type="submit" className="w-full flex h-14 md:h-10 text-base md:text-sm font-semibold" disabled={isPending}>
+            <Button type="submit" className="w-full flex h-14 md:h-10 text-base md:text-sm font-semibold bg-[#27A67A] hover:bg-[#27A67A]/90 text-white" disabled={isPending}>
               {isPending ? (editingId ? "Updating..." : "Saving...") : (editingId ? "Update Transaction" : "Save Transaction")}
             </Button>
           </div>

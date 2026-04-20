@@ -9,16 +9,16 @@ interface Props {
   subtitle?: string;
 }
 
-const COLORS = ["#dc2626", "#ea580c", "#d97706", "#65a30d", "#0891b2", "#7c3aed", "#db2777"];
+const COLORS = ["#E06C4C", "#E88264", "#D95A40", "#F09C82", "#C94829", "#F5AD98", "#B53C1F"];
 
 export function ExpenseDonutChart({ data, subtitle }: Props) {
   const total = data.reduce((acc, curr) => acc + curr.amount, 0);
 
   if (data.length === 0) {
     return (
-      <div className="rounded-xl border bg-card p-6 flex flex-col h-full">
+      <div className="rounded-3xl border-0 bg-card p-6 flex flex-col h-full shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
         <div>
-          <h3 className="font-semibold">Expense Breakdown</h3>
+          <h3 className="font-semibold tracking-tight">Expense Breakdown</h3>
           <p className="text-sm text-muted-foreground mb-1">By category</p>
         </div>
         <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground min-h-[200px]">
@@ -39,9 +39,9 @@ export function ExpenseDonutChart({ data, subtitle }: Props) {
   };
 
   return (
-    <div className="rounded-xl border bg-card p-6 flex flex-col h-full">
+    <div className="rounded-3xl border-0 bg-card p-6 flex flex-col h-full shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
       <div>
-        <h3 className="font-semibold">Expense Breakdown</h3>
+        <h3 className="font-semibold tracking-tight">Expense Breakdown</h3>
         <p className="text-sm text-muted-foreground mb-4">By category</p>
       </div>
       <div className="h-[300px] md:h-[400px] w-full">

@@ -123,7 +123,7 @@ export function TransactionsShell({
             transition-all duration-200 ease-in-out select-none
             ${
               activeTab === "INCOME"
-                ? "bg-emerald-600 text-white shadow-sm"
+                ? "bg-[#27A67A] text-white shadow-sm"
                 : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/60"
             }
           `}

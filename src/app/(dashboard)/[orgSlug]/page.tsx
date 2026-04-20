@@ -140,68 +140,66 @@ export default async function DashboardPage(props: {
         </div>
       </div>
 
-      {/* ── 4-Card Summary ────────────────────────────────────────────── */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-        <Card className="border-green-200 bg-green-50/30">
+      {/* ── Emerald Hero Balance ───────────────────────────────────────── */}
+      <div className="bg-[#27A67A] text-white rounded-3xl p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] block relative overflow-hidden">
+        <div className="relative z-10">
+          <h2 className="text-sm font-medium text-emerald-100 uppercase tracking-widest mb-2">Total Balance</h2>
+          <div className="text-4xl md:text-5xl font-semibold tracking-tight">
+            EGP {netBalance.toLocaleString()}
+          </div>
+        </div>
+      </div>
+
+      {/* ── 3-Card Summary ────────────────────────────────────────────── */}
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
+        <Card className="border-0">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-900">Total Income</CardTitle>
-            <ArrowUpRight className="h-4 w-4 text-green-600" />
+            <CardTitle className="text-sm font-medium text-zinc-500">Total Income</CardTitle>
+            <ArrowUpRight className="h-4 w-4 text-[#27A67A]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-700">
+            <div className="text-2xl font-semibold tracking-tight text-zinc-900">
               EGP {totalIncome.toLocaleString()}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-red-200 bg-red-50/30">
+        <Card className="border-0">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-red-900">Total Expenses</CardTitle>
-            <ArrowDownRight className="h-4 w-4 text-red-600" />
+            <CardTitle className="text-sm font-medium text-zinc-500">Total Expenses</CardTitle>
+            <ArrowDownRight className="h-4 w-4 text-[#E06C4C]" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-700">
+            <div className="text-2xl font-semibold tracking-tight text-zinc-900">
               EGP {totalExpense.toLocaleString()}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Net Balance</CardTitle>
-            <Wallet className="h-4 w-4 text-zinc-500" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${netBalance >= 0 ? 'text-zinc-900' : 'text-red-600'}`}>
-              EGP {netBalance.toLocaleString()}
-            </div>
-          </CardContent>
-        </Card>
-
         {totalPendingCOD === 0 ? (
-          <Card className="border-zinc-200 bg-zinc-50/50">
+          <Card className="border-0">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-zinc-500">Expected Inbound</CardTitle>
               <Clock className="h-4 w-4 text-zinc-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl font-bold text-zinc-600">
+              <div className="text-2xl font-semibold tracking-tight text-zinc-400">
                 EGP 0
               </div>
-              <p className="text-xs text-zinc-500 mt-1">All cash collected. No pending COD.</p>
+              <p className="text-xs text-zinc-500 mt-1">All cash collected.</p>
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-amber-200 bg-amber-50">
+          <Card className="border-0">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-amber-900">Expected Inbound</CardTitle>
-              <Clock className="h-4 w-4 text-amber-700" />
+              <CardTitle className="text-sm font-medium text-zinc-500">Expected Inbound</CardTitle>
+              <Clock className="h-4 w-4 text-amber-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-amber-700">
+              <div className="text-2xl font-semibold tracking-tight text-zinc-900">
                 EGP {totalPendingCOD.toLocaleString()}
               </div>
-              <p className="text-xs text-amber-600 mt-1 font-medium">Cash with couriers</p>
+              <p className="text-xs text-zinc-500 mt-1 font-medium">Pending cash with couriers</p>
             </CardContent>
           </Card>
         )}

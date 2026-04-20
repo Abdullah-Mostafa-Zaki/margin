@@ -12,8 +12,8 @@ interface Props {
 export function IncomeExpenseChart({ data }: Props) {
   if (data.length === 0) {
     return (
-      <div className="rounded-xl border bg-card p-6">
-        <h3 className="font-semibold mb-1">Income vs Expenses</h3>
+      <div className="rounded-3xl border-0 bg-card p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+        <h3 className="font-semibold tracking-tight mb-1">Income vs Expenses</h3>
         <div className="flex min-h-[300px] md:min-h-[380px] items-center justify-center text-sm text-muted-foreground">
           No data for selected period
         </div>
@@ -22,8 +22,8 @@ export function IncomeExpenseChart({ data }: Props) {
   }
 
   return (
-    <div className="rounded-xl border bg-card p-6">
-      <h3 className="font-semibold mb-4">Income vs Expenses</h3>
+    <div className="rounded-3xl border-0 bg-card p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+      <h3 className="font-semibold tracking-tight mb-4">Income vs Expenses</h3>
       <div className="h-[300px] md:h-[400px] w-full">
         <ResponsiveContainer width="100%" height="100%" minHeight={300}>
           <LineChart data={data}>
@@ -32,8 +32,8 @@ export function IncomeExpenseChart({ data }: Props) {
             <YAxis tick={{ fontSize: 12 }} tickFormatter={(v: number) => `${(v/1000).toFixed(0)}k`} width={50} />
             <Tooltip formatter={(value: any) => [`EGP ${Number(value).toLocaleString()}`, '']} />
             <Legend />
-            <Line type="monotone" dataKey="income" stroke="#16a34a" strokeWidth={2} dot={false} name="Income" />
-            <Line type="monotone" dataKey="expenses" stroke="#dc2626" strokeWidth={2} dot={false} name="Expenses" />
+            <Line type="monotone" dataKey="income" stroke="#27A67A" strokeWidth={2} dot={false} name="Income" />
+            <Line type="monotone" dataKey="expenses" stroke="#E06C4C" strokeWidth={2} dot={false} name="Expenses" />
           </LineChart>
         </ResponsiveContainer>
       </div>

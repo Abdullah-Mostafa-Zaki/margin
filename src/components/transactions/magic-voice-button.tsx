@@ -80,10 +80,10 @@ export function MagicVoiceButton({ onResult }: MagicVoiceButtonProps) {
         disabled={isProcessing}
         className={`hidden md:inline-flex items-center justify-center gap-2 h-10 rounded-md border px-4 text-sm font-medium transition-all duration-200 ${
           isProcessing
-            ? "border-zinc-200 bg-zinc-50 text-zinc-400 cursor-wait"
+            ? "border-[#27A67A]/20 bg-[#27A67A]/5 text-[#27A67A]/40 cursor-wait"
             : isRecording
               ? "border-red-300 bg-red-500 text-white shadow-lg shadow-red-200 animate-pulse"
-              : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 active:scale-95"
+              : "border-[#27A67A]/20 bg-[#27A67A]/10 text-[#27A67A] hover:bg-[#27A67A]/20 hover:border-[#27A67A]/30 active:scale-95"
         }`}
         title={isRecording ? "Stop recording" : "Magic Fill — speak your transaction"}
       >
@@ -102,10 +102,10 @@ export function MagicVoiceButton({ onResult }: MagicVoiceButtonProps) {
         disabled={isProcessing}
         className={`md:hidden flex items-center justify-center fixed right-24 bottom-[calc(1.5rem+env(safe-area-inset-bottom))] h-14 w-14 rounded-full shadow-lg transition-all duration-200 z-50 ${
           isProcessing
-            ? "bg-zinc-200 text-zinc-400 cursor-wait"
+            ? "bg-[#27A67A]/10 text-[#27A67A]/40 cursor-wait"
             : isRecording
               ? "bg-red-500 text-white shadow-red-300 animate-pulse"
-              : "bg-white text-zinc-700 border border-zinc-200 active:scale-95"
+              : "bg-[#27A67A]/10 text-[#27A67A] active:scale-95"
         }`}
         aria-label={isRecording ? "Stop recording" : "Voice input"}
       >
