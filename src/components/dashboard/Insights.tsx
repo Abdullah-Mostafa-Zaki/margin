@@ -44,11 +44,11 @@ export function Insights({ insights, productBreakdown = [] }: InsightsProps) {
         </p>
 
         {/* Elite Intelligence Bullets */}
-        {(insights.rawPercent > 50 || insights.netProfit < 0 || insights.pendingCOD > 0 || (productBreakdown[0]?.percent > 60)) && (
+        {(insights.rawPercent > 50 || insights.netProfit < 0 || insights.pendingCOD > 0 || (productBreakdown && productBreakdown[0]?.percent > 40)) && (
           <div className="space-y-4 pt-4 border-t border-zinc-100">
-            {productBreakdown[0]?.percent > 60 && (
-              <p className="text-sm md:text-base leading-relaxed">
-                <span className="font-bold">The Apex Advantage:</span> <span className="text-emerald-600">{productBreakdown[0].percent}%</span> of your revenue is driven by one product: <strong>{productBreakdown[0].name}</strong>. This is your battering ram. Kill your underperforming ads and funnel that budget directly into this SKU. Double down.
+            {productBreakdown && productBreakdown[0]?.percent > 40 && (
+              <p className="text-slate-700 mt-3">
+                <span className="font-bold text-slate-900">The Apex Advantage:</span> <span className="text-[#27A67A] font-bold">{productBreakdown[0].percent}%</span> of your revenue is driven by one product: <strong>{productBreakdown[0].name}</strong>. This is working. Double down on it.
               </p>
             )}
 
@@ -74,8 +74,7 @@ export function Insights({ insights, productBreakdown = [] }: InsightsProps) {
       </div>
 
       {productBreakdown.length > 0 && (
-        <>
-          <hr className="my-6 border-slate-200" />
+        <div className="mt-8 p-6 bg-slate-50/80 border border-slate-100 rounded-2xl">
           <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Catalog Velocity (Top Movers)</h4>
           <div className="space-y-4">
             {productBreakdown.map((item, idx) => (
@@ -90,7 +89,7 @@ export function Insights({ insights, productBreakdown = [] }: InsightsProps) {
               </div>
             ))}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
