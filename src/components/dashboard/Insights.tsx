@@ -4,9 +4,11 @@ import { DashboardInsights } from "@/app/actions/getDashboardInsights";
 
 interface InsightsProps {
   insights: DashboardInsights;
+  heroProductName?: string;
+  heroProductPercent?: number;
 }
 
-export function Insights({ insights }: InsightsProps) {
+export function Insights({ insights, heroProductName = "Unknown", heroProductPercent = 0 }: InsightsProps) {
   const profitStr = insights.netProfit.toLocaleString("en-EG");
   const marginStr = Math.round(insights.marginPct).toString();
   const rawStr = Math.round(insights.rawPercent).toString();
@@ -43,8 +45,14 @@ export function Insights({ insights }: InsightsProps) {
         </p>
 
         {/* Elite Intelligence Bullets */}
-        {(insights.rawPercent > 50 || insights.netProfit < 0 || insights.pendingCOD > 0) && (
+        {(insights.rawPercent > 50 || insights.netProfit < 0 || insights.pendingCOD > 0 || heroProductPercent > 60) && (
           <div className="space-y-4 pt-4 border-t border-zinc-100">
+            {heroProductPercent > 60 && (
+              <p className="text-sm md:text-base leading-relaxed">
+                <span className="font-bold">The Pareto Trap:</span> <span className="text-red-600">{heroProductPercent}%</span> of your revenue is dependent on one product: <strong>{heroProductName}</strong>. You have a winning SKU, but a fragile catalog. Diversify your marketing.
+              </p>
+            )}
+
             {insights.rawPercent > 50 && (
               <p className="text-sm md:text-base leading-relaxed">
                 <span className="font-bold">Cost Warning:</span> {rawStr}% of your capital went to Raw Materials. Your production costs are eating your profit.

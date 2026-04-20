@@ -107,6 +107,38 @@ export default async function DashboardPage(props: {
     amount: Number(e._sum.amount || 0)
   }));
 
+  // --- PARETO ENGINE ---
+  const lineItems = await prisma.lineItem.findMany({
+    where: {
+      transaction: {
+        organizationId: organization.id,
+        type: 'INCOME',
+        status: 'RECEIVED',
+        ...dateFilter
+      }
+    }
+  });
+
+  const productRevenue: Record<string, number> = {};
+  let totalLineItemRevenue = 0;
+
+  lineItems.forEach(item => {
+    const rev = item.quantity * Number(item.price);
+    productRevenue[item.name] = (productRevenue[item.name] || 0) + rev;
+    totalLineItemRevenue += rev;
+  });
+
+  let heroProductName = "Unknown";
+  let heroProductPercent = 0;
+
+  if (totalLineItemRevenue > 0) {
+    const sortedProducts = Object.entries(productRevenue).sort((a, b) => b[1] - a[1]);
+    if (sortedProducts.length > 0) {
+      heroProductName = sortedProducts[0][0];
+      heroProductPercent = Math.round((sortedProducts[0][1] / totalLineItemRevenue) * 100);
+    }
+  }
+
   // -------------------------
 
   let activeFilterLabel = "";
@@ -146,7 +178,11 @@ export default async function DashboardPage(props: {
         </div>
       </div>
 
-      <Insights insights={insights} />
+      <Insights 
+        insights={insights} 
+        heroProductName={heroProductName} 
+        heroProductPercent={heroProductPercent} 
+      />
 
       {/* ── 3-Card Summary ────────────────────────────────────────────── */}
       <div className="grid gap-6 grid-cols-1 md:grid-cols-3">

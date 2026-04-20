@@ -129,6 +129,13 @@ export async function POST(req: Request) {
         createdById: ownerId,
         shopifyOrderId,
         notes: `Shopify Order ${order.name || "\x23" + order.order_number}`,
+        lineItems: {
+          create: (order.line_items || []).map((item: any) => ({
+            name: item.title || item.name || "Unknown Product",
+            quantity: item.quantity || 1,
+            price: Number(item.price || 0)
+          }))
+        }
       },
     });
 
