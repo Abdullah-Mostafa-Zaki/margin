@@ -93,7 +93,7 @@ export function DateRangePicker() {
       </div>
 
       {showCustom && (
-        <div className="flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="flex flex-row items-center gap-2 w-full mt-2 animate-in fade-in slide-in-from-top-1 duration-150">
           <input
             type="date"
             value={customFrom}
