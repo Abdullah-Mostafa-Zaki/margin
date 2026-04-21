@@ -1,14 +1,20 @@
 export function groupShopifyRows(rows: Record<string, string>[]): unknown[] {
   const grouped = rows.reduce((acc, row) => {
-    const nameStr = row["Name"]?.trim();
+    let nameStr = row["Name"];
     if (!nameStr) return acc;
+    
+    nameStr = nameStr.replace(/^#/, "").trim().toLowerCase();
 
     if (!acc[nameStr]) {
+      const finStatus = row["Financial Status"]?.trim().toLowerCase() || "";
+      const paymentMethod = finStatus === "paid" ? "CARD" : "COD";
+
       acc[nameStr] = {
         shopifyOrderId: nameStr,
         // Using "Total" for amount and "Created at" for date based on Shopify CSV format
         amount: row["Total"]?.trim() || "0", 
         date: row["Created at"]?.trim() || "",
+        paymentMethod,
         lineItems: []
       };
     }

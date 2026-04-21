@@ -54,14 +54,10 @@ export async function bulkImportTransactions(orgId: string, data: unknown[]) {
   let failed = 0;
 
   for (const order of parsed.data) {
-    if (existingSet.has(order.shopifyOrderId)) {
-      skipped++;
-      continue;
-    }
-
-    const { lineItems, ...orderData } = order;
+    const { lineItems, paymentMethod, ...orderData } = order as any;
 
     try {
+      console.log("DEBUG: Importing Order ID:", order.shopifyOrderId);
       await prisma.$transaction(async (tx) => {
         await tx.transaction.upsert({
           where: { 
@@ -70,13 +66,21 @@ export async function bulkImportTransactions(orgId: string, data: unknown[]) {
               organizationId: orgId 
             } 
           },
-          update: {},
+          update: {
+            ...orderData,
+            organizationId: orgId,
+            type: "INCOME",
+            category: "Shopify Sale",
+            paymentMethod: paymentMethod || "COD",
+            status: "RECEIVED",
+            createdById,
+          },
           create: {
             ...orderData,
             organizationId: orgId,
             type: "INCOME",
             category: "Shopify Sale",
-            paymentMethod: "COD",
+            paymentMethod: paymentMethod || "COD",
             status: "RECEIVED",
             createdById,
             lineItems: { create: lineItems }
