@@ -107,15 +107,20 @@ export function CSVUploader({ orgId }: CSVUploaderProps) {
         ref={fileInputRef}
         onChange={handleFileChange}
       />
-      <Button
-        variant="outline"
-        onClick={() => fileInputRef.current?.click()}
-        disabled={isUploading}
-        className="gap-2 shrink-0 border-zinc-300"
-      >
-        {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-[#27A67A]" /> : <Upload className="w-4 h-4 text-zinc-500" />}
-        {isUploading ? "Importing..." : "Import Shopify CSV"}
-      </Button>
+      <div onClick={(e) => e.stopPropagation()}>
+        <Button
+          variant="outline"
+          onClick={() => {
+            console.log("CSV Uploader Clicked");
+            fileInputRef.current?.click();
+          }}
+          disabled={isUploading}
+          className="gap-2 shrink-0 border-zinc-300"
+        >
+          {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-[#27A67A]" /> : <Upload className="w-4 h-4 text-zinc-500" />}
+          {isUploading ? "Importing..." : "Import Shopify CSV"}
+        </Button>
+      </div>
     </>
   );
 }
