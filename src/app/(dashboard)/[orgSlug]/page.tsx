@@ -12,6 +12,7 @@ import { groupTransactionsByDate } from "@/lib/chart-utils";
 import { getDashboardInsights } from "@/app/actions/getDashboardInsights";
 import { GodMetric } from "@/components/dashboard/GodMetric";
 import { Insights } from "@/components/dashboard/Insights";
+import { FadeIn } from "@/components/ui/fade-in";
 
 export default async function DashboardPage(props: {
   params: Promise<{ orgSlug: string }>;
@@ -206,57 +207,63 @@ export default async function DashboardPage(props: {
 
       {/* ── 3-Card Summary ────────────────────────────────────────────── */}
       <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
-        <Card className="border-0">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-500">Total Income</CardTitle>
-            <ArrowUpRight className="h-4 w-4 text-[#27A67A]" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold tracking-tight text-zinc-900">
-              EGP {totalIncome.toLocaleString()}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-500">Total Expenses</CardTitle>
-            <ArrowDownRight className="h-4 w-4 text-[#E06C4C]" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold tracking-tight text-zinc-900">
-              EGP {totalExpense.toLocaleString()}
-            </div>
-          </CardContent>
-        </Card>
-
-        {totalPendingCOD === 0 ? (
-          <Card className="border-0">
+        <FadeIn delay={0.1}>
+          <Card className="border-0 h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-zinc-500">Expected Inbound</CardTitle>
-              <Clock className="h-4 w-4 text-zinc-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-semibold tracking-tight text-zinc-400">
-                EGP 0
-              </div>
-              <p className="text-xs text-zinc-500 mt-1">All cash collected.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-zinc-500">Expected Inbound</CardTitle>
-              <Clock className="h-4 w-4 text-amber-500" />
+              <CardTitle className="text-sm font-medium text-zinc-500">Total Income</CardTitle>
+              <ArrowUpRight className="h-4 w-4 text-[#27A67A]" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold tracking-tight text-zinc-900">
-                EGP {totalPendingCOD.toLocaleString()}
+                EGP {totalIncome.toLocaleString()}
               </div>
-              <p className="text-xs text-zinc-500 mt-1 font-medium">Pending cash with couriers</p>
             </CardContent>
           </Card>
-        )}
+        </FadeIn>
+
+        <FadeIn delay={0.2}>
+          <Card className="border-0 h-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-zinc-500">Total Expenses</CardTitle>
+              <ArrowDownRight className="h-4 w-4 text-[#E06C4C]" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-semibold tracking-tight text-zinc-900">
+                EGP {totalExpense.toLocaleString()}
+              </div>
+            </CardContent>
+          </Card>
+        </FadeIn>
+
+        <FadeIn delay={0.3}>
+          {totalPendingCOD === 0 ? (
+            <Card className="border-0 h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-zinc-500">Expected Inbound</CardTitle>
+                <Clock className="h-4 w-4 text-zinc-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-semibold tracking-tight text-zinc-400">
+                  EGP 0
+                </div>
+                <p className="text-xs text-zinc-500 mt-1">All cash collected.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-0 h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-zinc-500">Expected Inbound</CardTitle>
+                <Clock className="h-4 w-4 text-amber-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-semibold tracking-tight text-zinc-900">
+                  EGP {totalPendingCOD.toLocaleString()}
+                </div>
+                <p className="text-xs text-zinc-500 mt-1 font-medium">Pending cash with couriers</p>
+              </CardContent>
+            </Card>
+          )}
+        </FadeIn>
       </div>
 
       {/* ── Catalog Velocity ───────────────────────────────────────────── */}
@@ -284,8 +291,12 @@ export default async function DashboardPage(props: {
 
       {/* ── Charts ─────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <IncomeExpenseChart data={chartData} />
-        <ExpenseDonutChart data={donutData} subtitle={insights.expenseSubtitle} />
+        <FadeIn delay={0.4} duration={0.5}>
+          <IncomeExpenseChart data={chartData} />
+        </FadeIn>
+        <FadeIn delay={0.5} duration={0.5}>
+          <ExpenseDonutChart data={donutData} subtitle={insights.expenseSubtitle} />
+        </FadeIn>
       </div>
 
       {activeFilterLabel && (

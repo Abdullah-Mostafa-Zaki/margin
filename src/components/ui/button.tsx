@@ -3,6 +3,8 @@
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
+import { motion } from "framer-motion"
+
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
@@ -52,6 +54,7 @@ function Button({
     <ButtonPrimitive
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
+      render={<motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }} />}
       {...props}
     />
   )
