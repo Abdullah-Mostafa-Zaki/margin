@@ -100,13 +100,14 @@ export async function POST(req: Request) {
     }
 
     const shopifyOrderId = order.id ? String(order.id) : undefined;
+    const normalizedOrderId = shopifyOrderId ? String(shopifyOrderId).replace(/^#/, "") : undefined;
 
     // ── 6. Prevent duplicate webhook processing ─────────────────────────────
-    if (shopifyOrderId) {
+    if (normalizedOrderId) {
       const existingTx = await prisma.transaction.findUnique({
         where: { 
           shopifyOrderId_organizationId: { 
-            shopifyOrderId, 
+            shopifyOrderId: normalizedOrderId, 
             organizationId: organization.id 
           } 
         },
@@ -132,7 +133,7 @@ export async function POST(req: Request) {
         paymentMethod,
         organizationId: organization.id,
         createdById: ownerId,
-        shopifyOrderId,
+        shopifyOrderId: normalizedOrderId,
         notes: `Shopify Order ${order.name || "\x23" + order.order_number}`,
         lineItems: {
           create: (order.line_items || []).map((item: any) => ({
