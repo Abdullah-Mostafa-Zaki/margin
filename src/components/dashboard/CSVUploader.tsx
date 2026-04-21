@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import Papa from "papaparse";
 import { groupShopifyRows } from "@/lib/utils/shopifyCsvGrouper";
 import { bulkImportTransactions } from "@/actions/csvImport";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Upload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -15,7 +15,6 @@ interface CSVUploaderProps {
 export function CSVUploader({ orgId }: CSVUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -64,10 +63,8 @@ export function CSVUploader({ orgId }: CSVUploaderProps) {
                 if (fields.length > 0) msg += fields.join(", ") + " are invalid.";
               }
             }
-            toast({
-              title: "Validation Error",
+            toast.error("Validation Error", {
               description: msg,
-              variant: "destructive",
             });
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
@@ -78,10 +75,8 @@ export function CSVUploader({ orgId }: CSVUploaderProps) {
           totalSkipped += result.skipped || 0;
           totalFailed += result.failed || 0;
         } catch (err) {
-          toast({
-            title: "Network Error",
+          toast.error("Network Error", {
             description: "Import failed. Please try again.",
-            variant: "destructive",
           });
           setIsUploading(false);
           if (fileInputRef.current) fileInputRef.current.value = "";
@@ -89,16 +84,13 @@ export function CSVUploader({ orgId }: CSVUploaderProps) {
         }
       }
 
-      toast({
-        title: "Import Complete",
+      toast.success("Import Complete", {
         description: `Imported ${totalCreated} orders — ${totalSkipped} duplicates skipped, ${totalFailed} failed.`,
       });
       
     } catch (err) {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Failed to parse CSV file.",
-        variant: "destructive",
       });
     } finally {
       setIsUploading(false);
