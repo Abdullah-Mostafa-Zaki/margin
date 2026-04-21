@@ -104,7 +104,7 @@ model Tag {
 
 model Transaction {
   id             String            @id @default(cuid())
-  shopifyOrderId   String?           @unique
+  shopifyOrderId String?
   type           TransactionType
   amount         Decimal           @db.Decimal(10, 2)
   date           DateTime
@@ -124,6 +124,7 @@ model Transaction {
 
   @@index([organizationId, date])
   @@index([organizationId, status])
+  @@unique([shopifyOrderId, organizationId])
 }
 
 model TransactionTag {

@@ -118,6 +118,7 @@ export default async function TransactionsPage(props: {
           amount: Number(t.amount)
         }))}
         orgSlug={resolvedParams.orgSlug}
+        orgId={organization.id}
         tags={tags}
         activeTagLabel={activeTag?.name}
       />

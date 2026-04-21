@@ -27,6 +27,7 @@ interface TagProp {
 interface TransactionsShellProps {
   transactions: Transaction[];
   orgSlug: string;
+  orgId: string;
   tags: TagProp[];
   activeTagLabel?: string;
 }
@@ -34,6 +35,7 @@ interface TransactionsShellProps {
 export function TransactionsShell({
   transactions,
   orgSlug,
+  orgId,
   tags,
   activeTagLabel,
 }: TransactionsShellProps) {
@@ -107,7 +109,7 @@ export function TransactionsShell({
           <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
           <p className="text-zinc-500">Manage your income and expenses.</p>
         </div>
-        <TransactionActions orgSlug={orgSlug} tags={tags} onFormReady={handleFormReady} />
+        <TransactionActions orgSlug={orgSlug} orgId={orgId} tags={tags} onFormReady={handleFormReady} />
       </div>
 
       {/* ── Layer 1: Revenue / Expenses Toggle ── */}
