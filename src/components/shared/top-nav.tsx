@@ -70,10 +70,10 @@ export default function TopNav({ orgSlug, userName, userImage }: TopNavProps) {
           </div>
 
           {/* ── Middle Column: Universal Centered Logo ── */}
-          <div className="flex-shrink-0 flex items-center gap-2">
+          <Link href={orgSlug ? `/${orgSlug}` : '/'} className="flex-shrink-0 flex items-center gap-2">
             <Image src="/logo.svg" alt="Margin Logo" width={24} height={24} />
             <span className="font-bold text-lg tracking-tight">Margin</span>
-          </div>
+          </Link>
 
           {/* ── Right Column: Profile Pill ── */}
           <div className="flex flex-1 justify-end items-center gap-4">
@@ -128,10 +128,10 @@ export default function TopNav({ orgSlug, userName, userImage }: TopNavProps) {
           {/* Sliding Panel */}
           <div className="absolute inset-y-0 left-0 w-64 bg-white shadow-xl flex flex-col animate-in slide-in-from-left duration-300">
             <div className="flex h-16 items-center justify-between px-6 border-b shrink-0">
-              <div className="flex items-center gap-2">
+              <Link href={orgSlug ? `/${orgSlug}` : '/'} className="flex items-center gap-2">
                 <Image src="/logo.svg" alt="Margin Logo" width={28} height={28} />
                 <span className="font-bold text-xl tracking-tight">Margin</span>
-              </div>
+              </Link>
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
