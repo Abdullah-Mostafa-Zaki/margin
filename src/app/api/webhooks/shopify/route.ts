@@ -104,7 +104,12 @@ export async function POST(req: Request) {
     // ── 6. Prevent duplicate webhook processing ─────────────────────────────
     if (shopifyOrderId) {
       const existingTx = await prisma.transaction.findUnique({
-        where: { shopifyOrderId },
+        where: { 
+          shopifyOrderId_organizationId: { 
+            shopifyOrderId, 
+            organizationId: organization.id 
+          } 
+        },
       });
       if (existingTx) {
         return new NextResponse("OK", { status: 200 });
