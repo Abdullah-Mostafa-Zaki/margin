@@ -99,8 +99,8 @@ export async function POST(req: Request) {
       return new NextResponse("Organization has no owner", { status: 400 });
     }
 
-    const shopifyOrderId = order.id ? String(order.id) : undefined;
-    const normalizedOrderId = shopifyOrderId ? String(shopifyOrderId).replace(/^#/, "") : undefined;
+    const shopifyOrderId = order.name ? String(order.name) : undefined;
+    const normalizedOrderId = shopifyOrderId ? String(shopifyOrderId).replace(/^#/, "").trim().toLowerCase() : undefined;
 
     // ── 6. Prevent duplicate webhook processing ─────────────────────────────
     if (normalizedOrderId) {
