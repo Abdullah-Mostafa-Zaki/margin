@@ -1,6 +1,5 @@
 # Margin — Financial Analytics Platform
 
-> Private repository. Architecture and technical details documented here.
 
 ## Status
 MVP feature-complete. Live at: https://margin-eg.vercel.app/
