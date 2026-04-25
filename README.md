@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Margin — Financial Analytics Platform
 
-## Getting Started
+> Private repository. Architecture and technical details documented here.
 
-First, run the development server:
+## Status
+MVP feature-complete. Live at: https://margin-eg.vercel.app/
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Overview
+Multi-tenant B2B SaaS financial dashboard for Egyptian clothing brands 
+operating on the drop/campaign model.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tech Stack
+Next.js 16 · TypeScript · PostgreSQL · Prisma ORM · Supabase · 
+NextAuth.js · Vercel · Node.js
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database Architecture
+- 10-table multi-tenant PostgreSQL schema
+- Row-level data isolation via mandatory `organizationId` foreign keys
+- Cascading constraints enforcing workspace boundaries
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Core Features
+- Shopify webhook ingestion pipeline with HMAC-SHA256 verification 
+  and idempotency constraints
+- Financial KPI engine computing 11 metrics: Realized Revenue, 
+  Pending COD Escrow, Net Margin %, Ad Spend isolation, 
+  Catalog Velocity (Pareto by product)
+- Next.js Server Actions mutation layer with automatic cache invalidation
+- 3-step onboarding wizard with guided workspace configuration
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
