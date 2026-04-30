@@ -35,7 +35,11 @@ export function UnifiedImportModal({ organizationId }: { organizationId: string 
       console.log("upload complete", res);
       if (!res || res.length === 0) return;
       setReceiptStep("PROCESSING");
-      const urls = res.map((f) => f.url);
+      
+      // 1000ms "breather" delay to ensure CDN propagation
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const urls = res.map((f) => f.ufsUrl);
       const results = await Promise.allSettled(urls.map((url) => parseReceiptFromImage(url)));
       const fulfilledReceipts: ParsedReceipt[] = [];
       let failedCount = 0;

@@ -260,7 +260,7 @@ export async function parseReceiptFromImage(imageUrl: string): Promise<ParsedRec
       imageUrl,
     };
   } catch (error) {
-    console.error("parseReceiptFromImage failed:", error);
+    console.error("Groq Vision API Error:", error);
     return null;
   }
 }
