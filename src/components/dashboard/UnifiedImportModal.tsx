@@ -41,21 +41,26 @@ export function UnifiedImportModal({ organizationId }: { organizationId: string 
 
       const urls = res.map((f) => f.ufsUrl);
       const results = await Promise.allSettled(urls.map((url) => parseReceiptFromImage(url)));
-      const fulfilledReceipts: ParsedReceipt[] = [];
-      let failedCount = 0;
-      for (const result of results) {
-        if (result.status === "fulfilled" && result.value) {
-          fulfilledReceipts.push(result.value);
-        } else {
-          failedCount++;
-          console.error("Failed to parse receipt:", result);
-        }
-      }
+      const failedCount = results.filter(r => r.status === "rejected" || (r.status === "fulfilled" && r.value === null)).length;
+      let emptyCount = 0;
+      const fulfilledReceipts = results
+        .filter(r => r.status === "fulfilled" && r.value !== null)
+        .flatMap(r => {
+          const val = (r as PromiseFulfilledResult<ParsedReceipt[]>).value;
+          if (val.length === 0) { emptyCount++; return []; }
+          return val;
+        });
+        
       setReceipts(fulfilledReceipts);
-      if (failedCount > 0) {
-        toast.warning(`Successfully extracted ${fulfilledReceipts.length} receipts. ${failedCount} could not be parsed due to image quality.`);
+
+      const parts = [];
+      if (failedCount > 0) parts.push(`${failedCount} failed to parse`);
+      if (emptyCount > 0) parts.push(`${emptyCount} had no readable transactions`);
+
+      if (parts.length > 0) {
+        toast.warning(`Extracted ${fulfilledReceipts.length} transactions. ${parts.join(", ")}.`);
       } else {
-        toast.success(`Successfully extracted ${fulfilledReceipts.length} receipts.`);
+        toast.success(`Successfully extracted ${fulfilledReceipts.length} transactions.`);
       }
       setReceiptStep("REVIEW");
     },
