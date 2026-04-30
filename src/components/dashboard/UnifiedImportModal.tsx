@@ -175,6 +175,7 @@ export function UnifiedImportModal({ organizationId }: { organizationId: string 
                   setIsUploading(true);
                 }}
                 onClientUploadComplete={async (res) => {
+                  console.log("upload complete", res);
                   if (!res || res.length === 0) return;
                   setReceiptStep("PROCESSING");
                   
@@ -206,6 +207,7 @@ export function UnifiedImportModal({ organizationId }: { organizationId: string 
                   setReceiptStep("REVIEW");
                 }}
                 onUploadError={(error: Error) => {
+                  console.log("upload error", error);
                   console.error("Upload failed", error);
                   toast.error(`Upload failed: ${error.message}`);
                   setIsUploading(false);
