@@ -112,6 +112,7 @@ model Transaction {
   status         TransactionStatus @default(PENDING)
   paymentMethod  PaymentMethod
   notes          String?
+  merchant       String?
   receiptUrl     String?
   organizationId String
   createdById    String

@@ -201,3 +201,67 @@ Return ONLY the JSON object. No explanation, no markdown.`;
     };
   }
 }
+
+export interface ParsedReceipt {
+  amount: number | null;
+  merchant: string | null;
+  date: string | null;
+  category: string | null;
+  notes: string | null;
+  imageUrl: string;
+}
+
+export async function parseReceiptFromImage(imageUrl: string): Promise<ParsedReceipt | null> {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    console.error("GROQ_API_KEY is not configured.");
+    return null;
+  }
+
+  const groq = new Groq({ apiKey });
+
+  const messages = [
+    {
+      role: "user",
+      content: [
+        { type: "text", text: "You extract structured data from Egyptian receipts and Instapay screenshots. Rules: Return ONLY a valid JSON object. Do not include explanations, markdown formatting, or extra text. If a field is missing or illegible, return null. Fields: amount: total paid (number, strip all currency symbols like EGP or USD. Prefer final total amount). merchant: business name (string, translate Arabic names to English context if possible). date: format YYYY-MM-DD (string, infer from context if needed, else null). category: choose ONLY from [Ads, Materials, Shipping, Salary, Software, Operations, Other]. notes: short optional context (string or null). Output format: { \"amount\": number|null, \"merchant\": string|null, \"date\": string|null, \"category\": string|null, \"notes\": string|null }" },
+        { type: "image_url", image_url: { url: imageUrl } }
+      ]
+    }
+  ];
+
+  try {
+    let text = "";
+    try {
+      const completion = await groq.chat.completions.create({
+        model: "llama-3.2-90b-vision-preview",
+        response_format: { type: "json_object" },
+        messages: messages as any,
+      });
+      text = completion.choices[0]?.message?.content ?? "";
+    } catch (err: any) {
+      console.warn("Groq JSON mode failed, retrying without response_format", err.message);
+      const completion = await groq.chat.completions.create({
+        model: "llama-3.2-90b-vision-preview",
+        messages: messages as any,
+      });
+      text = completion.choices[0]?.message?.content ?? "";
+    }
+
+    text = text.replace(/```json/gi, "").replace(/```/g, "").trim();
+    const parsed = JSON.parse(text);
+
+    return {
+      amount: parsed.amount ?? null,
+      merchant: parsed.merchant ?? null,
+      date: parsed.date ?? null,
+      category: parsed.category ?? null,
+      notes: parsed.notes ?? null,
+      imageUrl,
+    };
+  } catch (error) {
+    console.error("parseReceiptFromImage failed:", error);
+    return null;
+  }
+}
+

@@ -17,6 +17,9 @@ export const ourFileRouter = {
       console.log("file url", file.url);
       return { uploadedBy: metadata.userEmail, url: file.url };
     }),
+  receiptUploader: f({ image: { maxFileSize: "4MB", maxFileCount: 10 } })
+    .middleware(async () => ({}))
+    .onUploadComplete(async ({ file }) => ({ url: file.url }))
 } satisfies FileRouter;
 
 export type OurFileRouter = typeof ourFileRouter;
