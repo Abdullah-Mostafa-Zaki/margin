@@ -10,9 +10,10 @@ import { Button } from "@/components/ui/button";
 
 interface CSVUploaderProps {
   organizationId: string;
+  onLoadingChange?: (isLoading: boolean) => void;
 }
 
-export function CSVUploader({ organizationId }: CSVUploaderProps) {
+export function CSVUploader({ organizationId, onLoadingChange }: CSVUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -20,6 +21,7 @@ export function CSVUploader({ organizationId }: CSVUploaderProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    onLoadingChange?.(true);
     setIsUploading(true);
 
     try {
@@ -66,6 +68,7 @@ export function CSVUploader({ organizationId }: CSVUploaderProps) {
             toast.error("Validation Error", {
               description: msg,
             });
+            onLoadingChange?.(false);
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
             return;
@@ -78,6 +81,7 @@ export function CSVUploader({ organizationId }: CSVUploaderProps) {
           toast.error("Network Error", {
             description: "Import failed. Please try again.",
           });
+          onLoadingChange?.(false);
           setIsUploading(false);
           if (fileInputRef.current) fileInputRef.current.value = "";
           return;
@@ -93,6 +97,7 @@ export function CSVUploader({ organizationId }: CSVUploaderProps) {
         description: "Failed to parse CSV file.",
       });
     } finally {
+      onLoadingChange?.(false);
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }

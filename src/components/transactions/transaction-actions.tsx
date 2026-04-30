@@ -5,7 +5,7 @@ import TransactionForm from "@/components/transactions/transaction-form";
 import type { TransactionFormHandle, TransactionToEdit } from "@/components/transactions/transaction-form";
 import { MagicVoiceButton } from "@/components/transactions/magic-voice-button";
 import type { VoiceTransactionData } from "@/components/transactions/magic-voice-button";
-import { CSVUploader } from "@/components/dashboard/CSVUploader";
+import { UnifiedImportModal } from "@/components/dashboard/UnifiedImportModal";
 
 interface TagProp {
   id: string;
@@ -41,7 +41,7 @@ export function TransactionActions({ orgSlug, orgId, tags, onFormReady }: Transa
 
   return (
     <div className="flex items-center gap-2">
-      <CSVUploader organizationId={orgId} />
+      <UnifiedImportModal organizationId={orgId} />
       <MagicVoiceButton onResult={handleVoiceResult} />
       <TransactionForm
         ref={(handle) => {
