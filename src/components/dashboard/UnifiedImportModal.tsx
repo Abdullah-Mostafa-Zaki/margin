@@ -5,9 +5,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, ScanLine, Sheet, Plus, ChevronLeft, Loader2, CheckCircle2 } from "lucide-react";
+import { TrendingUp, TrendingDown, ScanLine, Sheet, Plus, ChevronLeft, Loader2, CheckCircle2, UploadCloud } from "lucide-react";
 import { CSVUploader } from "@/components/dashboard/CSVUploader";
-import { UploadDropzone } from "@/lib/uploadthing";
+import { useUploadThing } from "@/lib/uploadthing";
 import { parseReceiptFromImage } from "@/actions/ai.actions";
 import type { ParsedReceipt } from "@/actions/ai.actions";
 import { bulkSaveReceipts } from "@/actions/csvImport";
@@ -26,6 +26,41 @@ export function UnifiedImportModal({ organizationId }: { organizationId: string 
   // Scanner flow state
   const [receiptStep, setReceiptStep] = useState<ReceiptStep>("DROPZONE");
   const [receipts, setReceipts] = useState<ParsedReceipt[]>([]);
+
+  const { startUpload, isUploading: isUTUploading } = useUploadThing("receiptUploader", {
+    onUploadBegin: () => {
+      setIsUploading(true);
+    },
+    onClientUploadComplete: async (res) => {
+      console.log("upload complete", res);
+      if (!res || res.length === 0) return;
+      setReceiptStep("PROCESSING");
+      const urls = res.map((f) => f.url);
+      const results = await Promise.allSettled(urls.map((url) => parseReceiptFromImage(url)));
+      const fulfilledReceipts: ParsedReceipt[] = [];
+      let failedCount = 0;
+      for (const result of results) {
+        if (result.status === "fulfilled" && result.value) {
+          fulfilledReceipts.push(result.value);
+        } else {
+          failedCount++;
+          console.error("Failed to parse receipt:", result);
+        }
+      }
+      setReceipts(fulfilledReceipts);
+      if (failedCount > 0) {
+        toast.warning(`Successfully extracted ${fulfilledReceipts.length} receipts. ${failedCount} could not be parsed due to image quality.`);
+      } else {
+        toast.success(`Successfully extracted ${fulfilledReceipts.length} receipts.`);
+      }
+      setReceiptStep("REVIEW");
+    },
+    onUploadError: (error: Error) => {
+      console.error("Upload failed", error);
+      toast.error(`Upload failed: ${error.message}`);
+      setIsUploading(false);
+    },
+  });
 
   const handleOpenChange = (val: boolean) => {
     if (isUploading) return;
@@ -169,50 +204,25 @@ export function UnifiedImportModal({ organizationId }: { organizationId: string 
             </div>
 
             {receiptStep === "DROPZONE" && (
-              <UploadDropzone
-                endpoint="receiptUploader"
-                onUploadBegin={() => {
-                  setIsUploading(true);
-                }}
-                onClientUploadComplete={async (res) => {
-                  console.log("upload complete", res);
-                  if (!res || res.length === 0) return;
-                  setReceiptStep("PROCESSING");
-                  
-                  const urls = res.map((f) => f.url);
-                  const results = await Promise.allSettled(
-                    urls.map((url) => parseReceiptFromImage(url))
-                  );
-                  
-                  const fulfilledReceipts: ParsedReceipt[] = [];
-                  let failedCount = 0;
-                  
-                  for (const result of results) {
-                    if (result.status === "fulfilled" && result.value) {
-                      fulfilledReceipts.push(result.value);
-                    } else {
-                      failedCount++;
-                      console.error("Failed to parse receipt:", result);
-                    }
-                  }
-                  
-                  setReceipts(fulfilledReceipts);
-                  
-                  if (failedCount > 0) {
-                    toast.warning(`Successfully extracted ${fulfilledReceipts.length} receipts. ${failedCount} receipts could not be parsed due to image quality.`);
-                  } else {
-                    toast.success(`Successfully extracted ${fulfilledReceipts.length} receipts.`);
-                  }
-                  
-                  setReceiptStep("REVIEW");
-                }}
-                onUploadError={(error: Error) => {
-                  console.log("upload error", error);
-                  console.error("Upload failed", error);
-                  toast.error(`Upload failed: ${error.message}`);
-                  setIsUploading(false);
-                }}
-              />
+              <div
+                className="border-2 border-dashed rounded-lg h-48 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-primary transition-colors"
+                onClick={() => document.getElementById("receipt-file-input")?.click()}
+              >
+                <UploadCloud className="w-8 h-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Click to upload or drag and drop</p>
+                <p className="text-xs text-muted-foreground">Up to 10 images, max 4MB each</p>
+                <input
+                  id="receipt-file-input"
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    if (files.length > 0) startUpload(files);
+                  }}
+                />
+              </div>
             )}
 
             {receiptStep === "PROCESSING" && (
