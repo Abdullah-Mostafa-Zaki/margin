@@ -3,7 +3,7 @@ export function groupShopifyRows(rows: Record<string, string>[]): unknown[] {
     let nameStr = row["Name"];
     if (!nameStr) return acc;
     
-    nameStr = nameStr.replace(/^#/, "").trim().toLowerCase();
+    nameStr = nameStr.replace(/^#/, "").trim();
 
     if (!acc[nameStr]) {
       const finStatus = row["Financial Status"]?.trim().toLowerCase() || "";

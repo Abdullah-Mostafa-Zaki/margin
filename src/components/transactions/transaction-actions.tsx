@@ -41,7 +41,7 @@ export function TransactionActions({ orgSlug, orgId, tags, onFormReady }: Transa
 
   return (
     <div className="flex items-center gap-2">
-      <CSVUploader orgId={orgId} />
+      <CSVUploader organizationId={orgId} />
       <MagicVoiceButton onResult={handleVoiceResult} />
       <TransactionForm
         ref={(handle) => {

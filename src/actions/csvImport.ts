@@ -8,7 +8,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
-export async function bulkImportTransactions(orgId: string, data: unknown[]) {
+export async function bulkImportTransactions(organizationId: string, data: unknown[]) {
   const parsed = z.array(csvOrderSchema).safeParse(data);
   
   if (!parsed.success) {
@@ -21,7 +21,7 @@ export async function bulkImportTransactions(orgId: string, data: unknown[]) {
   }
 
   const org = await prisma.organization.findUnique({
-    where: { id: orgId },
+    where: { id: organizationId },
     include: { memberships: { include: { user: true } } },
   });
 
@@ -41,7 +41,7 @@ export async function bulkImportTransactions(orgId: string, data: unknown[]) {
   // Metrics Pre-Check
   const existingRecords = await prisma.transaction.findMany({
     where: {
-      organizationId: orgId,
+      organizationId,
       shopifyOrderId: { in: incomingIds }
     },
     select: { shopifyOrderId: true }
@@ -63,21 +63,13 @@ export async function bulkImportTransactions(orgId: string, data: unknown[]) {
           where: { 
             shopifyOrderId_organizationId: { 
               shopifyOrderId: order.shopifyOrderId, 
-              organizationId: orgId 
+              organizationId 
             } 
           },
-          update: {
-            ...orderData,
-            organizationId: orgId,
-            type: "INCOME",
-            category: "Shopify Sale",
-            paymentMethod: paymentMethod || "COD",
-            status: "RECEIVED",
-            createdById,
-          },
+          update: {},
           create: {
             ...orderData,
-            organizationId: orgId,
+            organizationId,
             type: "INCOME",
             category: "Shopify Sale",
             paymentMethod: paymentMethod || "COD",

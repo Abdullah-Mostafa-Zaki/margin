@@ -9,10 +9,10 @@ import { Upload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface CSVUploaderProps {
-  orgId: string;
+  organizationId: string;
 }
 
-export function CSVUploader({ orgId }: CSVUploaderProps) {
+export function CSVUploader({ organizationId }: CSVUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -50,7 +50,7 @@ export function CSVUploader({ orgId }: CSVUploaderProps) {
 
       for (const chunk of chunks) {
         try {
-          const result = await bulkImportTransactions(orgId, chunk);
+          const result = await bulkImportTransactions(organizationId, chunk);
           
           if (!result.success) {
             // Zod validation failure - format zod errors
