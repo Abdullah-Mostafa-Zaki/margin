@@ -121,7 +121,7 @@ export function UnifiedImportModal({ organizationId }: { organizationId: string 
           Import Data
         </Button>
       </DialogTrigger>
-      <DialogContent className={receiptStep === "REVIEW" || receiptStep === "SAVING" ? "max-w-4xl" : "max-w-2xl"}>
+      <DialogContent className={receiptStep === "REVIEW" || receiptStep === "SAVING" ? "max-w-[90vw]" : "max-w-2xl"}>
         {step === "SPLIT" && (
           <div className="space-y-6">
             <DialogHeader>
@@ -255,7 +255,7 @@ export function UnifiedImportModal({ organizationId }: { organizationId: string 
 
             {receiptStep === "REVIEW" && (
               <div className="space-y-4">
-                <div className="rounded-md border overflow-x-auto">
+                <div className="rounded-md border overflow-x-auto w-full">
                   <table className="w-full text-sm text-left">
                     <thead className="bg-muted text-muted-foreground">
                       <tr>
