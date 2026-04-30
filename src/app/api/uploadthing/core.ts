@@ -18,7 +18,7 @@ export const ourFileRouter = {
     }),
   receiptUploader: f({ image: { maxFileSize: "4MB", maxFileCount: 10 } })
     .middleware(async () => ({}))
-    .onUploadComplete(async ({ file }) => ({ url: file.url }))
+    .onUploadComplete(async ({ file }) => ({ url: file.ufsUrl }))
 } satisfies FileRouter;
 
 export type OurFileRouter = typeof ourFileRouter;

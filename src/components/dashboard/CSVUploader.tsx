@@ -11,13 +11,15 @@ import { Button } from "@/components/ui/button";
 interface CSVUploaderProps {
   organizationId: string;
   onLoadingChange?: (isLoading: boolean) => void;
+  onImportComplete?: () => void;
 }
 
-export function CSVUploader({ organizationId, onLoadingChange }: CSVUploaderProps) {
+export function CSVUploader({ organizationId, onLoadingChange, onImportComplete }: CSVUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("CSV File Selected:", e.target.files?.[0]);
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -91,8 +93,10 @@ export function CSVUploader({ organizationId, onLoadingChange }: CSVUploaderProp
       toast.success("Import Complete", {
         description: `Imported ${totalCreated} orders — ${totalSkipped} duplicates skipped, ${totalFailed} failed.`,
       });
+      onImportComplete?.();
       
     } catch (err) {
+      console.error("CSV Processing Error:", err);
       toast.error("Error", {
         description: "Failed to parse CSV file.",
       });
@@ -104,7 +108,7 @@ export function CSVUploader({ organizationId, onLoadingChange }: CSVUploaderProp
   };
 
   return (
-    <>
+    <div onClick={(e) => e.stopPropagation()}>
       <input
         type="file"
         accept=".csv"
@@ -112,20 +116,18 @@ export function CSVUploader({ organizationId, onLoadingChange }: CSVUploaderProp
         ref={fileInputRef}
         onChange={handleFileChange}
       />
-      <div onClick={(e) => e.stopPropagation()}>
-        <Button
-          variant="outline"
-          onClick={() => {
-            console.log("CSV Uploader Clicked");
-            fileInputRef.current?.click();
-          }}
-          disabled={isUploading}
-          className="gap-2 shrink-0 border-zinc-300"
-        >
-          {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-[#27A67A]" /> : <Upload className="w-4 h-4 text-zinc-500" />}
-          {isUploading ? "Importing..." : "Import Shopify CSV"}
-        </Button>
-      </div>
-    </>
+      <Button
+        variant="outline"
+        onClick={() => {
+          console.log("CSV Uploader Clicked");
+          fileInputRef.current?.click();
+        }}
+        disabled={isUploading}
+        className="gap-2 shrink-0 border-zinc-300"
+      >
+        {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-[#27A67A]" /> : <Upload className="w-4 h-4 text-zinc-500" />}
+        {isUploading ? "Importing..." : "Import Shopify CSV"}
+      </Button>
+    </div>
   );
 }

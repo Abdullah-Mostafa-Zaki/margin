@@ -121,22 +121,22 @@ export function UnifiedImportModal({ organizationId }: { organizationId: string 
           Import Data
         </Button>
       </DialogTrigger>
-      <DialogContent className={receiptStep === "REVIEW" || receiptStep === "SAVING" ? "max-w-[90vw]" : "max-w-2xl"}>
+      <DialogContent className="!w-[95vw] !max-w-[95vw] md:!max-w-5xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         {step === "SPLIT" && (
           <div className="space-y-6">
             <DialogHeader>
               <DialogTitle>Import Data</DialogTitle>
               <DialogDescription>Select a data type to get started.</DialogDescription>
             </DialogHeader>
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="cursor-pointer hover:border-primary transition-colors" onClick={() => handleSetStep("REVENUE")}>
+            <div className="flex flex-col sm:flex-row gap-4 w-full">
+              <Card className="flex-1 cursor-pointer hover:border-primary transition-colors" onClick={() => handleSetStep("REVENUE")}>
                 <CardHeader>
                   <TrendingUp className="w-8 h-8 text-emerald-500 mb-2" />
                   <CardTitle>Revenue</CardTitle>
                   <CardDescription>Import Shopify orders via CSV.</CardDescription>
                 </CardHeader>
               </Card>
-              <Card className="cursor-pointer hover:border-primary transition-colors" onClick={() => handleSetStep("EXPENSES")}>
+              <Card className="flex-1 cursor-pointer hover:border-primary transition-colors" onClick={() => handleSetStep("EXPENSES")}>
                 <CardHeader>
                   <TrendingDown className="w-8 h-8 text-red-500 mb-2" />
                   <CardTitle>Expenses</CardTitle>
@@ -159,7 +159,7 @@ export function UnifiedImportModal({ organizationId }: { organizationId: string 
               </div>
             </div>
             <div className="py-4 flex justify-center">
-              <CSVUploader organizationId={organizationId} onLoadingChange={setIsUploading} />
+              <CSVUploader organizationId={organizationId} onLoadingChange={setIsUploading} onImportComplete={() => handleOpenChange(false)} />
             </div>
           </div>
         )}
@@ -175,15 +175,15 @@ export function UnifiedImportModal({ organizationId }: { organizationId: string 
                 <DialogDescription>Choose how to log your costs.</DialogDescription>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="cursor-pointer hover:border-primary transition-colors" onClick={() => handleSetStep("RECEIPT_SCANNER")}>
+            <div className="flex flex-col sm:flex-row gap-4 w-full">
+              <Card className="flex-1 cursor-pointer hover:border-primary transition-colors" onClick={() => handleSetStep("RECEIPT_SCANNER")}>
                 <CardHeader>
                   <ScanLine className="w-8 h-8 text-blue-500 mb-2" />
                   <CardTitle>AI Receipt Scanner</CardTitle>
                   <CardDescription>Scan Instapay and WhatsApp receipts.</CardDescription>
                 </CardHeader>
               </Card>
-              <Card className="opacity-50 cursor-not-allowed pointer-events-none relative">
+              <Card className="flex-1 opacity-50 cursor-not-allowed pointer-events-none relative">
                 <Badge variant="secondary" className="absolute top-2 right-2">Coming Soon</Badge>
                 <CardHeader>
                   <Sheet className="w-8 h-8 text-zinc-500 mb-2" />
@@ -256,7 +256,7 @@ export function UnifiedImportModal({ organizationId }: { organizationId: string 
             {receiptStep === "REVIEW" && (
               <div className="space-y-4">
                 <div className="rounded-md border overflow-x-auto w-full">
-                  <table className="w-full text-sm text-left">
+                  <table className="w-full text-sm text-left hidden sm:table">
                     <thead className="bg-muted text-muted-foreground">
                       <tr>
                         <th className="px-4 py-3 font-medium">#</th>
@@ -345,7 +345,95 @@ export function UnifiedImportModal({ organizationId }: { organizationId: string 
                     </tbody>
                   </table>
                 </div>
-                <div className="flex justify-end gap-2">
+                
+                {/* Mobile stacked cards view */}
+                <div className="sm:hidden flex flex-col gap-6">
+                  {receipts.map((receipt, index) => (
+                    <div key={`mobile-${index}`} className="flex flex-col gap-3 p-4 border rounded-md bg-card">
+                      <div className="flex justify-between items-start">
+                        <span className="font-bold">Receipt #{index + 1}</span>
+                        <img src={receipt.imageUrl} alt="receipt" className="w-16 h-16 object-cover rounded" />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">Date</label>
+                        <Input 
+                          type="date"
+                          defaultValue={receipt.date || ""}
+                          onChange={(e) => {
+                            const newReceipts = [...receipts];
+                            newReceipts[index].date = e.target.value;
+                            setReceipts(newReceipts);
+                          }}
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">Merchant</label>
+                        <Input 
+                          defaultValue={receipt.merchant || ""}
+                          onChange={(e) => {
+                            const newReceipts = [...receipts];
+                            newReceipts[index].merchant = e.target.value;
+                            setReceipts(newReceipts);
+                          }}
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">Amount</label>
+                        <Input 
+                          type="number"
+                          defaultValue={receipt.amount || ""}
+                          onChange={(e) => {
+                            const newReceipts = [...receipts];
+                            newReceipts[index].amount = parseFloat(e.target.value) || null;
+                            setReceipts(newReceipts);
+                          }}
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">Category</label>
+                        <Select 
+                          defaultValue={receipt.category || "Other"}
+                          onValueChange={(val) => {
+                            const newReceipts = [...receipts];
+                            newReceipts[index].category = val;
+                            setReceipts(newReceipts);
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Ads">Ads</SelectItem>
+                            <SelectItem value="Materials">Materials</SelectItem>
+                            <SelectItem value="Shipping">Shipping</SelectItem>
+                            <SelectItem value="Salary">Salary</SelectItem>
+                            <SelectItem value="Software">Software</SelectItem>
+                            <SelectItem value="Operations">Operations</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs text-muted-foreground">Notes</label>
+                        <Input 
+                          defaultValue={receipt.notes || ""}
+                          onChange={(e) => {
+                            const newReceipts = [...receipts];
+                            newReceipts[index].notes = e.target.value;
+                            setReceipts(newReceipts);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 w-full mt-4 sm:justify-end">
                   <Button variant="outline" onClick={() => {
                     setReceiptStep("DROPZONE");
                     setReceipts([]);
