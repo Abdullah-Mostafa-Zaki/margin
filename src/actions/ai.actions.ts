@@ -212,6 +212,8 @@ export interface ParsedReceipt {
 }
 
 export async function parseReceiptFromImage(imageUrl: string): Promise<ParsedReceipt | null> {
+  console.log("AI received URL:", imageUrl);
+  
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     console.error("GROQ_API_KEY is not configured.");
@@ -234,7 +236,7 @@ export async function parseReceiptFromImage(imageUrl: string): Promise<ParsedRec
     let text = "";
     try {
       const completion = await groq.chat.completions.create({
-        model: "llama-3.2-90b-vision-preview",
+        model: "meta-llama/llama-4-scout-17b-16e-instruct",
         response_format: { type: "json_object" },
         messages: messages as any,
       });
@@ -242,13 +244,19 @@ export async function parseReceiptFromImage(imageUrl: string): Promise<ParsedRec
     } catch (err: any) {
       console.warn("Groq JSON mode failed, retrying without response_format", err.message);
       const completion = await groq.chat.completions.create({
-        model: "llama-3.2-90b-vision-preview",
+        model: "meta-llama/llama-4-scout-17b-16e-instruct",
         messages: messages as any,
       });
       text = completion.choices[0]?.message?.content ?? "";
     }
 
     text = text.replace(/```json/gi, "").replace(/```/g, "").trim();
+    console.log("Groq Response:", text);
+    
+    if (!text) {
+      throw new Error("Groq returned empty response");
+    }
+    
     const parsed = JSON.parse(text);
 
     return {

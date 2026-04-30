@@ -208,31 +208,48 @@ export function UnifiedImportModal({ organizationId }: { organizationId: string 
             </div>
 
             {receiptStep === "DROPZONE" && (
-              <div
-                className="border-2 border-dashed rounded-lg h-48 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-primary transition-colors"
-                onClick={() => document.getElementById("receipt-file-input")?.click()}
-              >
-                <UploadCloud className="w-8 h-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Click to upload or drag and drop</p>
-                <p className="text-xs text-muted-foreground">Up to 10 images, max 4MB each</p>
-                <input
-                  id="receipt-file-input"
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files ?? []);
-                    if (files.length > 0) startUpload(files);
-                  }}
-                />
-              </div>
+              <>
+                {isUploading ? (
+                  <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <p className="text-muted-foreground">Uploading receipts...</p>
+                  </div>
+                ) : (
+                  <div
+                    className="border-2 border-dashed rounded-lg h-48 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-primary transition-colors"
+                    onClick={() => document.getElementById("receipt-file-input")?.click()}
+                  >
+                    <UploadCloud className="w-8 h-8 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Click to upload or drag and drop</p>
+                    <p className="text-xs text-muted-foreground">Up to 10 images, max 4MB each</p>
+                    <input
+                      id="receipt-file-input"
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const files = Array.from(e.target.files ?? []);
+                        if (files.length > 0) {
+                          setIsUploading(true);
+                          try {
+                            const res = await startUpload(files);
+                            if (!res) setIsUploading(false);
+                          } catch (err) {
+                            setIsUploading(false);
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+              </>
             )}
 
             {receiptStep === "PROCESSING" && (
               <div className="flex flex-col items-center justify-center py-12 space-y-4">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                <p className="text-muted-foreground">Analyzing receipts with AI...</p>
+                <p className="text-muted-foreground">Analyzing with AI...</p>
               </div>
             )}
 
