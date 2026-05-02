@@ -64,8 +64,8 @@ model Organization {
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
   courierFee           Float         @default(0)
-  shopifyWebhookUrl    String?
   shopifyWebhookSecret String?
+  shopifyWebhookUrl    String?
   memberships          Membership[]
   tags                 Tag[]
   transactions         Transaction[]
@@ -104,7 +104,6 @@ model Tag {
 
 model Transaction {
   id             String            @id @default(cuid())
-  shopifyOrderId String?
   type           TransactionType
   amount         Decimal           @db.Decimal(10, 2)
   date           DateTime
@@ -112,20 +111,21 @@ model Transaction {
   status         TransactionStatus @default(PENDING)
   paymentMethod  PaymentMethod
   notes          String?
-  merchant       String?
   receiptUrl     String?
   organizationId String
   createdById    String
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
+  shopifyOrderId String?
+  merchant       String?
+  lineItems      LineItem[]
   createdBy      User              @relation(fields: [createdById], references: [id])
   organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   tags           TransactionTag[]
-  lineItems      LineItem[]
 
+  @@unique([shopifyOrderId, organizationId])
   @@index([organizationId, date])
   @@index([organizationId, status])
-  @@unique([shopifyOrderId, organizationId])
 }
 
 model TransactionTag {
