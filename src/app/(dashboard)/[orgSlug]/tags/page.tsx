@@ -43,7 +43,7 @@ export default async function TagsPage({
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Campaign Tags</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Drops</h1>
           <p className="text-zinc-500">Track ROI across different product drops and marketing campaigns.</p>
         </div>
         <TagForm orgSlug={orgSlug} />
@@ -54,13 +54,13 @@ export default async function TagsPage({
           <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
             <h2 className="mt-6 text-xl font-semibold">No drops yet</h2>
             <p className="mb-8 mt-2 text-center text-sm font-normal leading-6 text-zinc-500">
-              Create your first campaign tag to start tracking ROI and linked transactions.
+              Create your first drop to start tracking ROI.
             </p>
             <TagForm orgSlug={orgSlug} />
           </div>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {organization.tags.map((tag) => {
             let totalIncome = 0;
             let totalExpenses = 0;

@@ -9,7 +9,15 @@ interface Props {
   subtitle?: string;
 }
 
-const COLORS = ["#E06C4C", "#E88264", "#D95A40", "#F09C82", "#C94829", "#F5AD98", "#B53C1F"];
+const CATEGORY_COLORS: Record<string, string> = {
+  "Raw Materials": "#EF4444",
+  "Manufacturing": "#F59E0B",
+  "Packaging": "#3B82F6",
+  "Logistics (Shipping)": "#06B6D4",
+  "Ads": "#8B5CF6",
+  "Content Creation": "#EC4899",
+  "Other": "#6B7280"
+};
 
 export function ExpenseDonutChart({ data, subtitle }: Props) {
   const total = data.reduce((acc, curr) => acc + curr.amount, 0);
@@ -28,7 +36,9 @@ export function ExpenseDonutChart({ data, subtitle }: Props) {
     );
   }
 
-  const dataWithPercentage = data.map(item => ({
+  const filteredData = data.filter(item => item.amount > 0);
+
+  const dataWithPercentage = filteredData.map(item => ({
     ...item,
     percentage: total > 0 ? ((item.amount / total) * 100).toFixed(0) : "0",
   }));
@@ -58,7 +68,7 @@ export function ExpenseDonutChart({ data, subtitle }: Props) {
               nameKey="category"
             >
               {dataWithPercentage.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[entry.category] || "#6B7280"} />
               ))}
             </Pie>
             <Tooltip formatter={(val: any) => `EGP ${Number(val).toLocaleString()}`} />

@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/table";
 import { DeleteTransactionButton } from "@/components/transactions/action-buttons";
 import { MobileTransactionCard } from "@/components/transactions/mobile-transaction-card";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Filter, X } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { TransactionActions } from "@/components/transactions/transaction-actions";
 import type { TransactionFormHandle, TransactionToEdit } from "@/components/transactions/transaction-form";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
@@ -42,7 +43,15 @@ export function TransactionsShell({
   const [activeTab, setActiveTab] = useState<"INCOME" | "EXPENSE">("INCOME");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "highest" | "lowest">("newest");
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const searchParams = useSearchParams();
   const formHandleRef = useRef<TransactionFormHandle | null>(null);
+
+  const isDateFiltered = !!searchParams.get("range") || !!searchParams.get("from");
+  const isTagFiltered = !!searchParams.get("tag");
+  const isCategoryFiltered = selectedCategory !== "All";
+  const isSortFiltered = sortOrder !== "newest";
+  const hasActiveFilters = isDateFiltered || isTagFiltered || isCategoryFiltered || isSortFiltered;
 
   const handleFormReady = useCallback((handle: TransactionFormHandle) => {
     formHandleRef.current = handle;
@@ -166,48 +175,116 @@ export function TransactionsShell({
         </button>
       </div>
 
-      {/* ── Layer 2: Date | Drops ── */}
-      <div className="flex flex-row gap-3 w-full mb-3">
-        <div className="flex-1">
-          <DateRangePicker />
+      {/* Desktop Filters (Hidden on Mobile) */}
+      <div className="hidden sm:block">
+        {/* ── Layer 2: Date | Drops ── */}
+        <div className="flex flex-row gap-3 w-full mb-3">
+          <div className="flex-1">
+            <DateRangePicker />
+          </div>
+          <div className="flex-1">
+            <TagFilter tags={tags} />
+          </div>
         </div>
-        <div className="flex-1">
-          <TagFilter tags={tags} />
+
+        {/* ── Layer 3: Category | Sort ── */}
+        <div className="flex flex-row gap-3 w-full mb-6">
+          {/* Category filter */}
+          <div className="relative flex-1">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className={DROPDOWN_CLS}
+            >
+              <option value="All">All Categories</option>
+              {availableCategories.map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+            {CHEVRON_SVG}
+          </div>
+
+          {/* Sort order */}
+          <div className="relative flex-1">
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
+              className={DROPDOWN_CLS}
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="highest">Highest Amount</option>
+              <option value="lowest">Lowest Amount</option>
+            </select>
+            {CHEVRON_SVG}
+          </div>
         </div>
       </div>
 
-      {/* ── Layer 3: Category | Sort ── */}
-      <div className="flex flex-row gap-3 w-full mb-6">
-        {/* Category filter */}
-        <div className="relative flex-1">
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className={DROPDOWN_CLS}
-          >
-            <option value="All">All Categories</option>
-            {availableCategories.map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-          {CHEVRON_SVG}
-        </div>
-
-        {/* Sort order */}
-        <div className="relative flex-1">
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
-            className={DROPDOWN_CLS}
-          >
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-            <option value="highest">Highest Amount</option>
-            <option value="lowest">Lowest Amount</option>
-          </select>
-          {CHEVRON_SVG}
-        </div>
+      {/* Mobile Filter Button */}
+      <div className="sm:hidden mb-4">
+        <button
+          onClick={() => setIsMobileFiltersOpen(true)}
+          className="relative flex w-full items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white py-2.5 text-sm font-semibold text-zinc-700 shadow-sm active:bg-zinc-50"
+        >
+          <Filter className="w-4 h-4" />
+          Filters
+          {hasActiveFilters && (
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 flex h-2 w-2 rounded-full bg-emerald-500"></span>
+          )}
+        </button>
       </div>
+
+      {/* Mobile Bottom Sheet Overlay */}
+      {isMobileFiltersOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40 sm:hidden animate-in fade-in" onClick={() => setIsMobileFiltersOpen(false)}>
+          <div className="bg-zinc-50 w-full max-h-[90vh] overflow-y-auto rounded-t-2xl p-6 shadow-xl animate-in slide-in-from-bottom-full duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold">Filters</h2>
+              <button onClick={() => setIsMobileFiltersOpen(false)} className="p-2 -mr-2 text-zinc-400 hover:text-zinc-600 rounded-full bg-zinc-200/50">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="flex flex-col gap-4 mb-8">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Date Range</label>
+                <DateRangePicker />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Campaign Drop</label>
+                <TagFilter tags={tags} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Category</label>
+                <div className="relative">
+                  <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className={DROPDOWN_CLS}>
+                    <option value="All">All Categories</option>
+                    {availableCategories.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                  {CHEVRON_SVG}
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Sort By</label>
+                <div className="relative">
+                  <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)} className={DROPDOWN_CLS}>
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="highest">Highest Amount</option>
+                    <option value="lowest">Lowest Amount</option>
+                  </select>
+                  {CHEVRON_SVG}
+                </div>
+              </div>
+            </div>
+
+            <button onClick={() => setIsMobileFiltersOpen(false)} className="w-full bg-zinc-900 text-white rounded-xl py-3.5 font-semibold text-sm active:scale-95 transition-transform">
+              Apply Filters
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Desktop Table ── */}
       <div className="hidden md:block overflow-x-auto rounded-md border bg-white">
@@ -261,7 +338,7 @@ export function TransactionsShell({
                           : "text-amber-600 bg-amber-50"
                       }
                     >
-                      {t.status}
+                      {t.type === "EXPENSE" && t.status === "RECEIVED" ? "PAID" : t.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-medium whitespace-nowrap">

@@ -10,6 +10,7 @@ import { Plus } from "lucide-react";
 export default function TagForm({ orgSlug }: { orgSlug: string }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -18,9 +19,14 @@ export default function TagForm({ orgSlug }: { orgSlug: string }) {
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
 
+    setError(null);
     startTransition(async () => {
       try {
-        await createTag(orgSlug, name, description);
+        const res = await createTag(orgSlug, name, description);
+        if (res?.error) {
+          setError(res.error);
+          return;
+        }
         setIsOpen(false);
         router.refresh();
       } catch (err) {
@@ -30,16 +36,19 @@ export default function TagForm({ orgSlug }: { orgSlug: string }) {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      setIsOpen(open);
+      if (!open) setError(null);
+    }}>
       <DialogTrigger asChild>
         <Button className="gap-2">
           <Plus className="h-4 w-4" />
-          Create Tag
+          Create Drop
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create Campaign Tag</DialogTitle>
+          <DialogTitle>Create Drop</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <div className="space-y-2">
@@ -50,7 +59,9 @@ export default function TagForm({ orgSlug }: { orgSlug: string }) {
               required
               className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
               placeholder="e.g. Summer Drop 2024"
+              onChange={() => setError(null)}
             />
+            {error && <p className="text-sm font-medium text-red-500">{error}</p>}
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Description (Optional)</label>
@@ -61,7 +72,7 @@ export default function TagForm({ orgSlug }: { orgSlug: string }) {
             />
           </div>
           <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Creating..." : "Create Tag"}
+            {isPending ? "Creating..." : "Create Drop"}
           </Button>
         </form>
       </DialogContent>

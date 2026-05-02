@@ -96,8 +96,9 @@ export default async function SettingsPage({
               Invite Member
             </button>
           </div>
-          
-          <div className="w-full overflow-x-auto rounded-md border">
+
+          {/* Desktop Table */}
+          <div className="hidden sm:block w-full overflow-x-auto rounded-md border">
             <table className="w-full text-sm">
               <thead className="bg-zinc-50">
                 <tr className="border-b text-left">
@@ -140,6 +141,39 @@ export default async function SettingsPage({
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="sm:hidden flex flex-col gap-3 mt-4">
+            {organization.memberships.map((membership) => (
+              <div key={membership.id} className="flex flex-col gap-3 rounded-xl border bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-10 w-10 rounded-full bg-zinc-100 flex items-center justify-center overflow-hidden shrink-0 border border-zinc-200">
+                      {membership.user.image ? (
+                        <img src={membership.user.image} alt={membership.user.name || "Avatar"} />
+                      ) : (
+                        <span className="text-sm font-medium text-zinc-600">
+                          {(membership.user.name || membership.user.email || "U").substring(0, 2).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-medium text-zinc-900 truncate">
+                        {membership.user.name || "Unknown User"}
+                      </span>
+                      <span className="text-xs text-zinc-500 truncate">{membership.user.email}</span>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center rounded-full border bg-zinc-50 px-2.5 py-0.5 text-[10px] uppercase tracking-wider font-bold shrink-0">
+                    {membership.role}
+                  </span>
+                </div>
+                <div className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider border-t pt-2 mt-1">
+                  Joined {new Date(membership.createdAt).toLocaleDateString()}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

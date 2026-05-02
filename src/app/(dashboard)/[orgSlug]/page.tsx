@@ -197,6 +197,9 @@ export default async function DashboardPage(props: {
           <div className="text-4xl md:text-5xl font-semibold tracking-tight">
             EGP {netBalance.toLocaleString()}
           </div>
+          <div className="mt-2 text-sm text-emerald-100/80 font-medium">
+            {activeFilterLabel || "All Time"}
+          </div>
         </div>
       </div>
 

@@ -160,7 +160,7 @@ export function TransactionsView({
                           : "text-amber-600 bg-amber-50"
                       }
                     >
-                      {t.status}
+                      {t.type === "EXPENSE" && t.status === "RECEIVED" ? "PAID" : t.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-medium whitespace-nowrap">

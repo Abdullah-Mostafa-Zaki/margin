@@ -20,13 +20,20 @@ export async function createTag(orgSlug: string, name: string, description?: str
   const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
   if (!membership && !isSuperAdmin) throw new Error("Forbidden");
 
-  await prisma.tag.create({
-    data: {
-      name,
-      description,
-      organizationId: org.id,
-    },
-  });
+  try {
+    await prisma.tag.create({
+      data: {
+        name,
+        description,
+        organizationId: org.id,
+      },
+    });
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return { error: "A drop with this name already exists. Please choose a different name." };
+    }
+    throw error;
+  }
 
   revalidatePath(`/${orgSlug}/tags`);
 }
