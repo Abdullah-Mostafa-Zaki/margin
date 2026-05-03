@@ -12,6 +12,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { PLAN_LIMITS } from '@/lib/plans';
 import {
   Table,
   TableBody,
@@ -63,24 +65,39 @@ export default async function SuperAdminPage() {
         },
       }),
       prisma.organization.findMany({
-        take: 10,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { currentMonthReceipts: 'desc' },
         select: {
           id: true,
           name: true,
           slug: true,
           createdAt: true,
-          _count: {
-            select: {
-              transactions: true,
-            },
-          },
+          updatedAt: true,
+          plan: true,
+          currentMonthReceipts: true,
+          currentMonthVoice: true,
         },
       }),
     ]);
 
     const volumeAmount = safeAmount(Number(globalVolume._sum.amount));
     const trappedAmount = safeAmount(Number(globalTrappedCOD._sum.amount));
+
+    // Calculate Total API Burn
+    const totalApiBurn = recentOrgs.reduce((acc, org) => {
+      return acc + (org.currentMonthReceipts || 0) + (org.currentMonthVoice || 0);
+    }, 0);
+
+    // Calculate MRR
+    const planPrices = {
+      FREE: 0,
+      PLUS: 0,
+      PRO: 0,
+      ENTERPRISE: 0,
+    };
+    
+    const totalMRR = recentOrgs.reduce((acc, org) => {
+      return acc + (planPrices[org.plan] || 0);
+    }, 0);
 
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
@@ -108,23 +125,23 @@ export default async function SuperAdminPage() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-zinc-500">
-                Total Users
+                Total API Burn This Month
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold">{totalUsers.toLocaleString()}</p>
+              <p className="text-3xl font-bold">{totalApiBurn.toLocaleString()}</p>
             </CardContent>
           </Card>
 
           <Card className="border-green-200 bg-green-50/30">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-green-800">
-                Global Transaction Volume
+                Total MRR
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-3xl font-bold text-green-700">
-                {formatCurrency(volumeAmount)}
+                {formatCurrency(totalMRR)}
               </p>
             </CardContent>
           </Card>
@@ -143,10 +160,10 @@ export default async function SuperAdminPage() {
           </Card>
         </div>
 
-        {/* Recent Organizations Table */}
+        {/* Organizations Table */}
         <div>
           <h2 className="text-xl font-semibold mb-4">
-            Recently Created Organizations
+            Organizations
           </h2>
           <Card>
             <CardContent className="p-0">
@@ -160,32 +177,59 @@ export default async function SuperAdminPage() {
                     <TableRow>
                       <TableHead>Organization</TableHead>
                       <TableHead>Slug</TableHead>
-                      <TableHead className="text-right">Transactions</TableHead>
-                      <TableHead className="text-right">Created</TableHead>
+                      <TableHead>Plan</TableHead>
+                      <TableHead className="text-right">Receipt Usage</TableHead>
+                      <TableHead className="text-right">Voice Usage</TableHead>
+                      <TableHead className="text-right">Last Active</TableHead>
+                      <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {recentOrgs.map((org) => (
-                      <TableRow key={org.id}>
-                        <TableCell className="font-medium">
-                          <Link
-                            href={`/${org.slug}`}
-                            className="text-zinc-900 hover:underline hover:text-zinc-600 transition-colors"
-                          >
+                    {recentOrgs.map((org) => {
+                      const limits = PLAN_LIMITS[org.plan];
+                      const receiptLimitStr = limits.maxAiReceipts === Infinity ? '∞' : limits.maxAiReceipts;
+                      const voiceLimitStr = limits.maxAiVoice === Infinity ? '∞' : limits.maxAiVoice;
+                      
+                      const planColors: Record<string, string> = {
+                        FREE: 'bg-zinc-100 text-zinc-800',
+                        PLUS: 'bg-blue-100 text-blue-800',
+                        PRO: 'bg-purple-100 text-purple-800',
+                        ENTERPRISE: 'bg-amber-100 text-amber-800',
+                      };
+
+                      return (
+                        <TableRow key={org.id}>
+                          <TableCell className="font-medium">
                             {org.name}
-                          </Link>
-                        </TableCell>
-                        <TableCell className="text-zinc-500 font-mono text-sm">
-                          {org.slug}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {org._count.transactions.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-right text-zinc-500 text-sm">
-                          {org.createdAt.toLocaleDateString()}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          </TableCell>
+                          <TableCell className="text-zinc-500 font-mono text-sm">
+                            {org.slug}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={`border-transparent ${planColors[org.plan]}`}>
+                              {org.plan}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm">
+                            {org.currentMonthReceipts} / {receiptLimitStr}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm">
+                            {org.currentMonthVoice} / {voiceLimitStr}
+                          </TableCell>
+                          <TableCell className="text-right text-zinc-500 text-sm">
+                            {org.updatedAt.toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Link
+                              href={`/${org.slug}`}
+                              className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                            >
+                              Ghost Login
+                            </Link>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}

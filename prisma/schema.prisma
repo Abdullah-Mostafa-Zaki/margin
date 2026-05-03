@@ -66,11 +66,30 @@ model Organization {
   courierFee           Float         @default(0)
   shopifyWebhookSecret String?
   shopifyWebhookUrl    String?
+  plan                 Plan          @default(FREE)
+  currentMonthReceipts Int           @default(0)
+  currentMonthVoice    Int           @default(0)
+  usageResetDate       DateTime      @default(now())
   memberships          Membership[]
   tags                 Tag[]
   transactions         Transaction[]
+  subscription         Subscription?
 
   @@index([slug])
+}
+
+model Subscription {
+  id                 String       @id @default(cuid())
+  organizationId     String       @unique
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  provider           String       @default("manual")
+  providerCustomerId String?      @unique
+  providerSubId      String?      @unique
+  status             String
+  currentPeriodStart DateTime     @default(now())
+  currentPeriodEnd   DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 }
 
 model Membership {
@@ -169,4 +188,11 @@ enum PaymentMethod {
   CARD
   INSTAPAY
   COD
+}
+
+enum Plan {
+  FREE
+  PLUS
+  PRO
+  ENTERPRISE
 }
