@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { unstable_noStore as noStore } from 'next/cache';
 import crypto from "crypto";
 import prisma from "@/lib/prisma";
 import { PLAN_LIMITS } from "@/lib/plans";
@@ -43,6 +44,7 @@ export async function POST(req: Request) {
     }
 
     // ── 3. Fetch Organization ───────────────────────────────────────────────
+    noStore();
     const organization = await prisma.organization.findUnique({
       where: { slug: orgSlug },
       include: {
