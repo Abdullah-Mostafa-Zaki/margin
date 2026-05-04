@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import prisma from "@/lib/prisma";
+import { PLAN_LIMITS } from "@/lib/plans";
 
+function canAccessFeature(plan: string, feature: keyof typeof PLAN_LIMITS["FREE"]) {
+  return PLAN_LIMITS[plan as keyof typeof PLAN_LIMITS][feature];
+}
 /**
  * Maps a Shopify payment gateway string to one of Margin's PaymentMethod enum values.
  * Handles common Egyptian payment methods (COD, InstaPay) with a CARD fallback.
@@ -51,6 +55,10 @@ export async function POST(req: Request) {
 
     if (!organization || !organization.shopifyWebhookSecret) {
       return new NextResponse("Unauthorized - Organization or secret key not found", { status: 401 });
+    }
+
+    if (!canAccessFeature(organization.plan, 'shopifySync')) {
+      return NextResponse.json({ received: true }, { status: 200 });
     }
 
     // ── 4. HMAC-SHA256 verification (timing-safe) ───────────────────────────
