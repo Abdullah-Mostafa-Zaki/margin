@@ -12,16 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { PLAN_LIMITS } from '@/lib/plans';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { OrganizationsTable } from './organizations-table';
 
 const safeAmount = (value: number | null | undefined) => value ?? 0;
 
@@ -166,73 +157,8 @@ export default async function SuperAdminPage() {
             Organizations
           </h2>
           <Card>
-            <CardContent className="p-0">
-              {recentOrgs.length === 0 ? (
-                <div className="flex items-center justify-center h-40 text-sm text-zinc-400">
-                  No organizations found.
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Organization</TableHead>
-                      <TableHead>Slug</TableHead>
-                      <TableHead>Plan</TableHead>
-                      <TableHead className="text-right">Receipt Usage</TableHead>
-                      <TableHead className="text-right">Voice Usage</TableHead>
-                      <TableHead className="text-right">Last Active</TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentOrgs.map((org) => {
-                      const limits = PLAN_LIMITS[org.plan];
-                      const receiptLimitStr = limits.maxAiReceipts === Infinity ? '∞' : limits.maxAiReceipts;
-                      const voiceLimitStr = limits.maxAiVoice === Infinity ? '∞' : limits.maxAiVoice;
-                      
-                      const planColors: Record<string, string> = {
-                        FREE: 'bg-zinc-100 text-zinc-800',
-                        PLUS: 'bg-blue-100 text-blue-800',
-                        PRO: 'bg-purple-100 text-purple-800',
-                        ENTERPRISE: 'bg-amber-100 text-amber-800',
-                      };
-
-                      return (
-                        <TableRow key={org.id}>
-                          <TableCell className="font-medium">
-                            {org.name}
-                          </TableCell>
-                          <TableCell className="text-zinc-500 font-mono text-sm">
-                            {org.slug}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={`border-transparent ${planColors[org.plan]}`}>
-                              {org.plan}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-sm">
-                            {org.currentMonthReceipts} / {receiptLimitStr}
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-sm">
-                            {org.currentMonthVoice} / {voiceLimitStr}
-                          </TableCell>
-                          <TableCell className="text-right text-zinc-500 text-sm">
-                            {org.updatedAt.toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Link
-                              href={`/${org.slug}`}
-                              className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
-                            >
-                              Ghost Login
-                            </Link>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
+            <CardContent className="p-4 sm:p-6">
+              <OrganizationsTable recentOrgs={recentOrgs} />
             </CardContent>
           </Card>
         </div>
