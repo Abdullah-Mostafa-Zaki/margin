@@ -114,7 +114,7 @@ export function OnboardingWizard() {
               muted
               loop
               playsInline
-              src="/videos/shopify-setup-tutorial.mp4"
+              src="/video.mp4"
             />
           </div>
 
