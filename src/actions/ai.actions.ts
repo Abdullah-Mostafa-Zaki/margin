@@ -1,6 +1,25 @@
 "use server";
 
 import Groq from "groq-sdk";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+import { hasRemainingQuota } from "@/lib/plans";
+
+async function getOrgFromSession() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    include: { memberships: true },
+  });
+
+  const organizationId = user?.memberships[0]?.organizationId;
+  if (!organizationId) throw new Error("Organization not found");
+
+  return organizationId;
+}
 
 interface ParsedTransaction {
   amount: number;
@@ -37,6 +56,17 @@ export async function parseVoiceTransaction(
   }
 
   try {
+    const organizationId = await getOrgFromSession();
+    const org = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { id: true, plan: true, currentMonthVoice: true },
+    });
+
+    if (!org) throw new Error("Organization not found");
+    if (!hasRemainingQuota(org.plan, 'voice', org.currentMonthVoice)) {
+      throw new Error('QUOTA_EXCEEDED');
+    }
+
     const groq = new Groq({ apiKey });
 
     // ── Normalize MIME ────────────────────────────────────────────────────────
@@ -176,9 +206,19 @@ Return ONLY the JSON object. No explanation, no markdown.`;
     }
 
     console.log("✅ [GROQ] Pipeline complete:", parsed);
+
+    await prisma.organization.update({
+      where: { id: org.id },
+      data: { currentMonthVoice: { increment: 1 } },
+    });
+
     return { success: true, data: parsed };
 
   } catch (error: any) {
+    if (error?.message === 'QUOTA_EXCEEDED') {
+      return { success: false, error: "You've reached your monthly voice note limit. Please upgrade your plan." };
+    }
+
     console.error("Groq Pipeline Error:", error);
 
     // Detect rate-limit / quota errors (HTTP 429)
@@ -220,19 +260,30 @@ export async function parseReceiptFromImage(imageUrl: string): Promise<ParsedRec
     return null;
   }
 
-  const groq = new Groq({ apiKey });
-
-  const messages = [
-    {
-      role: "user",
-      content: [
-        { type: "text", text: "You extract structured data from Egyptian receipts and Instapay screenshots. Rules: Return ONLY a valid JSON object. Do not include explanations, markdown formatting, or extra text. If a field is missing or illegible, return null. Fields: amount: total paid (number, strip all currency symbols like EGP or USD. Prefer final total amount). merchant: business name (string, translate Arabic names to English context if possible). date: format YYYY-MM-DD (string, infer from context if needed, else null). For the 'category' field, you MUST choose exactly one of the following exact strings: \"Raw Materials\", \"Manufacturing\", \"Packaging\", \"Logistics (Shipping)\", \"Ads\", \"Content Creation\", or \"Other\". Do not invent new categories. If the expense does not clearly fit into the first six, you must default to \"Other\". notes: short optional context (string or null). Identify every distinct transaction, line item, or expense visible in this image. Return a JSON object in exactly this format: { \"transactions\": [ { \"amount\": number|null, \"merchant\": string|null, \"date\": string|null, \"category\": string|null, \"notes\": string|null } ] }. If no transactions are found, return { \"transactions\": [] }. Never return a single object — always return the transactions array." },
-        { type: "image_url", image_url: { url: imageUrl } }
-      ]
-    }
-  ];
-
   try {
+    const groq = new Groq({ apiKey });
+
+    const organizationId = await getOrgFromSession();
+    const org = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { id: true, plan: true, currentMonthReceipts: true },
+    });
+
+    if (!org) throw new Error("Organization not found");
+    if (!hasRemainingQuota(org.plan, 'receipts', org.currentMonthReceipts)) {
+      throw new Error('QUOTA_EXCEEDED');
+    }
+
+    const messages = [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "You extract structured data from Egyptian receipts and Instapay screenshots. Rules: Return ONLY a valid JSON object. Do not include explanations, markdown formatting, or extra text. If a field is missing or illegible, return null. Fields: amount: total paid (number, strip all currency symbols like EGP or USD. Prefer final total amount). merchant: business name (string, translate Arabic names to English context if possible). date: format YYYY-MM-DD (string, infer from context if needed, else null). For the 'category' field, you MUST choose exactly one of the following exact strings: \"Raw Materials\", \"Manufacturing\", \"Packaging\", \"Logistics (Shipping)\", \"Ads\", \"Content Creation\", or \"Other\". Do not invent new categories. If the expense does not clearly fit into the first six, you must default to \"Other\". notes: short optional context (string or null). Identify every distinct transaction, line item, or expense visible in this image. Return a JSON object in exactly this format: { \"transactions\": [ { \"amount\": number|null, \"merchant\": string|null, \"date\": string|null, \"category\": string|null, \"notes\": string|null } ] }. If no transactions are found, return { \"transactions\": [] }. Never return a single object — always return the transactions array." },
+          { type: "image_url", image_url: { url: imageUrl } }
+        ]
+      }
+    ];
+
     let text = "";
     try {
       const completion = await groq.chat.completions.create({
@@ -259,6 +310,11 @@ export async function parseReceiptFromImage(imageUrl: string): Promise<ParsedRec
     
     const parsed = JSON.parse(text);
 
+    await prisma.organization.update({
+      where: { id: org.id },
+      data: { currentMonthReceipts: { increment: 1 } },
+    });
+
     const VALID_CATEGORIES = ["Raw Materials", "Manufacturing", "Packaging", "Logistics (Shipping)", "Ads", "Content Creation", "Other"] as const;
 
     if (!parsed.transactions || !Array.isArray(parsed.transactions)) {
@@ -283,8 +339,12 @@ export async function parseReceiptFromImage(imageUrl: string): Promise<ParsedRec
       notes: t.notes ?? null,
       imageUrl,
     }));
+
     return transactions;
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.message === 'QUOTA_EXCEEDED') {
+      throw error; // re-throw so the caller can handle it
+    }
     console.error("Groq Vision API Error:", error);
     return null;
   }

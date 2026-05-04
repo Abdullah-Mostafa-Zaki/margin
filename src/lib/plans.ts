@@ -43,3 +43,12 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     monthlyReports: true,
   },
 };
+
+export function hasRemainingQuota(
+  plan: Plan,
+  type: 'receipts' | 'voice',
+  currentUsage: number
+): boolean {
+  const limit = type === 'receipts' ? PLAN_LIMITS[plan].maxAiReceipts : PLAN_LIMITS[plan].maxAiVoice;
+  return currentUsage < limit;
+}
