@@ -67,11 +67,11 @@ export default function LandingPage() {
           <div className="flex items-center gap-3">
             {/* White app-icon wrapper for your specific logo */}
             <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)] overflow-hidden p-1.5">
-              <Image 
-                src="/logo.png" 
-                alt="Margin Logo" 
-                width={32} 
-                height={32} 
+              <Image
+                src="/logo.svg"
+                alt="Margin Logo"
+                width={32}
+                height={32}
                 className="w-full h-full object-contain"
               />
             </div>
@@ -97,12 +97,12 @@ export default function LandingPage() {
       {/* ─── Main Hero Content ─── */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-20 text-center">
         <div className="max-w-4xl mx-auto space-y-10">
-          
+
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#10B981]/30 bg-[#10B981]/10 backdrop-blur-sm mx-auto">
             <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
             <span className="text-[13px] text-[#10B981] font-semibold tracking-wide uppercase">
-              Built for Egyptian Clothing Brands
+              Built for Egyptian E-commerce Brands
             </span>
           </div>
 
