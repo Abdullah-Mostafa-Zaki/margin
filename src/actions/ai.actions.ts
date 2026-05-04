@@ -26,7 +26,7 @@ interface ParsedTransaction {
   type: "INCOME" | "EXPENSE";
   category: string;
   paymentMethod: "CASH" | "CARD" | "COD" | "INSTAPAY";
-  date: string; // YYYY-MM-DD
+  date: string;
   notes: string;
 }
 
@@ -34,13 +34,6 @@ type VoiceActionResult =
   | { success: true; data: ParsedTransaction }
   | { success: false; error: string };
 
-/**
- * Two-step Groq pipeline:
- *   1. Whisper (whisper-large-v3)  — transcribes the raw audio
- *   2. Llama 3 (llama3-8b-8192)   — extracts structured JSON from the transcript
- *
- * Keeps the same function signature and return shape so the frontend is untouched.
- */
 export async function parseVoiceTransaction(
   base64Audio: string,
   mimeType: string
@@ -50,7 +43,6 @@ export async function parseVoiceTransaction(
     return { success: false, error: "GROQ_API_KEY is not configured." };
   }
 
-  // Guard: reject silent or too-short recordings before wasting an API call
   if (!base64Audio || base64Audio.length < 100) {
     return { success: false, error: "Audio was too short or silent. Please speak clearly and try again." };
   }
@@ -69,36 +61,31 @@ export async function parseVoiceTransaction(
 
     const groq = new Groq({ apiKey });
 
-    // ── Normalize MIME ────────────────────────────────────────────────────────
-    // Safari sometimes sends video/mp4 for audio-only recordings.
-    // Whisper accepts: mp3, mp4, mpeg, mpga, m4a, wav, webm, ogg, flac
     let normalizedMime = mimeType;
     if (normalizedMime.includes("mp4")) normalizedMime = "audio/mp4";
 
-    // Derive the file extension Whisper needs from the MIME type
     const extMap: Record<string, string> = {
-      "audio/webm":  "webm",
-      "audio/mp4":   "mp4",
-      "audio/mpeg":  "mp3",
-      "audio/ogg":   "ogg",
-      "audio/wav":   "wav",
-      "audio/flac":  "flac",
-      "audio/m4a":   "m4a",
+      "audio/webm": "webm",
+      "audio/mp4": "mp4",
+      "audio/mpeg": "mp3",
+      "audio/ogg": "ogg",
+      "audio/wav": "wav",
+      "audio/flac": "flac",
+      "audio/m4a": "m4a",
     };
     const ext = extMap[normalizedMime] ?? "webm";
     const filename = `audio.${ext}`;
 
-    // ── Phase 1: Transcription via Whisper ───────────────────────────────────
     console.log("🎙️ [GROQ] Phase 1 — Whisper transcription starting");
 
     const audioBuffer = Buffer.from(base64Audio, "base64");
-    const audioFile   = new File([audioBuffer], filename, { type: normalizedMime });
+    const audioFile = new File([audioBuffer], filename, { type: normalizedMime });
 
     const transcription = await groq.audio.transcriptions.create({
       file: audioFile,
       model: "whisper-large-v3",
       language: "ar",
-      prompt: "جنيه مصري، قماش، خامات، إعلانات، شحن، إنستاباي، كاش، مبيعات، أوردر، اشتريت، دفعت، ألف، تالاف، جنيه.",
+      prompt: "جنيه مصري، قماش، خامات، إعلانات، شحن، إنستاباي، كاش، مبيعات، أوردر، اشتريت، دفعت، ألف، تالاف، خمسمية، سبعمية، تمنمية، تسعمية، مية، ميتين، تلتمية، أربعمية، عشر تالاف، جنيه، ads, meta, facebook, instagram, reels, boost, shipping, order, items, pieces, total, cash, card, instapay.",
       temperature: 0,
     });
 
@@ -109,68 +96,104 @@ export async function parseVoiceTransaction(
       return { success: false, error: "Could not transcribe audio. Please speak clearly and try again." };
     }
 
-    // ── Dynamic date context ─────────────────────────────────────────────────
     const today = new Date();
-    const currentDate   = today.toLocaleDateString("en-CA"); // YYYY-MM-DD
+    const currentDate = today.toLocaleDateString("en-CA");
 
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayDate = yesterday.toLocaleDateString("en-CA");
 
-    // ── Phase 2: JSON Extraction via Llama 3 ────────────────────────────────
-    console.log("🧠 [GROQ] Phase 2 — Llama 3 JSON extraction starting");
+    console.log("🧠 [GROQ] Phase 2 — Llama extraction starting");
 
-    const systemPrompt = `You are a financial assistant for an Egyptian brand owner. Today's date is ${currentDate}. Yesterday's date is ${yesterdayDate}.
+    const systemPrompt = `You are a financial assistant for an Egyptian clothing brand owner. Today's date is ${currentDate}. Yesterday's date is ${yesterdayDate}.
 
-The user will speak in Egyptian Arabic (Ammiya) or a mix of Arabic and English. Your job is to extract transaction details from their voice transcript and return ONLY a valid JSON object matching this exact schema:
+The user speaks in Egyptian Arabic (Ammiya) or a mix of Arabic and English mid-sentence. Extract transaction details and return ONLY a valid JSON object:
 
 {
-  "amount": number, // Default: 0 if not found
-  "type": "INCOME" | "EXPENSE", // Default: EXPENSE
-  "category": string, // Default: Other
-  "paymentMethod": "CASH" | "CARD" | "COD" | "INSTAPAY", // Default: CASH
-  "date": "YYYY-MM-DD", // Default: ${currentDate}
+  "amount": number,
+  "type": "INCOME" | "EXPENSE",
+  "category": string,
+  "paymentMethod": "CASH" | "CARD" | "COD" | "INSTAPAY",
+  "date": "YYYY-MM-DD",
   "notes": string
 }
 
-### Numerical Extraction Rules (Critical)
-The transcript contains numbers written as text. Resolve them before saving:
+### Hundreds (Critical)
+- "مية", "مئة" → 100
+- "ميتين", "مئتين" → 200
+- "تلتمية", "تلاتمية", "ثلاثمية" → 300
+- "أربعمية", "اربعمية" → 400
+- "خمسمية", "خومسوميت", "خمسمئة" → 500
+- "ستمية", "ستمئة" → 600
+- "سبعمية", "سبعمئة" → 700
+- "تمنمية", "تمانمية", "ثمانمية" → 800
+- "تسعمية", "تسعمئة" → 900
+
+### Thousands (Critical)
 - "ألف", "الف", "بألف" → 1000
 - "ألفين", "الفين", "بألفين" → 2000
-- "تالاف", "تلاف", "ثلاثة آلاف", "بتلاتالاف", "تلاتالاف" → 3000
-- "خمسة آلاف", "خمس تالاف", "بخمستالاف", "بخمستلاف" → 5000
-- Strip any leading 'ب' (e.g., "بخمستالاف" means 5000).
+- "تالاف", "تلاف", "تلاتالاف", "بتلاتالاف", "ثلاثة آلاف" → 3000
+- "أربع تالاف", "اربع تالاف", "أربعة آلاف" → 4000
+- "خمس تالاف", "خمسة آلاف", "بخمستالاف", "بخمستلاف" → 5000
+- "ست تالاف", "ستة آلاف" → 6000
+- "سبع تالاف", "سبعة آلاف" → 7000
+- "تمن تالاف", "تمانية آلاف", "ثمانية آلاف" → 8000
+- "تسع تالاف", "تسعة آلاف" → 9000
+- "عشر تالاف", "عشرة آلاف", "عشرتالاف" → 10000
+- Strip any leading 'ب' prefix (e.g., "بخمستالاف" → 5000)
 
-### Whisper Auto-Correct & Typo Tolerance (CRITICAL)
-The voice transcript often mishears Egyptian Ammiya. Intelligently infer the intended term:
-- "وماشي", "وماش", "اماش" → interpret as "قماش" (Raw Materials).
-- "كيني", "جني", "جنية" → interpret as "جنيه" (Egyptian Pounds). Ignore Kenya.
+### Compound Numbers (Critical)
+Combine hundreds and thousands correctly:
+- "ألف وخمسمية", "الف وخومسوميت", "ألف و خمسمية" → 1500
+- "ألفين وخمسمية" → 2500
+- "تالاف وخمسمية" → 3500
+- "ألف وميتين" → 1200
+- "ألف وسبعمية" → 1700
+- "خمسة آلاف وخمسمية" → 5500
+Pattern: always add the components together.
 
-### Category Mapping Rules
+### Whisper Mishear Corrections (Critical)
+Whisper often mishears Egyptian Ammiya — intelligently correct:
+- "وماشي", "وماش", "اماش", "أماش" → "قماش" (fabric/raw materials)
+- "كيني", "جني", "جنية", "كيني" → "جنيه" (Egyptian pounds, ignore Kenya)
+- "تالاف", "تلاف" → thousands (not a word, it means آلاف)
+- "خومسوميت", "خومسميت" → "خمسمية" (500)
+- "عشرتالاف", "عشرة تالاف" → 10000
+
+### Mixed Arabic-English (Critical)
+Users frequently mix Arabic and English mid-sentence. Handle these naturally:
+- "لل ads", "على الads", "للإعلانات" → category: Ads
+- "لل boost", "عملت boost" → category: Ads
+- "لل shipping", "شحن" → category: Logistics (Shipping)
+- "لل content", "كونتنت" → category: Content Creation
+- "لل packaging", "تغليف" → category: Packaging
+- English amount words: "one thousand", "five hundred" → treat as numbers
+
+### Category Mapping
 - "قماش", "أماش", "raw materials", "خامات", "أقمشة" → "Raw Materials"
 - "تصنيع", "manufacturing", "مصنع", "تقفيل" → "Manufacturing"
 - "تغليف", "packaging", "باكدجينج", "أكياس", "علب" → "Packaging"
-- "شحن", "شاحن", "logistics", "shipping", "مندوب", "توصيل" → "Logistics (Shipping)"
-- "إعلانات", "ads", "فيسبوك", "ميتا", "ممولة", "ads cost" → "Ads"
+- "شحن", "logistics", "shipping", "مندوب", "توصيل" → "Logistics (Shipping)"
+- "إعلانات", "ads", "فيسبوك", "ميتا", "meta", "ممولة", "boost", "reels" → "Ads"
 - "كونتنت", "content", "تصوير", "سيشن", "موديل" → "Content Creation"
 - "مبيعات", "sales", "أوردر", "order" → "Sales Revenue"
-- If nothing matches → "Other"
+- Default → "Other"
 
-### Payment Method Mapping
+### Payment Method
 - "كاش", "cash", "نقدي" → "CASH"
 - "كارت", "card", "فيزا", "visa" → "CARD"
 - "إنستاباي", "instapay" → "INSTAPAY"
 - "كاش أون ديليفري", "cod", "تحصيل" → "COD"
 - Default → "CASH"
 
-### Date Mapping
+### Date
 - "النهاردة", "today", "اليوم" → ${currentDate}
 - "إمبارح", "امبارح", "yesterday" → ${yesterdayDate}
-- Otherwise default to ${currentDate}.
+- Default → ${currentDate}
 
-### Type Inference
-- Buying, paying, spending, expenses, "دفعت", "اشتريت", "صرفت", "فاتورة" → "EXPENSE"
-- Receiving money, sales, income, orders, "دخل", "قبضت", "بعت" → "INCOME"
+### Transaction Type
+- "دفعت", "اشتريت", "صرفت", "فاتورة", "paid", "bought", "spent" → "EXPENSE"
+- "دخل", "قبضت", "بعت", "received", "sold", "order came in" → "INCOME"
 - Default → "EXPENSE"
 
 Return ONLY the JSON object. No explanation, no markdown.`;
@@ -180,15 +203,14 @@ Return ONLY the JSON object. No explanation, no markdown.`;
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user",   content: transcript },
+        { role: "user", content: transcript },
       ],
-      temperature: 0.1, // low temperature = more deterministic JSON
+      temperature: 0.1,
     });
 
     const text = completion.choices[0]?.message?.content ?? "";
     const parsed: ParsedTransaction = JSON.parse(text);
 
-    // ── Validation & sanitization ────────────────────────────────────────────
     if (!parsed.amount || typeof parsed.amount !== "number" || parsed.amount <= 0) {
       return { success: false, error: "Could not extract a valid amount from your voice. Please try again." };
     }
@@ -221,11 +243,9 @@ Return ONLY the JSON object. No explanation, no markdown.`;
 
     console.error("Groq Pipeline Error:", error);
 
-    // Detect rate-limit / quota errors (HTTP 429)
     const isRateLimit =
       error?.status === 429 ||
       error?.message?.toLowerCase().includes("rate") ||
-      error?.message?.toLowerCase().includes("quota") ||
       error?.message?.toLowerCase().includes("too many");
 
     if (isRateLimit) {
@@ -253,7 +273,7 @@ export interface ParsedReceipt {
 
 export async function parseReceiptFromImage(imageUrl: string): Promise<ParsedReceipt[] | null> {
   console.log("AI received URL:", imageUrl);
-  
+
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     console.error("GROQ_API_KEY is not configured.");
@@ -303,11 +323,11 @@ export async function parseReceiptFromImage(imageUrl: string): Promise<ParsedRec
 
     text = text.replace(/```json/gi, "").replace(/```/g, "").trim();
     console.log("Groq Response:", text);
-    
+
     if (!text) {
       throw new Error("Groq returned empty response");
     }
-    
+
     const parsed = JSON.parse(text);
 
     await prisma.organization.update({
@@ -343,10 +363,9 @@ export async function parseReceiptFromImage(imageUrl: string): Promise<ParsedRec
     return transactions;
   } catch (error: any) {
     if (error?.message === 'QUOTA_EXCEEDED') {
-      throw error; // re-throw so the caller can handle it
+      throw error;
     }
     console.error("Groq Vision API Error:", error);
     return null;
   }
 }
-
