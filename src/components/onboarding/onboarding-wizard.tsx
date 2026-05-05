@@ -129,6 +129,7 @@ export function OnboardingWizard() {
             </ol>
           </div>
 
+
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium">Shopify Webhook URL</label>
