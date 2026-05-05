@@ -1,6 +1,10 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Playfair_Display, DM_Sans } from 'next/font/google'
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
+import prisma from "@/lib/prisma"
+import { redirect } from "next/navigation"
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -37,7 +41,22 @@ const stats = [
   { value: 'AI', label: 'Automated Entry' },
 ]
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const session = await getServerSession(authOptions)
+  
+  if (session?.user?.id) {
+    const membership = await prisma.membership.findFirst({
+      where: { userId: session.user.id },
+      include: { organization: true }
+    })
+    
+    if (membership?.organization?.slug) {
+      redirect(`/${membership.organization.slug}`)
+    } else {
+      redirect('/onboarding')
+    }
+  }
+
   return (
     <div
       className={`${dmSans.className} min-h-screen flex flex-col bg-[#08080A] text-[#F0EAE0] relative overflow-hidden`}
