@@ -103,7 +103,7 @@ export default function TopNav({ orgSlug, userName, userImage }: TopNavProps) {
                 <div className="absolute right-0 top-full mt-2 w-48 rounded-md border bg-white py-1 shadow-lg z-50">
                   <button
                     type="button"
-                    onClick={() => signOut({ callbackUrl: "/login", redirect: true })}
+                    onClick={() => signOut({ callbackUrl: "/", redirect: true })}
                     className="flex w-full items-center px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 cursor-pointer"
                   >
                     <LogOut className="mr-3 h-4 w-4 text-zinc-400" />

@@ -98,13 +98,13 @@ export default async function LandingPage() {
           </div>
           <div className="flex items-center gap-4">
             <Link
-              href="/auth"
+              href="/login"
               className="text-sm font-medium text-[#8A8490] hover:text-[#F0EAE0] transition-colors hidden sm:block"
             >
               Sign In
             </Link>
             <Link
-              href="/auth"
+              href="/login"
               className="text-sm font-medium bg-[#10B981] text-[#08080A] px-5 py-2.5 rounded-lg hover:bg-[#0EA5E9] hover:text-white transition-all duration-200"
             >
               Get Started
@@ -140,13 +140,13 @@ export default async function LandingPage() {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-5 pt-4">
             <Link
-              href="/auth"
+              href="/login"
               className="w-full sm:w-auto px-8 py-4 rounded-xl bg-[#10B981] text-[#08080A] text-[16px] font-bold hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all duration-200 hover:scale-105 active:scale-95"
             >
               Create Free Workspace
             </Link>
             <Link
-              href="/auth"
+              href="/login"
               className="w-full sm:w-auto px-8 py-4 rounded-xl bg-[#111116] border border-[#2A2A32] text-[#F0EAE0] text-[16px] font-medium hover:bg-[#1C1C22] hover:border-[#10B981]/50 transition-all duration-200"
             >
               Sign in to Dashboard
