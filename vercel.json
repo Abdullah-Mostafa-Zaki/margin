@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/bosta-sync",
+      "schedule": "0 2 * * *"
+    }
+  ]
+}

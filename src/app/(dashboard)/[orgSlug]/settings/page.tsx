@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { EditOrgForm } from "@/components/settings/edit-org-form";
 import { ShopifyIntegration } from "@/components/settings/shopify-integration";
+import { BostaConnectForm } from "@/components/settings/bosta-connect-form";
 
 export default async function SettingsPage({
   params,
@@ -21,6 +22,9 @@ export default async function SettingsPage({
   const organization = await prisma.organization.findUnique({
     where: { slug: orgSlug },
     include: {
+      bostaIntegration: {
+        select: { id: true }
+      },
       memberships: {
         include: {
           user: true,
@@ -87,6 +91,11 @@ export default async function SettingsPage({
           baseUrl={baseUrl}
           hasSecret={hasSecret}
         />
+
+        {/* Bosta Integration */}
+        <div className="rounded-lg border bg-white p-6 shadow-sm w-full max-w-full overflow-hidden">
+          <BostaConnectForm orgId={organization.id} isConnectedInitially={!!organization.bostaIntegration} />
+        </div>
 
         {/* Team Members */}
         <div className="rounded-lg border bg-white p-6 shadow-sm w-full max-w-full overflow-hidden">

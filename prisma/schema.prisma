@@ -74,6 +74,7 @@ model Organization {
   tags                 Tag[]
   transactions         Transaction[]
   subscription         Subscription?
+  bostaIntegration     BostaIntegration?
 
   @@index([slug])
 }
@@ -135,16 +136,33 @@ model Transaction {
   createdById    String
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
-  shopifyOrderId String?
-  merchant       String?
-  lineItems      LineItem[]
-  createdBy      User              @relation(fields: [createdById], references: [id])
-  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  tags           TransactionTag[]
+  shopifyOrderId      String?
+  merchant            String?
+  bostaTrackingNumber String?  @unique
+  bostaState          String?
+  shipmentFee         Float?
+  bostaLastSyncedAt   DateTime?
+  lineItems           LineItem[]
+  createdBy           User              @relation(fields: [createdById], references: [id])
+  organization        Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tags                TransactionTag[]
 
   @@unique([shopifyOrderId, organizationId])
   @@index([organizationId, date])
   @@index([organizationId, status])
+}
+
+model BostaIntegration {
+  id             String       @id @default(cuid())
+  organizationId String       @unique
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  bostaEmail     String
+  token          String       @db.Text
+  refreshToken   String       @db.Text
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 }
 
 model TransactionTag {
