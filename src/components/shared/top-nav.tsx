@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { User, LogOut, Menu, X, LayoutDashboard, Receipt, Tags as TagsIcon, Settings } from "lucide-react";
+import { User, LogOut, Menu, X, MessageSquare, BarChart2, Zap, Receipt, Settings } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
 interface TopNavProps {
@@ -47,9 +47,10 @@ export default function TopNav({ orgSlug, userName, userImage }: TopNavProps) {
   }, [isMobileMenuOpen]);
 
   const navigation = [
-    { name: "Dashboard", href: `/${orgSlug}`, icon: LayoutDashboard },
+    { name: "Home", href: `/${orgSlug}`, icon: MessageSquare },
+    { name: "Analytics", href: `/${orgSlug}/analytics`, icon: BarChart2 },
+    { name: "Recommendations", href: `/${orgSlug}/recommendations`, icon: Zap },
     { name: "Transactions", href: `/${orgSlug}/transactions`, icon: Receipt },
-    { name: "Drops", href: `/${orgSlug}/tags`, icon: TagsIcon },
     { name: "Settings", href: `/${orgSlug}/settings`, icon: Settings },
   ];
 

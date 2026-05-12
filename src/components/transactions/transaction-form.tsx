@@ -79,8 +79,14 @@ export interface TransactionFormHandle {
   openForEdit: (transaction: TransactionToEdit) => void;
 }
 
-const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tags?: TagProp[] }>(
-  function TransactionForm({ orgSlug, tags = [] }, ref) {
+const TransactionForm = forwardRef<TransactionFormHandle, { 
+  orgSlug: string; 
+  tags?: TagProp[];
+  prefillData?: Partial<TransactionDefaultValues>;
+  onSuccessCallback?: (data: any) => void;
+  onCancelCallback?: () => void;
+}>(
+  function TransactionForm({ orgSlug, tags = [], prefillData, onSuccessCallback, onCancelCallback }, ref) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -99,6 +105,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tag
   const [error, setError] = useState<string | null>(null);
 
   // Refs for native inputs that need imperative value setting
+  const formRef = useRef<HTMLFormElement>(null);
   const amountRef = useRef<HTMLInputElement>(null);
   const dateRef = useRef<HTMLInputElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
@@ -178,6 +185,28 @@ const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tag
     }
   }, [selectedType, paymentMethod]);
 
+  // Handle prefill data from AI
+  useEffect(() => {
+    if (prefillData) {
+      if (prefillData.type) setType(prefillData.type);
+      if (prefillData.category) setCategory(prefillData.category);
+      if (prefillData.paymentMethod) setPaymentMethod(prefillData.paymentMethod);
+      setEditingId(null);
+      setStatusOverride("");
+      setShowStatusOverride(false);
+      setError(null);
+      setIsOpen(true);
+      fillRefs(prefillData.amount, prefillData.date, prefillData.notes);
+
+      // Trigger native validation immediately to highlight missing fields
+      setTimeout(() => {
+        if (formRef.current) {
+          formRef.current.reportValidity();
+        }
+      }, 100);
+    }
+  }, [prefillData]);
+
   // Clean error when opening modal
   useEffect(() => {
     if (isOpen) {
@@ -254,6 +283,14 @@ const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tag
         if (notesRef.current) notesRef.current.value = "";
 
         router.refresh();
+        if (onSuccessCallback) {
+          onSuccessCallback({
+            amount: formData.get("amount"),
+            category: formData.get("category"),
+            type: formData.get("type"),
+            paymentMethod: formData.get("paymentMethod"),
+          });
+        }
       } catch (err: any) {
         setError(err.message || "Failed to save transaction.");
       }
@@ -276,7 +313,12 @@ const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tag
   const activeCategories = type === "INCOME" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      setIsOpen(open);
+      if (!open && onCancelCallback) {
+        onCancelCallback();
+      }
+    }}>
       {/* Desktop Button */}
       <Button className="hidden md:flex bg-[#27A67A] hover:bg-[#27A67A]/90 text-white" onClick={() => setIsOpen(true)}>Add Transaction</Button>
 
@@ -311,7 +353,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, { orgSlug: string; tag
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+              <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
                 {/* Scrollable body — px-4 keeps content inset from edges */}
                 <div className="flex-1 overflow-y-auto overscroll-contain space-y-4 px-4 md:px-0 pt-4 pb-6 md:pr-2">
                   {/* Quick Templates (Scrollable Chips) */}
