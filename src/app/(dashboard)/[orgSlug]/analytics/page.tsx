@@ -8,6 +8,7 @@ import { IncomeExpenseChart } from "@/components/dashboard/income-expense-chart"
 import { ExpenseDonutChart } from "@/components/dashboard/expense-donut-chart";
 import { groupTransactionsByDate } from "@/lib/chart-utils";
 import { getDashboardInsights } from "@/app/actions/getDashboardInsights";
+import { getLivePendingEscrow } from "@/actions/bosta.actions";
 import { FadeIn } from "@/components/ui/fade-in";
 
 export default async function AnalyticsPage(props: {
@@ -28,18 +29,30 @@ export default async function AnalyticsPage(props: {
 
   const aggregations = await prisma.transaction.groupBy({
     by: ['type'],
-    where: { organizationId: organization.id, status: 'RECEIVED', ...dateFilter },
+    where: { 
+      organizationId: organization.id, 
+      status: 'RECEIVED',
+      bostaState: { notIn: ['Returned', 'Canceled', 'RTO'] },
+      ...dateFilter 
+    },
     _sum: { amount: true },
   });
 
-  const pendingCODQuery = await prisma.transaction.aggregate({
-    where: { organizationId: organization.id, type: 'INCOME', status: 'PENDING', ...dateFilter },
+  const ghostRevenueQuery = await prisma.transaction.aggregate({
+    where: { 
+      organizationId: organization.id, 
+      type: 'INCOME', 
+      bostaState: { in: ['Returned', 'Canceled', 'RTO'] },
+      ...dateFilter 
+    },
     _sum: { amount: true }
   });
 
+  const liveEscrow = await getLivePendingEscrow(organization.id);
+  const totalLiveEscrow = liveEscrow.collectedCOD + liveEscrow.expectedCOD;
+
   const totalIncome = Number(aggregations.find(a => a.type === 'INCOME')?._sum.amount || 0);
-  const totalExpense = Number(aggregations.find(a => a.type === 'EXPENSE')?._sum.amount || 0);
-  const totalPendingCOD = Number(pendingCODQuery._sum.amount || 0);
+  const ghostRevenue = Number(ghostRevenueQuery._sum.amount || 0);
 
   const dailyTransactions = await prisma.transaction.findMany({
     where: { organizationId: organization.id, status: 'RECEIVED', ...dateFilter },
@@ -107,61 +120,48 @@ export default async function AnalyticsPage(props: {
 
       <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
         <FadeIn delay={0.1}>
-          <Card className="border-0 h-full">
+          <Card className="border border-emerald-200 bg-emerald-50/50 h-full shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-zinc-500">Total Income</CardTitle>
-              <ArrowUpRight className="h-4 w-4 text-[#27A67A]" />
+              <CardTitle className="text-sm font-bold text-emerald-900 uppercase tracking-wider">Realized Revenue</CardTitle>
+              <ArrowUpRight className="h-5 w-5 text-emerald-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tracking-tight text-zinc-900">
+              <div className="text-3xl font-bold tracking-tight text-emerald-950">
                 EGP {totalIncome.toLocaleString()}
               </div>
+              <p className="text-xs text-emerald-700 mt-2 font-medium">Actual cash received</p>
             </CardContent>
           </Card>
         </FadeIn>
 
         <FadeIn delay={0.2}>
-          <Card className="border-0 h-full">
+          <Card className="border border-amber-200 bg-amber-50/50 h-full shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-zinc-500">Total Expenses</CardTitle>
-              <ArrowDownRight className="h-4 w-4 text-[#E06C4C]" />
+              <CardTitle className="text-sm font-bold text-amber-900 uppercase tracking-wider">Pending Escrow</CardTitle>
+              <Clock className="h-5 w-5 text-amber-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold tracking-tight text-zinc-900">
-                EGP {totalExpense.toLocaleString()}
+              <div className="text-3xl font-bold tracking-tight text-amber-950">
+                EGP {totalLiveEscrow.toLocaleString()}
               </div>
+              <p className="text-xs text-amber-700 mt-2 font-medium">Cash held by couriers / in transit.</p>
             </CardContent>
           </Card>
         </FadeIn>
 
         <FadeIn delay={0.3}>
-          {totalPendingCOD === 0 ? (
-            <Card className="border-0 h-full">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-zinc-500">Expected Inbound</CardTitle>
-                <Clock className="h-4 w-4 text-zinc-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-semibold tracking-tight text-zinc-400">
-                  EGP 0
-                </div>
-                <p className="text-xs text-zinc-500 mt-1">All cash collected.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="border-0 h-full">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-zinc-500">Expected Inbound</CardTitle>
-                <Clock className="h-4 w-4 text-amber-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-semibold tracking-tight text-zinc-900">
-                  EGP {totalPendingCOD.toLocaleString()}
-                </div>
-                <p className="text-xs text-zinc-500 mt-1 font-medium">Pending cash with couriers</p>
-              </CardContent>
-            </Card>
-          )}
+          <Card className="border border-red-200 bg-red-50/50 h-full shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-bold text-red-900 uppercase tracking-wider">Ghost Revenue</CardTitle>
+              <ArrowDownRight className="h-5 w-5 text-red-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight text-red-950">
+                EGP {ghostRevenue.toLocaleString()}
+              </div>
+              <p className="text-xs text-red-700 mt-2 font-medium">Lost COD from returned orders.</p>
+            </CardContent>
+          </Card>
         </FadeIn>
       </div>
 

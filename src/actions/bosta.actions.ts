@@ -79,3 +79,42 @@ export async function refreshBostaToken(orgId: string) {
 
   return token;
 }
+
+export async function getLivePendingEscrow(orgId: string) {
+  try {
+    const integration = await prisma.bostaIntegration.findUnique({
+      where: { organizationId: orgId }
+    });
+
+    if (!integration) {
+      return { collectedCOD: 0, expectedCOD: 0 };
+    }
+
+    const freshToken = await refreshBostaToken(orgId);
+
+    const response = await fetch("https://app.bosta.co/api/v2/deliveries/analytics/total-deliveries", {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${freshToken}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      return { collectedCOD: 0, expectedCOD: 0 };
+    }
+
+    const json = await response.json();
+    if (!json.success || !json.data) {
+      return { collectedCOD: 0, expectedCOD: 0 };
+    }
+
+    return {
+      collectedCOD: json.data.collectedCOD || 0,
+      expectedCOD: json.data.expectedCOD || 0
+    };
+  } catch (error) {
+    console.error("Live escrow fetch error:", error);
+    return { collectedCOD: 0, expectedCOD: 0 };
+  }
+}
