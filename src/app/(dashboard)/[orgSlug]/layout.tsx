@@ -8,6 +8,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import Sidebar from "@/components/shared/sidebar";
 import TopNav from "@/components/shared/top-nav";
+import { getDashboardInsights } from "@/app/actions/getDashboardInsights";
 
 export default async function DashboardLayout({
   children,
@@ -88,6 +89,21 @@ export default async function DashboardLayout({
     user = membership.user;
   }
 
+  const insights = await getDashboardInsights(org.id, null, null);
+  let mood;
+  const marginPct = insights.marginPct;
+  if (marginPct >= 30) {
+    mood = { text: "Untouchable", emoji: "💎", color: "border-purple-300 bg-purple-100 text-purple-900" };
+  } else if (marginPct >= 20) {
+    mood = { text: "King", emoji: "👑", color: "border-amber-300 bg-amber-100 text-amber-900" };
+  } else if (marginPct >= 10) {
+    mood = { text: "Satisfied", emoji: "👌", color: "border-emerald-300 bg-emerald-100 text-emerald-900" };
+  } else if (marginPct > 0) {
+    mood = { text: "Unimpressed", emoji: "🥱", color: "border-slate-300 bg-slate-100 text-slate-900" };
+  } else {
+    mood = { text: "Disgusted", emoji: "🤢", color: "border-red-300 bg-red-100 text-red-900" };
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* ── Ghost Mode Banner ──────────────────────────────────────────────── */}
@@ -107,6 +123,7 @@ export default async function DashboardLayout({
             orgSlug={org.slug}
             userName={user.name || user.email || "User"}
             userImage={user.image}
+            mood={mood}
           />
           {/* pb-20 ensures content clears the fixed mobile bottom tab bar */}
           <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-20 md:py-8 md:pb-8">

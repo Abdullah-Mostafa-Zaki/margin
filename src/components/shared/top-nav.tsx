@@ -11,9 +11,10 @@ interface TopNavProps {
   orgSlug: string;
   userName: string;
   userImage?: string | null;
+  mood?: { text: string; emoji: string; color: string };
 }
 
-export default function TopNav({ orgSlug, userName, userImage }: TopNavProps) {
+export default function TopNav({ orgSlug, userName, userImage, mood }: TopNavProps) {
   const [openProfile, setOpenProfile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -77,7 +78,14 @@ export default function TopNav({ orgSlug, userName, userImage }: TopNavProps) {
           </Link>
 
           {/* ── Right Column: Profile Pill ── */}
-          <div className="flex flex-1 justify-end items-center gap-4">
+          <div className="flex flex-1 justify-end items-center gap-2 md:gap-4">
+            {mood && (
+              <div className={`flex items-center gap-1.5 px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wider border shadow-sm ${mood.color}`}>
+                <span>{mood.emoji}</span>
+                <span className="hidden sm:inline">Mood: {mood.text}</span>
+              </div>
+            )}
+            
             <div className="relative" ref={profileRef}>
               <button
                 type="button"

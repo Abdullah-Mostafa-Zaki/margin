@@ -211,7 +211,7 @@ export function ChatHome({ orgSlug }: { orgSlug: string }) {
       </div>
 
       {/* Outer Floating Wrapper */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 pb-6 md:pb-8 z-40 pointer-events-none">
+      <div className="fixed bottom-0 left-0 right-0 md:left-64 p-4 pb-6 md:pb-8 z-40 pointer-events-none">
         <div className="max-w-3xl mx-auto pointer-events-auto">
 
           {/* The Unified Input Pill */}
