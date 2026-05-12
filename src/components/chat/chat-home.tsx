@@ -28,6 +28,11 @@ function TypingIndicator() {
 
 function MessageBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <div className={`flex flex-col ${isUser ? "items-end" : "items-start"} w-full`}>
@@ -50,8 +55,8 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         )}
         <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
       </div>
-      <span className="text-[10px] text-muted-foreground mt-1 mx-1">
-        {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+      <span className="text-[10px] text-muted-foreground mt-1 mx-1 min-h-4">
+        {mounted ? message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
       </span>
     </div>
   );
