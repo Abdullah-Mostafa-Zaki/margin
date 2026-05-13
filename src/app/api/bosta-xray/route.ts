@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { refreshBostaToken } from "@/actions/bosta.actions";
 
 export const dynamic = 'force-dynamic';
 
@@ -61,37 +62,32 @@ export async function GET(request: Request) {
       });
     }
 
-    // --- 4. SYNC MATCHING (Does logic find #9999?) ---
+    // --- 4. SYNC MATCHING (Dump the Raw Data) ---
     if (test === "sync_logic") {
+      // 1. Force a refresh to ensure the token isn't expired
+      const freshToken = await refreshBostaToken(organizationId);
+
+      // 2. Ensure the token has the "Bearer " prefix for the v0 call
+      const authHeader = freshToken.startsWith("Bearer ") ? freshToken : `Bearer ${freshToken}`;
+
       const bostaRes = await fetch("https://app.bosta.co/api/v0/deliveries?limit=50", {
         method: "GET",
-        headers: { "Authorization": token },
+        headers: {
+          "Authorization": authHeader,
+          "Content-Type": "application/json"
+        },
         cache: "no-store"
       });
-      const bostaData = await bostaRes.json();
-      const deliveries = bostaData.deliveries || bostaData.data?.deliveries || [];
 
-      const pending = await prisma.transaction.findMany({
-        where: { organizationId, status: "PENDING" }
-      });
-
-      const audit = pending.map(t => {
-        const expectedSuffix = `#${t.shopifyOrderId}`;
-        const match = deliveries.find((d: any) =>
-          d.businessReference && String(d.businessReference).endsWith(expectedSuffix)
-        );
-        return {
-          target_order: expectedSuffix,
-          match_found: !!match,
-          bosta_tracking: match?.trackingNumber || null,
-          bosta_state: match?.state?.value || null
-        };
-      });
+      const bostaData = await bostaRes.json().catch(() => ({ error: "Failed to parse JSON" }));
 
       return NextResponse.json({
-        bosta_records_scanned: deliveries.length,
-        db_records_pending: pending.length,
-        results: audit
+        debug: {
+          using_email: integration.bostaEmail,
+          using_orgId: organizationId,
+          auth_header_used: authHeader.substring(0, 20) + "..."
+        },
+        raw_bosta_payload: bostaData
       });
     }
 

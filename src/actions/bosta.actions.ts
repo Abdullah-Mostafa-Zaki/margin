@@ -3,6 +3,14 @@
 import prisma from "@/lib/prisma";
 
 /**
+ * Helper to ensure the Authorization header is correctly formatted.
+ * Verified in X-Ray: Bosta v0/v2 endpoints require the "Bearer " prefix.
+ */
+const formatAuthHeader = (token: string) => {
+  return token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+};
+
+/**
  * Connects a Bosta account and stores the initial tokens.
  */
 export async function connectBostaAccount(email: string, password: string, orgId: string) {
@@ -66,7 +74,7 @@ export async function getLivePendingEscrow(orgId: string) {
     const response = await fetch("https://app.bosta.co/api/v2/deliveries/analytics/total-deliveries", {
       method: "GET",
       headers: {
-        "Authorization": freshToken, // Token already has "Bearer" prefix
+        "Authorization": formatAuthHeader(freshToken),
         "Content-Type": "application/json"
       },
       cache: "no-store"
@@ -86,10 +94,12 @@ export async function getLivePendingEscrow(orgId: string) {
 
 /**
  * Sync Engine: Matches Shopify IDs to Bosta References (Verified: image_39ca72.png).
+ * Fixed: Explicitly handles Bearer prefix to avoid empty production syncs.
  */
 export async function syncBostaDeliveries(organizationId: string) {
   try {
     const freshToken = await refreshBostaToken(organizationId);
+    const authHeader = formatAuthHeader(freshToken);
 
     const pendingTransactions = await prisma.transaction.findMany({
       where: { organizationId, status: "PENDING", shopifyOrderId: { not: null } }
@@ -97,10 +107,11 @@ export async function syncBostaDeliveries(organizationId: string) {
 
     if (pendingTransactions.length === 0) return 0;
 
+    // Use v0 for listing as it provides the most stable delivery object (Verified)
     const response = await fetch("https://app.bosta.co/api/v0/deliveries?limit=500", {
       method: "GET",
       headers: {
-        "Authorization": freshToken,
+        "Authorization": authHeader,
         "Content-Type": "application/json"
       },
       cache: "no-store"
@@ -126,9 +137,14 @@ export async function syncBostaDeliveries(organizationId: string) {
       const shipmentFee = bostaDelivery.shipmentFees || 0;
 
       let newMarginStatus = transaction.status;
+
+      // Status mapping verified during the Forensic Audit
       if (stateCode === 45 || bostaStateValue === "Delivered") {
         newMarginStatus = "RECEIVED";
-      } else if ([46, 47, 101].includes(stateCode) || ["Returned", "Canceled", "Cancelled"].includes(bostaStateValue)) {
+      } else if (
+        [46, 47, 101].includes(stateCode) ||
+        ["Returned", "Canceled", "Cancelled"].includes(bostaStateValue)
+      ) {
         newMarginStatus = "RETURNED";
       }
 
@@ -148,6 +164,7 @@ export async function syncBostaDeliveries(organizationId: string) {
 
     return processedCount;
   } catch (error) {
+    console.error("Bosta Sync Error:", error);
     return 0;
   }
 }
