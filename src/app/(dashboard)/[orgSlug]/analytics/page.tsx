@@ -1,14 +1,13 @@
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUpRight, ArrowDownRight, Clock } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, Clock, Activity } from "lucide-react";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { getDateRangeFromParams } from "@/lib/date-utils";
 import { IncomeExpenseChart } from "@/components/dashboard/income-expense-chart";
 import { ExpenseDonutChart } from "@/components/dashboard/expense-donut-chart";
 import { groupTransactionsByDate } from "@/lib/chart-utils";
 import { getDashboardInsights } from "@/app/actions/getDashboardInsights";
-import { getLivePendingEscrow } from "@/actions/bosta.actions";
 import { FadeIn } from "@/components/ui/fade-in";
 
 export default async function AnalyticsPage(props: {
@@ -27,32 +26,8 @@ export default async function AnalyticsPage(props: {
   const { startDate, endDate } = getDateRangeFromParams(resolvedSearchParams);
   const dateFilter = startDate && endDate ? { date: { gte: startDate, lte: endDate } } : {};
 
-  const aggregations = await prisma.transaction.groupBy({
-    by: ['type'],
-    where: { 
-      organizationId: organization.id, 
-      status: 'RECEIVED',
-      bostaState: { notIn: ['Returned', 'Canceled', 'RTO'] },
-      ...dateFilter 
-    },
-    _sum: { amount: true },
-  });
-
-  const ghostRevenueQuery = await prisma.transaction.aggregate({
-    where: { 
-      organizationId: organization.id, 
-      type: 'INCOME', 
-      bostaState: { in: ['Returned', 'Canceled', 'RTO'] },
-      ...dateFilter 
-    },
-    _sum: { amount: true }
-  });
-
-  const liveEscrow = await getLivePendingEscrow(organization.id);
-  const totalLiveEscrow = liveEscrow.collectedCOD + liveEscrow.expectedCOD;
-
-  const totalIncome = Number(aggregations.find(a => a.type === 'INCOME')?._sum.amount || 0);
-  const ghostRevenue = Number(ghostRevenueQuery._sum.amount || 0);
+  // Insights is now the SINGLE SOURCE OF TRUTH for top-level KPIs
+  const insights = await getDashboardInsights(organization.id, startDate, endDate);
 
   const dailyTransactions = await prisma.transaction.findMany({
     where: { organizationId: organization.id, status: 'RECEIVED', ...dateFilter },
@@ -72,8 +47,6 @@ export default async function AnalyticsPage(props: {
     amount: Number(e._sum.amount || 0)
   }));
   
-  const insights = await getDashboardInsights(organization.id, startDate, endDate);
-
   // Pareto Engine for Catalog Velocity
   const lineItems = await prisma.lineItem.findMany({
     where: {
@@ -118,7 +91,8 @@ export default async function AnalyticsPage(props: {
         </div>
       </div>
 
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
+      {/* 4 Card KPI Grid */}
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         <FadeIn delay={0.1}>
           <Card className="border border-emerald-200 bg-emerald-50/50 h-full shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -127,7 +101,7 @@ export default async function AnalyticsPage(props: {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold tracking-tight text-emerald-950">
-                EGP {totalIncome.toLocaleString()}
+                EGP {insights.realizedRevenue.toLocaleString()}
               </div>
               <p className="text-xs text-emerald-700 mt-2 font-medium">Actual cash received</p>
             </CardContent>
@@ -135,6 +109,21 @@ export default async function AnalyticsPage(props: {
         </FadeIn>
 
         <FadeIn delay={0.2}>
+          <Card className="border border-zinc-200 bg-zinc-50 h-full shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-bold text-zinc-900 uppercase tracking-wider">Total Expenses</CardTitle>
+              <Activity className="h-5 w-5 text-zinc-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold tracking-tight text-zinc-950">
+                EGP {insights.totalExpenses.toLocaleString()}
+              </div>
+              <p className="text-xs text-zinc-700 mt-2 font-medium">Manual entries & shipping costs</p>
+            </CardContent>
+          </Card>
+        </FadeIn>
+
+        <FadeIn delay={0.3}>
           <Card className="border border-amber-200 bg-amber-50/50 h-full shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-bold text-amber-900 uppercase tracking-wider">Pending Escrow</CardTitle>
@@ -142,14 +131,14 @@ export default async function AnalyticsPage(props: {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold tracking-tight text-amber-950">
-                EGP {totalLiveEscrow.toLocaleString()}
+                EGP {insights.pendingEscrow.toLocaleString()}
               </div>
               <p className="text-xs text-amber-700 mt-2 font-medium">Cash held by couriers / in transit.</p>
             </CardContent>
           </Card>
         </FadeIn>
 
-        <FadeIn delay={0.3}>
+        <FadeIn delay={0.4}>
           <Card className="border border-red-200 bg-red-50/50 h-full shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-bold text-red-900 uppercase tracking-wider">Ghost Revenue</CardTitle>
@@ -157,7 +146,7 @@ export default async function AnalyticsPage(props: {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold tracking-tight text-red-950">
-                EGP {ghostRevenue.toLocaleString()}
+                EGP {insights.ghostRevenue.toLocaleString()}
               </div>
               <p className="text-xs text-red-700 mt-2 font-medium">Lost COD from returned orders.</p>
             </CardContent>

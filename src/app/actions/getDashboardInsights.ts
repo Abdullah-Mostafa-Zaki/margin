@@ -16,7 +16,8 @@ export interface DashboardInsights {
   totalExpenses: number;
   netProfit: number;
   adSpend: number;
-  pendingCOD: number;
+  pendingEscrow: number;
+  ghostRevenue: number;
   excelBullets: string[];
   expenseSubtitle: string;
   marginPct: number;
@@ -60,6 +61,8 @@ export async function getDashboardInsights(
       amount: true,
       status: true,
       category: true,
+      shipmentFee: true,
+      bostaState: true,
     },
   });
 
@@ -75,12 +78,28 @@ export async function getDashboardInsights(
     .filter((t) => t.type === "INCOME" && t.status === "PENDING")
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  // 3. Total Expenses: all EXPENSE transactions
-  const totalExpenses = transactions
+  // 3. Ghost Revenue: INCOME where bostaState is Returned, Canceled, or RTO
+  const ghostRevenue = transactions
+    .filter(
+      (t) =>
+        t.type === "INCOME" &&
+        t.bostaState &&
+        ["Returned", "Canceled", "RTO", "Unreachable"].includes(t.bostaState)
+    )
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  // 4. Total Expenses: all EXPENSE transactions + shipmentFees from INCOME transactions
+  const manualExpenses = transactions
     .filter((t) => t.type === "EXPENSE")
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  // 4. Ad Spend: EXPENSE where category is "ads" or "marketing"
+  const shippingCosts = transactions
+    .filter((t) => t.type === "INCOME" && t.shipmentFee)
+    .reduce((sum, t) => sum + Number(t.shipmentFee), 0);
+
+  const totalExpenses = manualExpenses + shippingCosts;
+
+  // 5. Ad Spend: EXPENSE where category is "ads" or "marketing"
   const adSpend = transactions
     .filter(
       (t) =>
@@ -91,7 +110,7 @@ export async function getDashboardInsights(
     )
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  // 5. Total Orders (God Metric Denominator)
+  // 6. Total Orders (God Metric Denominator)
   const totalOrders = transactions.filter(
     (t) => 
       t.type === "INCOME" && 
@@ -99,13 +118,17 @@ export async function getDashboardInsights(
       t.category.toLowerCase() === "sales revenue"
   ).length;
 
-  // 6. Expense Breakdown & Top Category
+  // 7. Expense Breakdown & Top Category
   const expenseByCategory = transactions
     .filter((t) => t.type === "EXPENSE")
     .reduce((acc, t) => {
       acc[t.category] = (acc[t.category] || 0) + Number(t.amount);
       return acc;
     }, {} as Record<string, number>);
+
+  if (shippingCosts > 0) {
+    expenseByCategory["Shipping"] = (expenseByCategory["Shipping"] || 0) + shippingCosts;
+  }
 
   let topExpenseCategory: { category: string; pct: number } | null = null;
   if (totalExpenses > 0) {
@@ -118,22 +141,22 @@ export async function getDashboardInsights(
     }
   }
 
-  // 7. Net Profit
+  // 8. Net Profit
   const netProfit = realizedRevenue - totalExpenses;
 
-  // 8. Margin % (guard against division by zero)
+  // 9. Margin % (guard against division by zero)
   const marginPct =
     realizedRevenue > 0 ? (netProfit / realizedRevenue) * 100 : 0;
 
-  // 9. Ad Spend % (guard against division by zero)
+  // 10. Ad Spend % (guard against division by zero)
   const adSpendPct =
     realizedRevenue > 0 ? (adSpend / realizedRevenue) * 100 : 0;
 
-  // 10. Raw Materials %
+  // 11. Raw Materials %
   const rawExpense = expenseByCategory["Raw Materials"] || 0;
   const rawPercent = totalExpenses > 0 ? (rawExpense / totalExpenses) * 100 : 0;
 
-  // 11. Orders to Breakeven
+  // 12. Orders to Breakeven
   const averageOrderValue = totalOrders > 0 ? realizedRevenue / totalOrders : 0;
   const ordersToBreakeven = netProfit < 0 && averageOrderValue > 0 
     ? Math.ceil(Math.abs(netProfit) / averageOrderValue) 
@@ -226,7 +249,8 @@ export async function getDashboardInsights(
     totalExpenses,
     netProfit,
     adSpend,
-    pendingCOD: pendingEscrow,
+    pendingEscrow,
+    ghostRevenue,
     excelBullets,
     expenseSubtitle,
     marginPct,

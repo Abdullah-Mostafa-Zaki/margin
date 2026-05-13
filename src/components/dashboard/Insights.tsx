@@ -12,7 +12,7 @@ export function Insights({ insights, productBreakdown = [] }: InsightsProps) {
   const marginStr = Math.round(insights.marginPct).toString();
   const rawStr = Math.round(insights.rawPercent).toString();
   const breakevenStr = insights.ordersToBreakeven.toString();
-  const expectedStr = insights.pendingCOD.toLocaleString("en-EG");
+  const expectedStr = insights.pendingEscrow.toLocaleString("en-EG");
   
   let marginAssessment = "";
   let assessmentColor = "";
@@ -44,7 +44,7 @@ export function Insights({ insights, productBreakdown = [] }: InsightsProps) {
         </p>
 
         {/* Elite Intelligence Bullets */}
-        {(insights.rawPercent > 50 || insights.netProfit < 0 || insights.pendingCOD > 0 || (productBreakdown && productBreakdown[0]?.percent > 40)) && (
+        {(insights.rawPercent > 50 || insights.netProfit < 0 || insights.pendingEscrow > 0 || (productBreakdown && productBreakdown[0]?.percent > 40)) && (
           <div className="space-y-4 pt-4 border-t border-zinc-100">
             {productBreakdown && productBreakdown[0]?.percent > 40 && (
               <p className="text-slate-700 mt-3">
@@ -64,7 +64,7 @@ export function Insights({ insights, productBreakdown = [] }: InsightsProps) {
               </p>
             )}
 
-            {insights.pendingCOD > 0 && (
+            {insights.pendingEscrow > 0 && (
               <p className="text-sm md:text-base leading-relaxed">
                 <span className="font-bold">Pending Revenue:</span> {expectedStr} EGP is sitting in pending COD. Follow up with your courier to realize this cash.
               </p>
