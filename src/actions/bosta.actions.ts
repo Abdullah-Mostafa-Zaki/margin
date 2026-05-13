@@ -133,12 +133,14 @@ export async function syncBostaDeliveries(organizationId: string) {
 
     if (pendingTransactions.length === 0) return 0;
 
-    const response = await fetch("https://app.bosta.co/api/v2/deliveries", {
+    // FIX 1: URL has limit=500, endpoint is v2, and cache is strictly disabled
+    const response = await fetch("https://app.bosta.co/api/v2/deliveries?limit=500", {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${freshToken}`,
         "Content-Type": "application/json"
-      }
+      },
+      cache: "no-store"
     });
 
     if (!response.ok) {
@@ -177,7 +179,11 @@ export async function syncBostaDeliveries(organizationId: string) {
           }
         });
         processedCount++;
-      } else if ([46, 47].includes(stateCode) || ["Returned", "Canceled", "Unreachable"].includes(bostaDelivery.state?.value)) {
+      } else if (
+        // FIX 2: Added 101, Cancelled (LL), and Terminated to the catch-all
+        [46, 47, 101].includes(stateCode) ||
+        ["Returned", "Canceled", "Cancelled", "Terminated", "Unreachable"].includes(bostaDelivery.state?.value)
+      ) {
         await prisma.transaction.update({
           where: { id: transaction.id },
           data: {
@@ -197,4 +203,3 @@ export async function syncBostaDeliveries(organizationId: string) {
     return 0;
   }
 }
-
