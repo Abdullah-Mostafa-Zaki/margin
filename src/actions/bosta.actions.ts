@@ -176,44 +176,41 @@ export async function syncBostaDeliveries(organizationId: string) {
       if (!transaction.shopifyOrderId) continue;
 
       const expectedSuffix = `#${transaction.shopifyOrderId}`;
-
       const bostaDelivery = deliveries.find((d: any) =>
         d.businessReference && String(d.businessReference).endsWith(expectedSuffix)
       );
 
-      if (!bostaDelivery) continue;
+      if (!bostaDelivery) continue; // No match found yet
 
+      // WE FOUND A MATCH!
       const stateCode = bostaDelivery.state?.code;
-      // Handle the various ways Bosta returns fees
+      const bostaStateValue = bostaDelivery.state?.value || "Processing";
       const shipmentFee = bostaDelivery.shipmentFees || bostaDelivery.wallet?.cashCycle?.shipping_fees || 0;
 
-      if (stateCode === 45 || bostaDelivery.state?.value === "Delivered") {
-        await prisma.transaction.update({
-          where: { id: transaction.id },
-          data: {
-            status: "RECEIVED",
-            bostaTrackingNumber: String(bostaDelivery.trackingNumber),
-            shipmentFee: Number(shipmentFee),
-            bostaState: "Delivered",
-            bostaLastSyncedAt: new Date()
-          }
-        });
-        processedCount++;
+      // Determine if we need to change Margin's core status
+      let newMarginStatus = transaction.status; // Default: keep it as PENDING
+      if (stateCode === 45 || bostaStateValue === "Delivered") {
+        newMarginStatus = "RECEIVED";
       } else if (
         [46, 47, 101].includes(stateCode) ||
-        ["Returned", "Canceled", "Cancelled", "Terminated", "Unreachable"].includes(bostaDelivery.state?.value)
+        ["Returned", "Canceled", "Cancelled", "Terminated", "Unreachable"].includes(bostaStateValue)
       ) {
-        await prisma.transaction.update({
-          where: { id: transaction.id },
-          data: {
-            status: "RETURNED",
-            bostaTrackingNumber: String(bostaDelivery.trackingNumber),
-            bostaState: bostaDelivery.state?.value || "Returned",
-            bostaLastSyncedAt: new Date()
-          }
-        });
-        processedCount++;
+        newMarginStatus = "RETURNED";
       }
+
+      // ALWAYS update the DB with tracking info, even if it's just "Created" (State 10)
+      await prisma.transaction.update({
+        where: { id: transaction.id },
+        data: {
+          status: newMarginStatus,
+          bostaTrackingNumber: String(bostaDelivery.trackingNumber),
+          bostaState: bostaStateValue,
+          shipmentFee: Number(shipmentFee),
+          bostaLastSyncedAt: new Date()
+        }
+      });
+
+      processedCount++;
     }
 
     return processedCount;
