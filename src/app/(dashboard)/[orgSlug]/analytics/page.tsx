@@ -91,6 +91,26 @@ export default async function AnalyticsPage(props: {
         </div>
       </div>
 
+      {/* Primary Health Indicator: Net Profit */}
+      <FadeIn delay={0.05}>
+        <Card className={`border-2 shadow-sm ${insights.netProfit >= 0 ? 'border-emerald-500 bg-emerald-100/50' : 'border-rose-500 bg-rose-100/50'}`}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className={`text-sm md:text-base font-bold uppercase tracking-wider ${insights.netProfit >= 0 ? 'text-emerald-900' : 'text-rose-900'}`}>
+              Net Profit
+            </CardTitle>
+            {insights.netProfit >= 0 ? <ArrowUpRight className="h-6 w-6 text-emerald-600" /> : <ArrowDownRight className="h-6 w-6 text-rose-600" />}
+          </CardHeader>
+          <CardContent>
+            <div className={`text-4xl md:text-5xl font-bold tracking-tight ${insights.netProfit >= 0 ? 'text-emerald-950' : 'text-rose-950'}`}>
+              {insights.netProfit < 0 ? '-' : ''}EGP {Math.abs(insights.netProfit).toLocaleString()}
+            </div>
+            <p className={`text-sm mt-2 font-medium ${insights.netProfit >= 0 ? 'text-emerald-800' : 'text-rose-800'}`}>
+              {insights.netProfit >= 0 ? 'Your true take-home profit' : 'You are currently operating at a loss'}
+            </p>
+          </CardContent>
+        </Card>
+      </FadeIn>
+
       {/* 4 Card KPI Grid */}
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         <FadeIn delay={0.1}>
