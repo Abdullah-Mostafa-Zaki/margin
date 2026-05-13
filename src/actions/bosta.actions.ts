@@ -2,6 +2,10 @@
 
 import prisma from "@/lib/prisma";
 
+/**
+ * Connects a Bosta account and stores the initial tokens.
+ * Uses v2 for the login handshake.
+ */
 export async function connectBostaAccount(email: string, password: string, orgId: string) {
   try {
     const response = await fetch("https://app.bosta.co/api/v2/users/login", {
@@ -43,6 +47,10 @@ export async function connectBostaAccount(email: string, password: string, orgId
   }
 }
 
+/**
+ * Refreshes the Bosta token.
+ * Note: Bosta tokens usually arrive with the "Bearer " prefix already attached.
+ */
 export async function refreshBostaToken(orgId: string) {
   const integration = await prisma.bostaIntegration.findUnique({
     where: { organizationId: orgId }
@@ -52,7 +60,7 @@ export async function refreshBostaToken(orgId: string) {
     throw new Error("No Bosta integration found for this organization");
   }
 
-  const response = await fetch("https://app.bosta.co/api/v2/users/refresh-token", {
+  const response = await fetch("https://app.bosta.co/api/v0/users/refresh-token", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refreshToken: integration.refreshToken })
@@ -80,6 +88,10 @@ export async function refreshBostaToken(orgId: string) {
   return token;
 }
 
+/**
+ * Fetches real-time escrow/COD balances.
+ * Pivoted to v0 as v2 often rejects valid tokens with a 401.
+ */
 export async function getLivePendingEscrow(orgId: string) {
   try {
     const integration = await prisma.bostaIntegration.findUnique({
@@ -92,12 +104,15 @@ export async function getLivePendingEscrow(orgId: string) {
 
     const freshToken = await refreshBostaToken(orgId);
 
-    const response = await fetch("https://app.bosta.co/api/v2/deliveries/analytics/total-deliveries", {
+    // FIX: Removed 'Bearer ' prefix as freshToken already contains it.
+    // Pivoted to v0 to avoid the 401/404 errors seen in v2.
+    const response = await fetch("https://app.bosta.co/api/v0/deliveries/analytics/total-deliveries", {
       method: "GET",
       headers: {
-        "Authorization": `Bearer ${freshToken}`,
+        "Authorization": freshToken,
         "Content-Type": "application/json"
-      }
+      },
+      cache: "no-store"
     });
 
     if (!response.ok) {
@@ -105,13 +120,12 @@ export async function getLivePendingEscrow(orgId: string) {
     }
 
     const json = await response.json();
-    if (!json.success || !json.data) {
-      return { collectedCOD: 0, expectedCOD: 0 };
-    }
+    // v0 and v2 share similar structures, but we handle both for safety
+    const analytics = json.data || json;
 
     return {
-      collectedCOD: json.data.collectedCOD || 0,
-      expectedCOD: json.data.expectedCOD || 0
+      collectedCOD: analytics.collectedCOD || 0,
+      expectedCOD: analytics.expectedCOD || 0
     };
   } catch (error) {
     console.error("Live escrow fetch error:", error);
@@ -119,6 +133,10 @@ export async function getLivePendingEscrow(orgId: string) {
   }
 }
 
+/**
+ * Core Matching Engine.
+ * Reconciles Shopify Orders with Bosta Deliveries using the suffix-matching logic.
+ */
 export async function syncBostaDeliveries(organizationId: string) {
   try {
     const freshToken = await refreshBostaToken(organizationId);
@@ -133,11 +151,11 @@ export async function syncBostaDeliveries(organizationId: string) {
 
     if (pendingTransactions.length === 0) return 0;
 
-    // FIX 1: URL has limit=500, endpoint is v2, and cache is strictly disabled
-    const response = await fetch("https://app.bosta.co/api/v2/deliveries?limit=500", {
+    // FIX: URL is v0, limit is 500, and Bearer prefix is removed.
+    const response = await fetch("https://app.bosta.co/api/v0/deliveries?limit=500", {
       method: "GET",
       headers: {
-        "Authorization": `Bearer ${freshToken}`,
+        "Authorization": freshToken,
         "Content-Type": "application/json"
       },
       cache: "no-store"
@@ -149,7 +167,8 @@ export async function syncBostaDeliveries(organizationId: string) {
     }
 
     const json = await response.json();
-    const deliveries = json.data?.deliveries || json.deliveries || json.data || [];
+    // Bosta v0 typically returns deliveries directly in the root or under a key
+    const deliveries = json.deliveries || json.data?.deliveries || [];
 
     let processedCount = 0;
 
@@ -165,6 +184,7 @@ export async function syncBostaDeliveries(organizationId: string) {
       if (!bostaDelivery) continue;
 
       const stateCode = bostaDelivery.state?.code;
+      // Handle the various ways Bosta returns fees
       const shipmentFee = bostaDelivery.shipmentFees || bostaDelivery.wallet?.cashCycle?.shipping_fees || 0;
 
       if (stateCode === 45 || bostaDelivery.state?.value === "Delivered") {
@@ -180,7 +200,6 @@ export async function syncBostaDeliveries(organizationId: string) {
         });
         processedCount++;
       } else if (
-        // FIX 2: Added 101, Cancelled (LL), and Terminated to the catch-all
         [46, 47, 101].includes(stateCode) ||
         ["Returned", "Canceled", "Cancelled", "Terminated", "Unreachable"].includes(bostaDelivery.state?.value)
       ) {
