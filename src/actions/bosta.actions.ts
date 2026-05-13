@@ -133,7 +133,7 @@ export async function syncBostaDeliveries(organizationId: string) {
 
     if (pendingTransactions.length === 0) return 0;
 
-    const response = await fetch("https://app.bosta.co/api/v0/deliveries", {
+    const response = await fetch("https://app.bosta.co/api/v2/deliveries", {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${freshToken}`,
@@ -148,15 +148,15 @@ export async function syncBostaDeliveries(organizationId: string) {
 
     const json = await response.json();
     const deliveries = json.data?.deliveries || json.deliveries || json.data || [];
-    
+
     let processedCount = 0;
 
     for (const transaction of pendingTransactions) {
       if (!transaction.shopifyOrderId) continue;
-      
+
       const expectedSuffix = `#${transaction.shopifyOrderId}`;
-      
-      const bostaDelivery = deliveries.find((d: any) => 
+
+      const bostaDelivery = deliveries.find((d: any) =>
         d.businessReference && String(d.businessReference).endsWith(expectedSuffix)
       );
 
