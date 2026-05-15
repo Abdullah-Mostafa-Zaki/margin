@@ -47,7 +47,7 @@ export default async function AnalyticsPage(props: {
     amount: Number(e._sum.amount || 0)
   }));
 
-  // Pareto Engine for Catalog Velocity
+  // Pareto Engine for Products Sales
   const lineItems = await prisma.lineItem.findMany({
     where: {
       transaction: {
@@ -174,7 +174,7 @@ export default async function AnalyticsPage(props: {
         </FadeIn>
       </div>
 
-      {/* Catalog Velocity */}
+      {/* Products Sales */}
       {productBreakdown.length > 0 && (
         <div className="bg-white p-8 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100">
           <h3 className="uppercase tracking-[0.2em] text-[11px] font-bold text-slate-400 mb-8">Products Sales</h3>
