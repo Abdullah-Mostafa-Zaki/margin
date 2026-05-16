@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import type { Transaction } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -73,7 +73,7 @@ export function TransactionsShell({
 
   // Static category lists — mirrors the TransactionForm constants
   const EXPENSE_CATEGORIES = ["Raw Materials", "Manufacturing", "Packaging", "Logistics (Shipping)", "Ads", "Content Creation", "Other"];
-  const INCOME_CATEGORIES  = ["Sales Revenue", "Shopify Sale", "Pop-up / Bazaar Sales", "Wholesale / B2B", "Supplier Refund", "Other"];
+  const INCOME_CATEGORIES = ["Sales Revenue", "Shopify Sale", "Pop-up / Bazaar Sales", "Wholesale / B2B", "Supplier Refund", "Other"];
   const availableCategories = activeTab === "INCOME" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
   // 3-step pipeline: type → category → sort
@@ -91,6 +91,16 @@ export function TransactionsShell({
     });
   }, [transactions, activeTab, selectedCategory, sortOrder]);
 
+  useEffect(() => {
+    // Force Radix UI to unlock body scroll when unmounting via back navigation
+    return () => {
+      document.body.style.pointerEvents = "auto";
+      document.body.style.overflow = "auto";
+      document.body.removeAttribute("data-scroll-locked");
+    };
+  }, []);
+
+
   const incomeCount = transactions.filter((t) => t.type === "INCOME").length;
   const expenseCount = transactions.filter((t) => t.type === "EXPENSE").length;
 
@@ -100,8 +110,8 @@ export function TransactionsShell({
         ? `No revenue recorded for "${activeTagLabel}".`
         : "No revenue recorded yet."
       : activeTagLabel
-      ? `No expenses recorded for "${activeTagLabel}".`
-      : "No expenses recorded yet.";
+        ? `No expenses recorded for "${activeTagLabel}".`
+        : "No expenses recorded yet.";
 
   const DROPDOWN_CLS = "h-11 w-full appearance-none rounded-xl border border-zinc-200 bg-white px-3 pr-9 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 cursor-pointer truncate";
   const CHEVRON_SVG = (
@@ -132,19 +142,17 @@ export function TransactionsShell({
           className={`
             relative flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold
             transition-all duration-200 ease-in-out select-none
-            ${
-              activeTab === "INCOME"
-                ? "bg-[#27A67A] text-white shadow-sm"
-                : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/60"
+            ${activeTab === "INCOME"
+              ? "bg-[#27A67A] text-white shadow-sm"
+              : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/60"
             }
           `}
         >
           <TrendingUp className="w-4 h-4 shrink-0" />
           Revenue
           {incomeCount > 0 && (
-            <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-medium ${
-              activeTab === "INCOME" ? "bg-emerald-500/40 text-white" : "bg-zinc-200 text-zinc-600"
-            }`}>
+            <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-medium ${activeTab === "INCOME" ? "bg-emerald-500/40 text-white" : "bg-zinc-200 text-zinc-600"
+              }`}>
               {incomeCount}
             </span>
           )}
@@ -156,19 +164,17 @@ export function TransactionsShell({
           className={`
             relative flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold
             transition-all duration-200 ease-in-out select-none
-            ${
-              activeTab === "EXPENSE"
-                ? "bg-red-500 text-white shadow-sm"
-                : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/60"
+            ${activeTab === "EXPENSE"
+              ? "bg-red-500 text-white shadow-sm"
+              : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/60"
             }
           `}
         >
           <TrendingDown className="w-4 h-4 shrink-0" />
           Expenses
           {expenseCount > 0 && (
-            <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-medium ${
-              activeTab === "EXPENSE" ? "bg-red-400/40 text-white" : "bg-zinc-200 text-zinc-600"
-            }`}>
+            <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-medium ${activeTab === "EXPENSE" ? "bg-red-400/40 text-white" : "bg-zinc-200 text-zinc-600"
+              }`}>
               {expenseCount}
             </span>
           )}
@@ -245,7 +251,7 @@ export function TransactionsShell({
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="flex flex-col gap-4 mb-8">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Date Range</label>
