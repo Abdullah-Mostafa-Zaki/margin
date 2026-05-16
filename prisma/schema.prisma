@@ -69,6 +69,8 @@ model Organization {
   plan                 Plan          @default(FREE)
   currentMonthReceipts Int           @default(0)
   currentMonthVoice    Int           @default(0)
+  currentMonthText     Int           @default(0)
+  currentMonthImage    Int           @default(0)
   usageResetDate       DateTime      @default(now())
   memberships          Membership[]
   tags                 Tag[]
