@@ -130,6 +130,12 @@ Output: {"amount":3000,"type":"EXPENSE","category":"Ads","paymentMethod":"CASH",
 كاش أون ديليفري / cod / تحصيل → "COD"
 Default → "CASH"
 
+## AMOUNT — CRITICAL RULE
+If the user does NOT explicitly mention a price, number, or monetary value, output "amount": 0.
+Do NOT guess, estimate, or infer a price from the product name. Only extract a number if it is literally stated in the input.
+Example: "ana eshtaret omash" → amount: 0 (no price mentioned)
+Example: "eshtaret omash be 350" → amount: 350
+
 ## DATE
 النهاردة / today / اليوم → ${currentDate}
 إمبارح / امبارح / yesterday → ${yesterdayDate}
@@ -181,13 +187,10 @@ async function extractTransactionFromText(
     }
 
     const parsed: ParsedTransaction = JSON.parse(raw);
-
-    // ── Sanitize & validate ──────────────────────────────────────────────────
-    if (!parsed.amount || typeof parsed.amount !== "number" || parsed.amount <= 0) {
-      return {
-        success: false,
-        error: "Could not extract a valid amount. Please mention how much you paid or received.",
-      };
+    
+    // Normalize missing or invalid amount to 0 so the frontend can highlight it
+    if (!parsed.amount || typeof parsed.amount !== "number" || parsed.amount < 0) {
+      parsed.amount = 0;
     }
 
     if (!["INCOME", "EXPENSE"].includes(parsed.type)) {

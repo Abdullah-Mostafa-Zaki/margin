@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { createTransaction, updateTransaction } from "@/actions/transactions.actions";
 import { UploadButton } from "@/lib/uploadthing";
 import { ChevronDown, ChevronRight, Plus, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -104,6 +105,9 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
 
   const [error, setError] = useState<string | null>(null);
 
+  // Validation Assist — tracks which fields the AI left at their defaults
+  const [unmentionedFields, setUnmentionedFields] = useState<string[]>([]);
+
   // Refs for native inputs that need imperative value setting
   const formRef = useRef<HTMLFormElement>(null);
   const amountRef = useRef<HTMLInputElement>(null);
@@ -114,7 +118,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
   const fillRefs = (amount?: number, date?: string, notes?: string | null) => {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        if (amount != null && amountRef.current) {
+        if (amount != null && amount > 0 && amountRef.current) {
           const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
           setter?.call(amountRef.current, String(amount));
           amountRef.current.dispatchEvent(new Event('input', { bubbles: true }));
@@ -198,11 +202,23 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
       setIsOpen(true);
       fillRefs(prefillData.amount, prefillData.date, prefillData.notes);
 
-      // Trigger native validation immediately to highlight missing fields
+      // Validation Assist — flag only fields the AI left at their safe defaults
+      const today = new Date().toLocaleDateString("en-CA");
+      const flagged: string[] = [];
+      // amount: only flag if AI returned 0 or missing
+      if (!prefillData.amount || prefillData.amount <= 0) flagged.push("amount");
+      // category: only flag if empty string (AI couldn't detect one)
+      if (!prefillData.category || prefillData.category === "") flagged.push("category");
+      // paymentMethod: flag if AI defaulted to CASH (most ambiguous default)
+      if (!prefillData.paymentMethod || prefillData.paymentMethod === "CASH") flagged.push("paymentMethod");
+      // notes: flag if empty — encourage user to add context
+      if (!prefillData.notes || prefillData.notes.trim() === "") flagged.push("notes");
+      // date: flag only if AI returned today (could be a fallback, not an explicit mention)
+      if (!prefillData.date || prefillData.date === today) flagged.push("date");
+      setUnmentionedFields(flagged);
+
       setTimeout(() => {
-        if (formRef.current) {
-          formRef.current.reportValidity();
-        }
+        if (formRef.current) formRef.current.reportValidity();
       }, 100);
     }
   }, [prefillData]);
@@ -331,7 +347,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
         <Plus className="h-6 w-6" />
       </button>
 
-      <DialogContent className="w-full md:max-w-lg max-h-[100dvh] md:max-h-[85vh] min-h-[100dvh] md:min-h-0 md:h-auto rounded-none md:rounded-lg p-0 md:p-6 flex flex-col overflow-hidden">
+      <DialogContent className="w-full md:max-w-2xl max-h-[100dvh] md:max-h-[85vh] min-h-[100dvh] md:min-h-0 md:h-auto rounded-none md:rounded-xl p-0 md:p-8 flex flex-col overflow-hidden">
         <AnimatePresence mode="wait">
           {isOpen && (
             <motion.div
@@ -354,77 +370,106 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
               )}
 
               <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-                {/* Scrollable body — px-4 keeps content inset from edges */}
-                <div className="flex-1 overflow-y-auto overscroll-contain space-y-4 px-4 md:px-0 pt-4 pb-6 md:pr-2">
-                  {/* Quick Templates (Scrollable Chips) */}
-                  <div className="flex flex-wrap gap-2 pb-2 w-full max-w-full">
+                {/* Scrollable body */}
+                <div className="flex-1 overflow-y-auto overscroll-contain px-4 md:px-0 pt-4 pb-6 md:pr-2">
+
+                  {/* Quick Templates */}
+                  <div className="flex flex-wrap gap-2 pb-4 w-full">
                     {QUICK_TEMPLATES.map((tmpl, idx) => (
                       <button
                         key={idx}
                         type="button"
                         onClick={() => applyTemplate(tmpl.type, tmpl.category)}
-                        className="flex items-center justify-center min-h-[44px] md:min-h-[32px] px-4 md:px-3 rounded-full border border-zinc-200 bg-white shadow-sm text-sm md:text-xs font-medium active:scale-95 transition-transform duration-75 text-zinc-700 max-w-full shrink-0"
+                        className="flex items-center justify-center min-h-[44px] md:min-h-[32px] px-4 md:px-3 rounded-full border border-zinc-200 bg-white shadow-sm text-sm md:text-xs font-medium active:scale-95 transition-transform duration-75 text-zinc-700 shrink-0"
                       >
                         {tmpl.label}
                       </button>
                     ))}
                   </div>
 
-                  <div className="space-y-2 mb-6">
-                    <label className="text-sm font-medium text-muted-foreground">Amount (EGP)</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl md:text-lg font-bold text-muted-foreground">EGP</span>
-                      <input
-                        ref={amountRef}
-                        type="number"
-                        name="amount"
-                        min="0"
-                        step="0.01"
-                        inputMode="decimal"
-                        required
-                        className="flex w-full max-w-full rounded-xl border border-input bg-background py-4 md:py-3 pl-14 md:pl-12 pr-4 text-3xl md:text-2xl font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                        placeholder="0.00"
-                      />
+                  {/* ── Responsive 2-column grid ───────────────────────────── */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+
+                    {/* Row 1 col 1 — Amount (full width on mobile, half on md) */}
+                    <div className="col-span-1 md:col-span-1 space-y-2">
+                      <label className={cn(
+                        "text-sm font-semibold",
+                        unmentionedFields.includes("amount") ? "text-amber-600" : "text-muted-foreground"
+                      )}>Amount (EGP){unmentionedFields.includes("amount") && " · confirm"}</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl md:text-lg font-bold text-muted-foreground">EGP</span>
+                        <input
+                          ref={amountRef}
+                          type="number"
+                          name="amount"
+                          min="0"
+                          step="0.01"
+                          inputMode="decimal"
+                          required
+                          onChange={() => setUnmentionedFields(prev => prev.filter(f => f !== "amount"))}
+                          className={cn(
+                            "flex w-full rounded-xl border bg-background py-4 md:py-3 pl-14 md:pl-12 pr-4 text-3xl md:text-2xl font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 transition-shadow duration-200",
+                            unmentionedFields.includes("amount")
+                              ? "border-amber-400 ring-2 ring-amber-300 ring-offset-1"
+                              : "border-neutral-300"
+                          )}
+                          placeholder="0.00"
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-2 gap-2 mb-4">
-                    <button type="button"
-                      onClick={() => {
-                        setType("INCOME");
-                        setCategory("Sales Revenue");
-                      }}
-                      className={`h-10 w-full max-w-full rounded-lg border-2 font-medium text-sm transition-colors ${type === "INCOME"
-                          ? "bg-green-50 border-green-500 text-green-700"
-                          : "border-input text-muted-foreground hover:bg-muted"
-                        }`}
-                    >
-                      Income
-                    </button>
-                    <button type="button"
-                      onClick={() => {
-                        setType("EXPENSE");
-                        setCategory("Raw Materials");
-                      }}
-                      className={`h-10 w-full max-w-full rounded-lg border-2 font-medium text-sm transition-colors ${type === "EXPENSE"
-                          ? "bg-red-50 border-red-500 text-red-700"
-                          : "border-input text-muted-foreground hover:bg-muted"
-                        }`}
-                    >
-                      Expense
-                    </button>
-                  </div>
+                    {/* Row 1 col 2 — Type toggle */}
+                    <div className="col-span-1 md:col-span-1 space-y-2">
+                      <label className="text-sm font-semibold text-muted-foreground">Type</label>
+                      <div className="grid grid-cols-2 gap-2 h-[calc(100%-1.75rem)]">
+                        <button type="button"
+                          onClick={() => { setType("INCOME"); setCategory("Sales Revenue"); }}
+                          className={cn(
+                            "rounded-lg border-2 font-medium text-sm transition-colors py-3 md:py-2",
+                            type === "INCOME"
+                              ? "bg-green-50 border-green-500 text-green-700"
+                              : "border-input text-muted-foreground hover:bg-muted"
+                          )}
+                        >
+                          Income
+                        </button>
+                        <button type="button"
+                          onClick={() => { setType("EXPENSE"); setCategory("Raw Materials"); }}
+                          className={cn(
+                            "rounded-lg border-2 font-medium text-sm transition-colors py-3 md:py-2",
+                            type === "EXPENSE"
+                              ? "bg-red-50 border-red-500 text-red-700"
+                              : "border-input text-muted-foreground hover:bg-muted"
+                          )}
+                        >
+                          Expense
+                        </button>
+                      </div>
+                    </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Category</label>
+                    {/* Row 2 col 1 — Category */}
+                    <div className="col-span-1 md:col-span-1 space-y-2">
+                      <label className={cn(
+                        "text-sm font-semibold",
+                        unmentionedFields.includes("category") ? "text-amber-600" : ""
+                      )}>Category{unmentionedFields.includes("category") && " · confirm"}</label>
                       <Select
                         name="category"
                         value={category}
-                        onValueChange={(val) => { if (val) setCategory(val); }}
+                        onValueChange={(val) => {
+                          if (val) {
+                            setCategory(val);
+                            setUnmentionedFields(prev => prev.filter(f => f !== "category"));
+                          }
+                        }}
                         required
                       >
-                        <SelectTrigger className="flex h-10 w-full max-w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                        <SelectTrigger className={cn(
+                          "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-neutral-900 transition-shadow",
+                          unmentionedFields.includes("category")
+                            ? "border-amber-400 ring-2 ring-amber-300 ring-offset-1"
+                            : "border-neutral-300"
+                        )}>
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
@@ -434,15 +479,30 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Payment Method</label>
+
+                    {/* Row 2 col 2 — Payment Method */}
+                    <div className="col-span-1 md:col-span-1 space-y-2">
+                      <label className={cn(
+                        "text-sm font-semibold",
+                        unmentionedFields.includes("paymentMethod") ? "text-amber-600" : ""
+                      )}>Payment Method{unmentionedFields.includes("paymentMethod") && " · confirm"}</label>
                       <Select
                         name="paymentMethod"
                         value={paymentMethod}
-                        onValueChange={(val) => { if (val) setPaymentMethod(val); }}
+                        onValueChange={(val) => {
+                          if (val) {
+                            setPaymentMethod(val);
+                            setUnmentionedFields(prev => prev.filter(f => f !== "paymentMethod"));
+                          }
+                        }}
                         required
                       >
-                        <SelectTrigger className="flex h-10 w-full max-w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                        <SelectTrigger className={cn(
+                          "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-neutral-900 transition-shadow",
+                          unmentionedFields.includes("paymentMethod")
+                            ? "border-amber-400 ring-2 ring-amber-300 ring-offset-1"
+                            : "border-neutral-300"
+                        )}>
                           <SelectValue placeholder="Select method" />
                         </SelectTrigger>
                         <SelectContent>
@@ -454,115 +514,155 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Date</label>
-                    <input
-                      ref={dateRef}
-                      type="date"
-                      name="date"
-                      required
-                      defaultValue={new Date().toISOString().split('T')[0]}
-                      className="flex h-10 w-full max-w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium">Status</label>
-                      <button
-                        type="button"
-                        onClick={() => setShowStatusOverride(!showStatusOverride)}
-                        className="text-xs font-medium text-primary hover:underline hover:text-primary/90"
-                      >
-                        {showStatusOverride ? "Cancel Override" : "Override"}
-                      </button>
+                    {/* Row 3 col 1 — Date */}
+                    <div className="col-span-1 md:col-span-1 space-y-2">
+                      <label className={cn(
+                        "text-sm font-semibold",
+                        unmentionedFields.includes("date") ? "text-amber-600" : ""
+                      )}>Date{unmentionedFields.includes("date") && " · confirm"}</label>
+                      <input
+                        ref={dateRef}
+                        type="date"
+                        name="date"
+                        required
+                        defaultValue={new Date().toISOString().split('T')[0]}
+                        onChange={() => setUnmentionedFields(prev => prev.filter(f => f !== "date"))}
+                        className={cn(
+                          "flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 transition-shadow",
+                          unmentionedFields.includes("date")
+                            ? "border-amber-400 ring-2 ring-amber-300 ring-offset-1"
+                            : "border-neutral-300"
+                        )}
+                      />
                     </div>
 
-                    {showStatusOverride ? (
-                      <Select
-                        name="statusOverride"
-                        value={statusOverride}
-                        onValueChange={(val) => { if (val) setStatusOverride(val); }}
-                      >
-                        <SelectTrigger className="flex h-10 w-full max-w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                          <SelectValue placeholder="Auto-set by Payment" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="PENDING">Pending</SelectItem>
-                          <SelectItem value="RECEIVED">Received</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <div className="flex h-10 w-full max-w-full items-center rounded-md border border-input bg-muted/50 px-3 py-2 text-sm text-muted-foreground font-medium">
-                        Auto: {autoStatus}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="bg-muted/30 rounded-lg p-4 space-y-4">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Optional</p>
-
-                    {tags.length > 0 && (
-                      <div className="space-y-2">
+                    {/* Row 3 col 2 — Status */}
+                    <div className="col-span-1 md:col-span-1 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-semibold">Status</label>
                         <button
                           type="button"
-                          onClick={() => setShowTags(!showTags)}
-                          className="flex w-full max-w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-muted transition-colors"
+                          onClick={() => setShowStatusOverride(!showStatusOverride)}
+                          className="text-xs font-medium text-primary hover:underline hover:text-primary/90"
                         >
-                          <span className={selectedTags.length > 0 ? "font-medium text-primary" : "text-muted-foreground"}>
-                            {selectedTags.length > 0 ? `● ${selectedTags.length} Drop${selectedTags.length > 1 ? 's' : ''} selected` : "+ Add to Drop"}
-                          </span>
-                          {showTags ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          {showStatusOverride ? "Cancel Override" : "Override"}
                         </button>
-
-                        {showTags && (
-                          <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto rounded-md border border-input p-2 bg-background mt-2 w-full max-w-full">
-                            {tags.map((tag) => (
-                              <label key={tag.id} className="flex items-center space-x-2 text-sm cursor-pointer hover:bg-muted p-1 rounded-md">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedTags.includes(tag.id)}
-                                  onChange={() => handleTagChange(tag.id)}
-                                  className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
-                                />
-                                <span className="truncate">{tag.name}</span>
-                              </label>
-                            ))}
-                          </div>
-                        )}
                       </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">Notes</label>
-                      <textarea ref={notesRef} name="notes" placeholder="E.g. Courier Name..." className="flex min-h-[60px] w-full max-w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">Receipt</label>
-                      {receiptUrl ? (
-                        <div className="rounded-md border p-2 text-sm text-green-600 truncate border-green-200 bg-green-50">
-                          Ready: {receiptUrl}
-                        </div>
+                      {showStatusOverride ? (
+                        <Select
+                          name="statusOverride"
+                          value={statusOverride}
+                          onValueChange={(val) => { if (val) setStatusOverride(val); }}
+                        >
+                          <SelectTrigger className="flex h-10 w-full rounded-md border border-neutral-300 bg-background px-3 py-2 text-sm font-medium">
+                            <SelectValue placeholder="Auto-set by Payment" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="PENDING">Pending</SelectItem>
+                            <SelectItem value="RECEIVED">Received</SelectItem>
+                          </SelectContent>
+                        </Select>
                       ) : (
-                        <div className="border border-input rounded-md p-1 bg-background">
-                          <UploadButton
-                            endpoint="imageUploader"
-                            onClientUploadComplete={(res) => {
-                              if (res && res[0]) {
-                                setReceiptUrl(res[0].url);
-                              }
-                            }}
-                            onUploadError={(error: Error) => {
-                              alert(`ERROR! ${error.message}`);
-                            }}
-                          />
+                        <div className="flex h-10 w-full items-center rounded-md border border-neutral-200 bg-muted/50 px-3 py-2 text-sm text-muted-foreground font-medium">
+                          Auto: {autoStatus}
                         </div>
                       )}
                     </div>
-                  </div>
+
+                    {/* Optional section — full width */}
+                    <div className="col-span-1 md:col-span-2 bg-muted/30 rounded-lg p-4 space-y-4">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Optional</p>
+
+                      {tags.length > 0 && (
+                        <div className="space-y-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowTags(!showTags)}
+                            className="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm hover:bg-muted transition-colors"
+                          >
+                            <span className={selectedTags.length > 0 ? "font-medium text-primary" : "text-muted-foreground"}>
+                              {selectedTags.length > 0 ? `● ${selectedTags.length} Drop${selectedTags.length > 1 ? 's' : ''} selected` : "+ Add to Drop"}
+                            </span>
+                            {showTags ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          </button>
+                          {showTags && (
+                            <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto rounded-md border border-input p-2 bg-background mt-2">
+                              {tags.map((tag) => (
+                                <label key={tag.id} className="flex items-center space-x-2 text-sm cursor-pointer hover:bg-muted p-1 rounded-md">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedTags.includes(tag.id)}
+                                    onChange={() => handleTagChange(tag.id)}
+                                    className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+                                  />
+                                  <span className="truncate">{tag.name}</span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Notes — full width inside optional */}
+                      <div className="space-y-2">
+                        <label className={cn(
+                          "text-sm font-semibold",
+                          unmentionedFields.includes("notes") ? "text-amber-600" : "text-muted-foreground"
+                        )}>Notes{unmentionedFields.includes("notes") && " · add context"}</label>
+                        <textarea
+                          ref={notesRef}
+                          name="notes"
+                          placeholder="E.g. Courier Name..."
+                          onChange={() => setUnmentionedFields(prev => prev.filter(f => f !== "notes"))}
+                          className={cn(
+                            "flex min-h-[60px] w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 transition-shadow",
+                            unmentionedFields.includes("notes")
+                              ? "border-amber-400 ring-2 ring-amber-300 ring-offset-1"
+                              : "border-neutral-300"
+                          )}
+                        />
+                      </div>
+
+                      {/* Receipt — full width inside optional */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold text-muted-foreground">Receipt</label>
+                        {receiptUrl ? (
+                          <div className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 font-medium">
+                            <span className="truncate">✓ Ready: {receiptUrl.split("/").pop()}</span>
+                            <button
+                              type="button"
+                              onClick={() => setReceiptUrl(null)}
+                              className="ml-auto shrink-0 text-xs text-green-600 hover:text-red-500 transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ) : (
+                          <UploadButton
+                            endpoint="imageUploader"
+                            appearance={{
+                              button:
+                                "w-full h-10 rounded-md border border-neutral-300 bg-neutral-50 hover:bg-neutral-100 text-sm !font-bold !text-black transition-colors ut-uploading:opacity-60 ut-uploading:cursor-not-allowed",
+                              allowedContent: "hidden",
+                            }}
+                            content={{
+                              button({ ready }) {
+                                return ready ? "📎 Attach Receipt" : "Loading...";
+                              },
+                            }}
+                            onClientUploadComplete={(res) => {
+                              if (res && res[0]) setReceiptUrl(res[0].url);
+                            }}
+                            onUploadError={(error: Error) => {
+                              alert(`Upload error: ${error.message}`);
+                            }}
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                  </div>{/* end grid */}
                 </div>
 
                 <div className="shrink-0 px-4 md:px-0 pt-3 md:pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-0 border-t md:border-t-0 border-zinc-100 bg-white md:bg-transparent">
