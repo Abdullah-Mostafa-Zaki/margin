@@ -62,11 +62,17 @@ export async function getDropPerformance(
     let revenue = 0;
     let adSpend = 0;
     let productionCost = 0;
+    let shippingCost = 0;
 
     for (const tt of tag.transactions) {
       const t = tt.transaction;
-      if (t.type === "INCOME" && t.status === "RECEIVED") {
-        revenue += Number(t.amount);
+      if (t.type === "INCOME") {
+        if (t.status === "RECEIVED") {
+          revenue += Number(t.amount);
+        }
+        if (t.shipmentFee) {
+          shippingCost += Number(t.shipmentFee);
+        }
       } else if (t.type === "EXPENSE") {
         const cat = t.category?.toLowerCase() || "";
         if (cat === "ads" || cat === "marketing" || cat === "ad spend") {
@@ -77,7 +83,7 @@ export async function getDropPerformance(
       }
     }
 
-    const netMargin = revenue - adSpend - productionCost;
+    const netMargin = revenue - adSpend - productionCost - shippingCost;
     const netMarginPercent = revenue > 0 ? (netMargin / revenue) * 100 : 0;
 
     performances.push({

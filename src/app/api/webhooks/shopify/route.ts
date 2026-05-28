@@ -37,9 +37,10 @@ export async function POST(req: Request) {
       return new NextResponse("Missing orgSlug", { status: 400 });
     }
 
-    // ── 2. Event filtering — only process order creation events ─────────────
+    // ── 2. Event filtering — process creation, updates, and cancellations ──
     const shopifyTopic = req.headers.get("x-shopify-topic");
-    if (shopifyTopic && shopifyTopic !== "orders/create") {
+    const allowedTopics = ["orders/create", "orders/updated", "orders/cancelled", "orders/partially_fulfilled", "refunds/create"];
+    if (shopifyTopic && !allowedTopics.includes(shopifyTopic)) {
       return new NextResponse("Ignored non-order event", { status: 200 });
     }
 
@@ -108,7 +109,33 @@ export async function POST(req: Request) {
     const shopifyOrderId = order.name ? String(order.name) : undefined;
     const normalizedOrderId = shopifyOrderId ? String(shopifyOrderId).replace(/^#/, "").trim().toLowerCase() : undefined;
 
-    // ── 6. Prevent duplicate webhook processing ─────────────────────────────
+    // ── 6. Map the Shopify payment gateway to Margin's PaymentMethod enum ──
+    const shopifyGateway: string | undefined =
+      order.payment_gateway_names?.[0] || order.gateway;
+    const paymentMethod = mapPaymentMethod(shopifyGateway);
+
+    // Derive transaction status
+    const financialStatus = order.financial_status?.toLowerCase();
+    let txStatus: "PENDING" | "RECEIVED" | "RETURNED" = financialStatus === "pending" ? "PENDING" : "RECEIVED";
+    if (financialStatus === "refunded" || financialStatus === "voided" || order.cancelled_at) {
+      txStatus = "RETURNED";
+    } else if (paymentMethod === "COD") {
+      // COD can be marked as RECEIVED later by Bosta sync or manually
+      // but if Shopify says it's paid (e.g. they paid by card), it's RECEIVED.
+      // Wait, if it's COD, it's PENDING until courier confirms.
+      txStatus = "PENDING";
+    }
+
+    // Derive fulfillment status
+    const fulfillmentStatusRaw = order.fulfillment_status?.toLowerCase();
+    let fulfillmentStatus: "UNFULFILLED" | "SHIPPED" | "DELIVERED" | "RETURNED" = "UNFULFILLED";
+    if (fulfillmentStatusRaw === "fulfilled" || fulfillmentStatusRaw === "partial") {
+      fulfillmentStatus = "SHIPPED"; 
+    } else if (fulfillmentStatusRaw === "restocked" || order.cancelled_at) {
+      fulfillmentStatus = "RETURNED";
+    }
+
+    // ── 7. Upsert or Create the Transaction ─────────────────────────────
     if (normalizedOrderId) {
       const existingTx = await prisma.transaction.findUnique({
         where: { 
@@ -118,33 +145,22 @@ export async function POST(req: Request) {
           } 
         },
       });
+
       if (existingTx) {
+        // Handle Updates / Partial Refunds
+        await prisma.transaction.update({
+          where: { id: existingTx.id },
+          data: {
+            amount: Number(price),
+            status: txStatus !== existingTx.status && txStatus === "RETURNED" ? "RETURNED" : undefined,
+            fulfillmentStatus: fulfillmentStatus !== "UNFULFILLED" ? fulfillmentStatus : undefined,
+          }
+        });
         return new NextResponse("OK", { status: 200 });
       }
     }
 
-    // ── 7. Map the Shopify payment gateway to Margin's PaymentMethod enum ──
-    const shopifyGateway: string | undefined =
-      order.payment_gateway_names?.[0] || order.gateway;
-    const paymentMethod = mapPaymentMethod(shopifyGateway);
-
-    // Derive transaction status: COD always starts as PENDING. Others derive from Shopify's financial_status.
-    const financialStatus = order.financial_status?.toLowerCase();
-    let txStatus: "PENDING" | "RECEIVED" | "RETURNED" = financialStatus === "pending" ? "PENDING" : "RECEIVED";
-    if (paymentMethod === "COD") {
-      txStatus = "PENDING";
-    }
-
-    // Derive fulfillment status
-    const fulfillmentStatusRaw = order.fulfillment_status?.toLowerCase();
-    let fulfillmentStatus: "UNFULFILLED" | "SHIPPED" | "DELIVERED" | "RETURNED" = "UNFULFILLED";
-    if (fulfillmentStatusRaw === "fulfilled" || fulfillmentStatusRaw === "partial") {
-      fulfillmentStatus = "SHIPPED"; 
-    } else if (fulfillmentStatusRaw === "restocked") {
-      fulfillmentStatus = "RETURNED";
-    }
-
-    // ── 8. Log the Transaction ──────────────────────────────────────────────
+    // ── 8. Log the Transaction (Creation) ───────────────────────────────────
     await prisma.transaction.create({
       data: {
         type: "INCOME",

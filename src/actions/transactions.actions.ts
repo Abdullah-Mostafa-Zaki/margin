@@ -23,12 +23,20 @@ export async function createTransaction(orgSlug: string, formData: FormData) {
   const type = formData.get("type") as "INCOME" | "EXPENSE";
   const amountStr = formData.get("amount") as string;
   const amount = parseFloat(amountStr);
+  
+  if (isNaN(amount) || amount <= 0) {
+    throw new Error("Validation Error: Amount must be a positive number.");
+  }
+
   const dateStr = formData.get("date") as string;
   const category = formData.get("category") as string;
   const paymentMethod = formData.get("paymentMethod") as "CASH" | "CARD" | "INSTAPAY" | "COD";
   const statusOverride = formData.get("status") as "PENDING" | "RECEIVED" | null;
   const fulfillmentOverride = formData.get("fulfillmentStatus") as "UNFULFILLED" | "SHIPPED" | "DELIVERED" | "RETURNED" | null;
-  const notes = formData.get("notes") as string | null;
+  
+  const rawNotes = formData.get("notes") as string | null;
+  const notes = rawNotes?.trim() ? rawNotes.trim() : null;
+  
   const receiptUrl = formData.get("receiptUrl") as string | null;
 
   let status: "PENDING" | "RECEIVED";
@@ -100,12 +108,20 @@ export async function updateTransaction(id: string, orgSlug: string, formData: F
   const type = formData.get("type") as "INCOME" | "EXPENSE";
   const amountStr = formData.get("amount") as string;
   const amount = parseFloat(amountStr);
+
+  if (isNaN(amount) || amount <= 0) {
+    throw new Error("Validation Error: Amount must be a positive number.");
+  }
+
   const dateStr = formData.get("date") as string;
   const category = formData.get("category") as string;
   const paymentMethod = formData.get("paymentMethod") as "CASH" | "CARD" | "INSTAPAY" | "COD";
   const statusOverride = formData.get("status") as "PENDING" | "RECEIVED" | null;
   const fulfillmentOverride = formData.get("fulfillmentStatus") as "UNFULFILLED" | "SHIPPED" | "DELIVERED" | "RETURNED" | null;
-  const notes = formData.get("notes") as string | null;
+  
+  const rawNotes = formData.get("notes") as string | null;
+  const notes = rawNotes?.trim() ? rawNotes.trim() : null;
+  
   const receiptUrl = formData.get("receiptUrl") as string | null;
 
   let status: "PENDING" | "RECEIVED";

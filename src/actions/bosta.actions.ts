@@ -152,16 +152,23 @@ export async function syncBostaDeliveries(organizationId: string) {
         newFulfillmentStatus = "RETURNED";
       }
 
+      const updateData: any = {
+        status: newMarginStatus,
+        fulfillmentStatus: newFulfillmentStatus,
+        bostaTrackingNumber: String(bostaDelivery.trackingNumber),
+        bostaState: bostaStateValue,
+        shipmentFee: Number(shipmentFee),
+        bostaLastSyncedAt: new Date()
+      };
+
+      // If delivered, the collected cash is the ultimate truth
+      if (newFulfillmentStatus === "DELIVERED" && bostaDelivery.cod !== undefined) {
+        updateData.amount = Number(bostaDelivery.cod);
+      }
+
       await prisma.transaction.update({
         where: { id: transaction.id },
-        data: {
-          status: newMarginStatus,
-          fulfillmentStatus: newFulfillmentStatus,
-          bostaTrackingNumber: String(bostaDelivery.trackingNumber),
-          bostaState: bostaStateValue,
-          shipmentFee: Number(shipmentFee),
-          bostaLastSyncedAt: new Date()
-        }
+        data: updateData
       });
 
       processedCount++;

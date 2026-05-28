@@ -79,7 +79,7 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
         />
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto bg-white">
         {filteredOrgs.length === 0 ? (
           <div className="flex items-center justify-center h-40 text-sm text-zinc-400">
             No organizations found.

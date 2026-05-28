@@ -2,6 +2,7 @@
 
 import type { Transaction } from "@prisma/client";
 import { DeleteTransactionButton } from "@/components/transactions/action-buttons";
+import { Badge } from "@/components/ui/badge";
 
 export function MobileTransactionCard({ transaction, orgSlug, onEdit }: { transaction: Transaction; orgSlug: string; onEdit?: () => void }) {
   const t = transaction;
@@ -31,6 +32,22 @@ export function MobileTransactionCard({ transaction, orgSlug, onEdit }: { transa
           <span className="text-[10px] text-zinc-500 px-1.5 py-0.5 rounded-md border bg-zinc-50 uppercase tracking-wide">
             {t.paymentMethod}
           </span>
+          {t.type === "INCOME" && (
+            <Badge
+              variant="outline"
+              className={
+                (t as any).fulfillmentStatus === "DELIVERED"
+                  ? "text-emerald-700 bg-emerald-50 border-emerald-200 text-[9px] px-1 py-0 h-4 uppercase"
+                  : (t as any).fulfillmentStatus === "SHIPPED"
+                  ? "text-blue-700 bg-blue-50 border-blue-200 text-[9px] px-1 py-0 h-4 uppercase"
+                  : (t as any).fulfillmentStatus === "RETURNED"
+                  ? "text-red-700 bg-red-50 border-red-200 text-[9px] px-1 py-0 h-4 uppercase"
+                  : "text-zinc-600 bg-zinc-100 border-zinc-200 text-[9px] px-1 py-0 h-4 uppercase"
+              }
+            >
+              {(t as any).fulfillmentStatus || "UNFULFILLED"}
+            </Badge>
+          )}
           <div onClick={(e) => e.stopPropagation()}>
              <DeleteTransactionButton 
                id={t.id} 
