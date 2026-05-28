@@ -2,8 +2,8 @@ import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 
 export interface MarketingMetrics {
-  mer: number | null;
-  merPrevious: number | null;
+  roas: number | null;
+  roasPrevious: number | null;
   cac: number | null;
   cacPrevious: number | null;
   adSpendByDate: { date: Date; amount: number }[];
@@ -60,7 +60,7 @@ export async function getMarketingMetrics(
     });
     const realizedRevenue = Number(incomeTxs._sum.amount || 0);
 
-    const mer = totalAdSpend > 0 ? realizedRevenue / totalAdSpend : null;
+    const roas = totalAdSpend > 0 ? realizedRevenue / totalAdSpend : null;
 
     // C. New Customers
     let newCustomerCount = 0;
@@ -100,7 +100,7 @@ export async function getMarketingMetrics(
 
     const cac = newCustomerCount > 0 ? totalAdSpend / newCustomerCount : (totalAdSpend > 0 ? totalAdSpend : null);
 
-    return { totalAdSpend, mer, cac, adSpendTxs };
+    return { totalAdSpend, roas, cac, adSpendTxs };
   };
 
   // Current Period
@@ -116,7 +116,7 @@ export async function getMarketingMetrics(
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
     
     const currentMonthData = await fetchPeriodMetrics({ date: { gte: startOfThisMonth } }, startOfThisMonth);
-    current.mer = currentMonthData.mer;
+    current.roas = currentMonthData.roas;
     current.cac = currentMonthData.cac;
 
     prevFilter = { date: { gte: startOfLastMonth, lte: endOfLastMonth } };
@@ -130,8 +130,8 @@ export async function getMarketingMetrics(
   const prev = await fetchPeriodMetrics(prevFilter, isAllTime ? undefined : new Date(startDate!.getTime() - (endDate!.getTime() - startDate!.getTime()) - 1));
 
   return {
-    mer: current.mer,
-    merPrevious: prev.mer,
+    roas: current.roas,
+    roasPrevious: prev.roas,
     cac: current.cac,
     cacPrevious: prev.cac,
     adSpendByDate: current.adSpendTxs.map((tx) => ({

@@ -210,25 +210,25 @@ export default async function AnalyticsPage(props: {
           </Card>
         </FadeIn>
 
-        {/* MER Card */}
+        {/* ROAS Card */}
         <FadeIn delay={0.5}>
-          <Card className={`border h-full shadow-sm ${marketing.mer && marketing.mer > 3 ? 'border-emerald-200 bg-emerald-50/50' : marketing.mer && marketing.mer >= 1.5 ? 'border-amber-200 bg-amber-50/50' : 'border-red-200 bg-red-50/50'}`}>
+          <Card className={`border h-full shadow-sm ${marketing.roas && marketing.roas > 3 ? 'border-emerald-200 bg-emerald-50/50' : marketing.roas && marketing.roas >= 1.5 ? 'border-amber-200 bg-amber-50/50' : 'border-red-200 bg-red-50/50'}`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className={`text-sm font-bold uppercase tracking-wider ${marketing.mer && marketing.mer > 3 ? 'text-emerald-900' : marketing.mer && marketing.mer >= 1.5 ? 'text-amber-900' : 'text-red-900'}`}>MER</CardTitle>
-              {marketing.mer && marketing.mer > 3 ? <ArrowUpRight className="h-5 w-5 text-emerald-600" /> : <ArrowDownRight className="h-5 w-5 text-red-600" />}
+              <CardTitle className={`text-sm font-bold uppercase tracking-wider ${marketing.roas && marketing.roas > 3 ? 'text-emerald-900' : marketing.roas && marketing.roas >= 1.5 ? 'text-amber-900' : 'text-red-900'}`}>ROAS</CardTitle>
+              {marketing.roas && marketing.roas > 3 ? <ArrowUpRight className="h-5 w-5 text-emerald-600" /> : <ArrowDownRight className="h-5 w-5 text-red-600" />}
             </CardHeader>
             <CardContent>
-              <div className={`text-3xl font-bold tracking-tight ${marketing.mer && marketing.mer > 3 ? 'text-emerald-950' : marketing.mer && marketing.mer >= 1.5 ? 'text-amber-950' : 'text-red-950'}`}>
-                {marketing.mer ? `${marketing.mer.toFixed(2)}x` : '—'}
+              <div className={`text-3xl font-bold tracking-tight ${marketing.roas && marketing.roas > 3 ? 'text-emerald-950' : marketing.roas && marketing.roas >= 1.5 ? 'text-amber-950' : 'text-red-950'}`}>
+                {marketing.roas ? `${marketing.roas.toFixed(2)}x` : '—'}
               </div>
-              {marketing.mer !== null && marketing.merPrevious !== null && (
+              {marketing.roas !== null && marketing.roasPrevious !== null && (
                 <VelocityBadge 
-                  delta={marketing.merPrevious > 0 ? ((marketing.mer - marketing.merPrevious) / marketing.merPrevious) * 100 : 100} 
+                  delta={marketing.roasPrevious > 0 ? ((marketing.roas - marketing.roasPrevious) / marketing.roasPrevious) * 100 : 100} 
                   subtitleText={subtitleText} 
                 />
               )}
-              <p className={`text-xs mt-2 font-medium ${marketing.mer && marketing.mer > 3 ? 'text-emerald-700' : marketing.mer && marketing.mer >= 1.5 ? 'text-amber-700' : 'text-red-700'}`}>
-                {marketing.mer ? 'Revenue per EGP spent on ads' : 'No ad spend logged'}
+              <p className={`text-xs mt-2 font-medium ${marketing.roas && marketing.roas > 3 ? 'text-emerald-700' : marketing.roas && marketing.roas >= 1.5 ? 'text-amber-700' : 'text-red-700'}`}>
+                {marketing.roas ? 'Revenue per EGP spent on ads' : 'No ad spend logged'}
               </p>
             </CardContent>
           </Card>
