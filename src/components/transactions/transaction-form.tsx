@@ -73,6 +73,7 @@ export interface TransactionToEdit {
   date: Date | string;
   notes?: string | null;
   status?: "PENDING" | "RECEIVED";
+  fulfillmentStatus?: "UNFULFILLED" | "SHIPPED" | "DELIVERED" | "RETURNED";
 }
 
 export interface TransactionFormHandle {
@@ -99,6 +100,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [statusOverride, setStatusOverride] = useState("");
   const [showStatusOverride, setShowStatusOverride] = useState(false);
+  const [fulfillmentStatus, setFulfillmentStatus] = useState("UNFULFILLED");
 
   const [showTags, setShowTags] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -145,6 +147,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
       setEditingId(null);
       setStatusOverride("");
       setShowStatusOverride(false);
+      setFulfillmentStatus("UNFULFILLED");
       setError(null);
       setIsOpen(true);
       fillRefs(defaults.amount, defaults.date, defaults.notes);
@@ -164,6 +167,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
         setStatusOverride("");
         setShowStatusOverride(false);
       }
+      setFulfillmentStatus(t.fulfillmentStatus || "UNFULFILLED");
       setReceiptUrl(null); // receipt editing not supported in edit mode
       setSelectedTags([]);
       setShowTags(false);
@@ -198,6 +202,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
       setEditingId(null);
       setStatusOverride("");
       setShowStatusOverride(false);
+      setFulfillmentStatus("UNFULFILLED");
       setError(null);
       setIsOpen(true);
       fillRefs(prefillData.amount, prefillData.date, prefillData.notes);
@@ -240,6 +245,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
     formData.set("category", category);
     formData.set("paymentMethod", paymentMethod);
     formData.set("status", displayStatus);
+    formData.set("fulfillmentStatus", fulfillmentStatus);
 
     if (receiptUrl) {
       formData.append("receiptUrl", receiptUrl);
@@ -273,6 +279,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
         setPaymentMethod("CASH");
         setStatusOverride("");
         setShowStatusOverride(false);
+        setFulfillmentStatus("UNFULFILLED");
         setSelectedTags([]);
         setShowTags(false);
 
@@ -551,6 +558,26 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
                           Auto: {autoStatus}
                         </div>
                       )}
+                    </div>
+
+                    {/* Row 4 col 1 — Fulfillment */}
+                    <div className="col-span-1 md:col-span-1 space-y-2">
+                      <label className="text-sm font-semibold">Fulfillment Status</label>
+                      <Select
+                        name="fulfillmentStatus"
+                        value={fulfillmentStatus}
+                        onValueChange={(val) => { if (val) setFulfillmentStatus(val); }}
+                      >
+                        <SelectTrigger className="flex h-10 w-full rounded-md border border-neutral-300 bg-background px-3 py-2 text-sm font-medium">
+                          <SelectValue placeholder="Fulfillment Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="UNFULFILLED">Unfulfilled</SelectItem>
+                          <SelectItem value="SHIPPED">Shipped</SelectItem>
+                          <SelectItem value="DELIVERED">Delivered</SelectItem>
+                          <SelectItem value="RETURNED">Returned</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Optional section — full width */}

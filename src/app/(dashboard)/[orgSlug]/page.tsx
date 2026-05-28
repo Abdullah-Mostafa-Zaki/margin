@@ -1,4 +1,5 @@
 import { ChatHome } from "@/components/chat/chat-home";
+import prisma from "@/lib/prisma";
 
 export default async function DashboardPage(props: {
   params: Promise<{ orgSlug: string }>;
@@ -6,5 +7,10 @@ export default async function DashboardPage(props: {
 }) {
   const resolvedParams = await props.params;
 
-  return <ChatHome orgSlug={resolvedParams.orgSlug} />;
+  const org = await prisma.organization.findUnique({
+    where: { slug: resolvedParams.orgSlug },
+    include: { tags: { orderBy: { createdAt: "desc" } } }
+  });
+
+  return <ChatHome orgSlug={resolvedParams.orgSlug} tags={org?.tags || []} />;
 }

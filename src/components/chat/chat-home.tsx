@@ -78,7 +78,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function ChatHome({ orgSlug }: { orgSlug: string }) {
+export function ChatHome({ orgSlug, tags = [] }: { orgSlug: string, tags?: any[] }) {
   const [messages, setMessages] = useState<ChatMessage[]>([welcomeMessage]);
   const [inputText, setInputText]     = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -334,6 +334,7 @@ export function ChatHome({ orgSlug }: { orgSlug: string }) {
       {extractedData && (
         <TransactionForm
           orgSlug={orgSlug}
+          tags={tags}
           prefillData={extractedData}
           onSuccessCallback={(data) => {
             setExtractedData(null);

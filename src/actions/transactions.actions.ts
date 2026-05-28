@@ -27,6 +27,7 @@ export async function createTransaction(orgSlug: string, formData: FormData) {
   const category = formData.get("category") as string;
   const paymentMethod = formData.get("paymentMethod") as "CASH" | "CARD" | "INSTAPAY" | "COD";
   const statusOverride = formData.get("status") as "PENDING" | "RECEIVED" | null;
+  const fulfillmentOverride = formData.get("fulfillmentStatus") as "UNFULFILLED" | "SHIPPED" | "DELIVERED" | "RETURNED" | null;
   const notes = formData.get("notes") as string | null;
   const receiptUrl = formData.get("receiptUrl") as string | null;
 
@@ -62,6 +63,7 @@ export async function createTransaction(orgSlug: string, formData: FormData) {
       category,
       paymentMethod,
       status,
+      fulfillmentStatus: fulfillmentOverride || "UNFULFILLED",
       notes,
       receiptUrl,
       organizationId: org.id,
@@ -102,6 +104,7 @@ export async function updateTransaction(id: string, orgSlug: string, formData: F
   const category = formData.get("category") as string;
   const paymentMethod = formData.get("paymentMethod") as "CASH" | "CARD" | "INSTAPAY" | "COD";
   const statusOverride = formData.get("status") as "PENDING" | "RECEIVED" | null;
+  const fulfillmentOverride = formData.get("fulfillmentStatus") as "UNFULFILLED" | "SHIPPED" | "DELIVERED" | "RETURNED" | null;
   const notes = formData.get("notes") as string | null;
   const receiptUrl = formData.get("receiptUrl") as string | null;
 
@@ -138,6 +141,7 @@ export async function updateTransaction(id: string, orgSlug: string, formData: F
       category,
       paymentMethod,
       status,
+      fulfillmentStatus: fulfillmentOverride || "UNFULFILLED",
       notes,
       receiptUrl,
     },
