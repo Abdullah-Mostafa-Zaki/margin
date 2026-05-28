@@ -148,6 +148,7 @@ export async function POST(req: Request) {
         createdById: ownerId,
         shopifyOrderId: normalizedOrderId,
         customerCity: order.shipping_address?.city ?? null,
+        customerId: order.customer?.id ? String(order.customer.id) : null,
         notes: `Shopify Order ${order.name || "\x23" + order.order_number}`,
         lineItems: {
           create: (order.line_items || []).map((item: any) => ({

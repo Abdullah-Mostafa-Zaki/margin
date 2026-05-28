@@ -12,6 +12,7 @@ import { getAnalyticsVelocity } from "@/app/actions/getAnalyticsVelocity";
 import { getDropPerformance } from "@/app/actions/getDropPerformance";
 import { getCodFunnel } from "@/app/actions/getCodFunnel";
 import { getReturnsByCity } from "@/app/actions/getReturnsByCity";
+import { getMarketingMetrics } from "@/app/actions/getMarketingMetrics";
 import { VelocityBadge } from "@/components/dashboard/velocity-badge";
 import { DropPerformanceTable } from "@/components/dashboard/drop-performance-table";
 import { CodHealthFunnel } from "@/components/dashboard/cod-health-funnel";
@@ -42,13 +43,31 @@ export default async function AnalyticsPage(props: {
   const dropPerformance = await getDropPerformance(organization.id, startDate, endDate);
   const codFunnel = await getCodFunnel(organization.id, startDate, endDate);
   const returnsByCity = await getReturnsByCity(organization.id, startDate, endDate);
+  const marketing = await getMarketingMetrics(organization.id, startDate || undefined, endDate || undefined);
 
   const dailyTransactions = await prisma.transaction.findMany({
     where: { organizationId: organization.id, status: 'RECEIVED', ...dateFilter },
     select: { date: true, type: true, amount: true },
     orderBy: { date: 'asc' }
   });
-  const chartData = groupTransactionsByDate(dailyTransactions);
+  
+  const baseChartData = groupTransactionsByDate(dailyTransactions);
+  const chartDataMap: Record<string, any> = {};
+  
+  baseChartData.forEach(d => {
+    chartDataMap[d.date] = { ...d, adSpend: 0 };
+  });
+
+  marketing.adSpendByDate.forEach(tx => {
+    const dateKey = new Date(tx.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    if (chartDataMap[dateKey]) {
+      chartDataMap[dateKey].adSpend += tx.amount;
+    } else {
+      chartDataMap[dateKey] = { date: dateKey, income: 0, expenses: 0, adSpend: tx.amount };
+    }
+  });
+
+  const chartData = Object.values(chartDataMap);
 
   const expenseByCategory = await prisma.transaction.groupBy({
     by: ['category'],
@@ -126,8 +145,8 @@ export default async function AnalyticsPage(props: {
         </Card>
       </FadeIn>
 
-      {/* 4 Card KPI Grid */}
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+      {/* 6 Card KPI Grid */}
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         <FadeIn delay={0.1}>
           <Card className="border border-emerald-200 bg-emerald-50/50 h-full shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -187,6 +206,55 @@ export default async function AnalyticsPage(props: {
                 EGP {insights.ghostRevenue.toLocaleString()}
               </div>
               <p className="text-xs text-red-700 mt-2 font-medium">Lost COD from returned orders.</p>
+            </CardContent>
+          </Card>
+        </FadeIn>
+
+        {/* MER Card */}
+        <FadeIn delay={0.5}>
+          <Card className={`border h-full shadow-sm ${marketing.mer && marketing.mer > 3 ? 'border-emerald-200 bg-emerald-50/50' : marketing.mer && marketing.mer >= 1.5 ? 'border-amber-200 bg-amber-50/50' : 'border-red-200 bg-red-50/50'}`}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className={`text-sm font-bold uppercase tracking-wider ${marketing.mer && marketing.mer > 3 ? 'text-emerald-900' : marketing.mer && marketing.mer >= 1.5 ? 'text-amber-900' : 'text-red-900'}`}>MER</CardTitle>
+              {marketing.mer && marketing.mer > 3 ? <ArrowUpRight className="h-5 w-5 text-emerald-600" /> : <ArrowDownRight className="h-5 w-5 text-red-600" />}
+            </CardHeader>
+            <CardContent>
+              <div className={`text-3xl font-bold tracking-tight ${marketing.mer && marketing.mer > 3 ? 'text-emerald-950' : marketing.mer && marketing.mer >= 1.5 ? 'text-amber-950' : 'text-red-950'}`}>
+                {marketing.mer ? `${marketing.mer.toFixed(2)}x` : '—'}
+              </div>
+              {marketing.mer !== null && marketing.merPrevious !== null && (
+                <VelocityBadge 
+                  delta={marketing.merPrevious > 0 ? ((marketing.mer - marketing.merPrevious) / marketing.merPrevious) * 100 : 100} 
+                  subtitleText={subtitleText} 
+                />
+              )}
+              <p className={`text-xs mt-2 font-medium ${marketing.mer && marketing.mer > 3 ? 'text-emerald-700' : marketing.mer && marketing.mer >= 1.5 ? 'text-amber-700' : 'text-red-700'}`}>
+                {marketing.mer ? 'Revenue per EGP spent on ads' : 'No ad spend logged'}
+              </p>
+            </CardContent>
+          </Card>
+        </FadeIn>
+
+        {/* CAC Card */}
+        <FadeIn delay={0.6}>
+          <Card className={`border h-full shadow-sm ${marketing.cac !== null && marketing.cac < 100 ? 'border-emerald-200 bg-emerald-50/50' : marketing.cac !== null && marketing.cac <= 300 ? 'border-amber-200 bg-amber-50/50' : 'border-red-200 bg-red-50/50'}`}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className={`text-sm font-bold uppercase tracking-wider ${marketing.cac !== null && marketing.cac < 100 ? 'text-emerald-900' : marketing.cac !== null && marketing.cac <= 300 ? 'text-amber-900' : 'text-red-900'}`}>CAC</CardTitle>
+              {marketing.cac !== null && marketing.cac < 100 ? <ArrowDownRight className="h-5 w-5 text-emerald-600" /> : <ArrowUpRight className="h-5 w-5 text-red-600" />}
+            </CardHeader>
+            <CardContent>
+              <div className={`text-3xl font-bold tracking-tight ${marketing.cac !== null && marketing.cac < 100 ? 'text-emerald-950' : marketing.cac !== null && marketing.cac <= 300 ? 'text-amber-950' : 'text-red-950'}`}>
+                {marketing.cac !== null ? `EGP ${Math.round(marketing.cac).toLocaleString()}` : '—'}
+              </div>
+              {marketing.cac !== null && marketing.cacPrevious !== null && (
+                <VelocityBadge 
+                  delta={marketing.cacPrevious > 0 ? ((marketing.cac - marketing.cacPrevious) / marketing.cacPrevious) * 100 : 100} 
+                  invert={true}
+                  subtitleText={subtitleText} 
+                />
+              )}
+              <p className={`text-xs mt-2 font-medium ${marketing.cac !== null && marketing.cac < 100 ? 'text-emerald-700' : marketing.cac !== null && marketing.cac <= 300 ? 'text-amber-700' : 'text-red-700'}`}>
+                {marketing.cac !== null ? 'Cost to acquire one new customer' : 'No ad spend logged'}
+              </p>
             </CardContent>
           </Card>
         </FadeIn>
