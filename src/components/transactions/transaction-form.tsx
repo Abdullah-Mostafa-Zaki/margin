@@ -237,6 +237,8 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
       document.body.style.width = "";
       document.body.style.height = "";
       document.body.style.overflow = "";
+      document.body.style.pointerEvents = "";
+      document.body.removeAttribute("data-scroll-locked");
     }
 
     return () => {
@@ -244,6 +246,8 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
       document.body.style.width = "";
       document.body.style.height = "";
       document.body.style.overflow = "";
+      document.body.style.pointerEvents = "";
+      document.body.removeAttribute("data-scroll-locked");
     };
   }, [isOpen]);
 
