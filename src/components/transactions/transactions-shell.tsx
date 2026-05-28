@@ -67,6 +67,7 @@ export function TransactionsShell({
       date: t.date,
       notes: t.notes,
       status: t.status as "PENDING" | "RECEIVED",
+      fulfillmentStatus: (t as any).fulfillmentStatus as "UNFULFILLED" | "SHIPPED" | "DELIVERED" | "RETURNED",
     };
     formHandleRef.current?.openForEdit(payload);
   }, []);
