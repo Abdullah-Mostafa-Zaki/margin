@@ -45,40 +45,42 @@ export function CodHealthFunnel({ data }: { data: CodFunnelData }) {
   const FunnelBlock = ({ 
     label, 
     value, 
-    dropoff, 
     isRed = false 
   }: { 
     label: string; 
     value: number; 
-    dropoff?: number;
     isRed?: boolean;
   }) => (
-    <div className="flex-1 flex flex-col items-center relative group">
-      <div className={`w-full py-6 px-2 text-center text-white rounded-lg transition-transform hover:scale-105 z-10 shadow-sm relative ${isRed ? 'bg-red-500' : 'bg-green-600'}`}>
-        <div className="text-2xl font-bold">{value.toLocaleString("en-EG")}</div>
-        <div className="text-xs uppercase tracking-wider opacity-90 mt-1 font-medium">{label}</div>
+    <div className={`min-w-[140px] flex-shrink-0 py-6 px-4 text-center text-white rounded-lg transition-transform hover:scale-105 shadow-sm ${isRed ? 'bg-red-500' : 'bg-green-600'}`}>
+      <div className="text-2xl font-bold">{value.toLocaleString("en-EG")}</div>
+      <div className="text-xs uppercase tracking-wider opacity-90 mt-1 font-medium">{label}</div>
+    </div>
+  );
+
+  const Connector = ({ dropoff }: { dropoff: number }) => (
+    <div className="w-16 flex-shrink-0 flex justify-center hidden sm:flex">
+      <div className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full border border-slate-200 whitespace-nowrap">
+        -{dropoff.toFixed(1)}%
       </div>
-      {dropoff !== undefined && (
-        <div className="absolute top-1/2 -right-6 lg:-right-8 -translate-y-1/2 z-0 hidden sm:flex items-center text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-1 rounded-full border border-slate-200">
-          -{dropoff.toFixed(1)}%
-        </div>
-      )}
     </div>
   );
 
   return (
-    <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 h-full flex flex-col">
+    <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 h-full flex flex-col min-w-0">
       <h3 className="uppercase tracking-[0.2em] text-[11px] font-bold text-slate-400 mb-8">COD Health Funnel</h3>
       
-      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 lg:gap-10 items-stretch sm:items-center w-full my-auto pb-4">
-        <FunnelBlock label="Total Orders" value={data.totalOrders} dropoff={shippedDropoff} />
-        <div className="sm:hidden text-center text-slate-400 text-xs font-semibold py-1">-{shippedDropoff.toFixed(1)}% drop-off</div>
+      <div className="flex flex-col sm:flex-row items-center sm:items-center w-full my-auto pb-4 overflow-x-auto snap-x">
+        <FunnelBlock label="Total Orders" value={data.totalOrders} />
+        <div className="sm:hidden text-center text-slate-400 text-xs font-semibold py-2">-{shippedDropoff.toFixed(1)}% drop-off</div>
+        <Connector dropoff={shippedDropoff} />
         
-        <FunnelBlock label="Shipped" value={data.shipped} dropoff={deliveredDropoff} />
-        <div className="sm:hidden text-center text-slate-400 text-xs font-semibold py-1">-{deliveredDropoff.toFixed(1)}% drop-off</div>
+        <FunnelBlock label="Shipped" value={data.shipped} />
+        <div className="sm:hidden text-center text-slate-400 text-xs font-semibold py-2">-{deliveredDropoff.toFixed(1)}% drop-off</div>
+        <Connector dropoff={deliveredDropoff} />
         
-        <FunnelBlock label="Delivered" value={data.delivered} dropoff={data.returnRate} />
-        <div className="sm:hidden text-center text-slate-400 text-xs font-semibold py-1">-{data.returnRate.toFixed(1)}% returned</div>
+        <FunnelBlock label="Delivered" value={data.delivered} />
+        <div className="sm:hidden text-center text-slate-400 text-xs font-semibold py-2">-{data.returnRate.toFixed(1)}% returned</div>
+        <Connector dropoff={data.returnRate} />
         
         <FunnelBlock label="Returned" value={data.returned} isRed={true} />
       </div>
