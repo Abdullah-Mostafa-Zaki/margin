@@ -301,6 +301,7 @@ export function TransactionsShell({
               <TableHead className="whitespace-nowrap">Category</TableHead>
               <TableHead className="whitespace-nowrap">Payment</TableHead>
               <TableHead className="whitespace-nowrap">Status</TableHead>
+              <TableHead className="whitespace-nowrap">Fulfillment</TableHead>
               <TableHead className="text-right whitespace-nowrap">
                 Amount (EGP)
               </TableHead>
@@ -312,7 +313,7 @@ export function TransactionsShell({
           <TableBody>
             {displayedTransactions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-zinc-400">
+                <TableCell colSpan={7} className="h-32 text-center text-zinc-400">
                   <div className="flex flex-col items-center gap-2">
                     {activeTab === "INCOME" ? (
                       <TrendingUp className="w-7 h-7 text-zinc-300" />
@@ -345,6 +346,22 @@ export function TransactionsShell({
                       }
                     >
                       {t.type === "EXPENSE" && t.status === "RECEIVED" ? "PAID" : t.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <Badge
+                      variant="outline"
+                      className={
+                        (t as any).fulfillmentStatus === "DELIVERED"
+                          ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                          : (t as any).fulfillmentStatus === "SHIPPED"
+                          ? "text-blue-700 bg-blue-50 border-blue-200"
+                          : (t as any).fulfillmentStatus === "RETURNED"
+                          ? "text-red-700 bg-red-50 border-red-200"
+                          : "text-zinc-600 bg-zinc-100 border-zinc-200"
+                      }
+                    >
+                      {(t as any).fulfillmentStatus || "UNFULFILLED"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-medium whitespace-nowrap">
