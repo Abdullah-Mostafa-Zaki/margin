@@ -52,24 +52,21 @@ export async function getOrderFunnel(
   const shipped = await prisma.transaction.count({
     where: {
       ...baseWhere,
-      OR: [
-        { bostaTrackingNumber: { not: null } },
-        { status: "RECEIVED" }
-      ]
+      fulfillmentStatus: { in: ["SHIPPED", "DELIVERED", "RETURNED"] },
     },
   });
 
   const delivered = await prisma.transaction.count({
     where: {
       ...baseWhere,
-      status: "RECEIVED",
+      fulfillmentStatus: "DELIVERED",
     },
   });
 
   const returned = await prisma.transaction.count({
     where: {
       ...baseWhere,
-      status: "RETURNED",
+      fulfillmentStatus: "RETURNED",
     },
   });
 

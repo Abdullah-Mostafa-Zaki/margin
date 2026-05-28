@@ -75,7 +75,7 @@ export default async function AnalyticsPage(props: {
     _sum: { amount: true },
     orderBy: { _sum: { amount: 'desc' } }
   });
-  const donutData = expenseByCategory.map(e => ({
+  const donutData = expenseByCategory.map((e: any) => ({
     category: e.category,
     amount: Number(e._sum.amount || 0)
   }));
@@ -95,7 +95,7 @@ export default async function AnalyticsPage(props: {
   const productRevenue: Record<string, number> = {};
   let totalLineItemRevenue = 0;
 
-  lineItems.forEach(item => {
+  lineItems.forEach((item: any) => {
     const rev = item.quantity * Number(item.price);
     productRevenue[item.name] = (productRevenue[item.name] || 0) + rev;
     totalLineItemRevenue += rev;

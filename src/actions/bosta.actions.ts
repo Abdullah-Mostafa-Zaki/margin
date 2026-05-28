@@ -139,19 +139,24 @@ export async function syncBostaDeliveries(organizationId: string) {
       let newMarginStatus = transaction.status;
 
       // Status mapping verified during the Forensic Audit
+      let newFulfillmentStatus: "UNFULFILLED" | "SHIPPED" | "DELIVERED" | "RETURNED" = "SHIPPED"; // default to shipped since it's with Bosta
+
       if (stateCode === 45 || bostaStateValue === "Delivered") {
         newMarginStatus = "RECEIVED";
+        newFulfillmentStatus = "DELIVERED";
       } else if (
         [46, 47, 101].includes(stateCode) ||
         ["Returned", "Canceled", "Cancelled"].includes(bostaStateValue)
       ) {
         newMarginStatus = "RETURNED";
+        newFulfillmentStatus = "RETURNED";
       }
 
       await prisma.transaction.update({
         where: { id: transaction.id },
         data: {
           status: newMarginStatus,
+          fulfillmentStatus: newFulfillmentStatus,
           bostaTrackingNumber: String(bostaDelivery.trackingNumber),
           bostaState: bostaStateValue,
           shipmentFee: Number(shipmentFee),

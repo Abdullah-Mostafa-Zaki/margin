@@ -135,6 +135,15 @@ export async function POST(req: Request) {
       txStatus = "PENDING";
     }
 
+    // Derive fulfillment status
+    const fulfillmentStatusRaw = order.fulfillment_status?.toLowerCase();
+    let fulfillmentStatus: "UNFULFILLED" | "SHIPPED" | "DELIVERED" | "RETURNED" = "UNFULFILLED";
+    if (fulfillmentStatusRaw === "fulfilled" || fulfillmentStatusRaw === "partial") {
+      fulfillmentStatus = "SHIPPED"; 
+    } else if (fulfillmentStatusRaw === "restocked") {
+      fulfillmentStatus = "RETURNED";
+    }
+
     // ── 8. Log the Transaction ──────────────────────────────────────────────
     await prisma.transaction.create({
       data: {
@@ -143,6 +152,7 @@ export async function POST(req: Request) {
         date: new Date(),
         category: "Shopify Sale",
         status: txStatus,
+        fulfillmentStatus,
         paymentMethod,
         organizationId: organization.id,
         createdById: ownerId,

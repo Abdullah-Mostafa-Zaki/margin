@@ -146,6 +146,7 @@ model Transaction {
   bostaLastSyncedAt   DateTime?
   customerCity        String?
   customerId          String?
+  fulfillmentStatus   FulfillmentStatus @default(UNFULFILLED)
   lineItems           LineItem[]
   createdBy           User              @relation(fields: [createdById], references: [id])
   organization        Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -218,4 +219,11 @@ enum Plan {
   PLUS
   PRO
   ENTERPRISE
+}
+
+enum FulfillmentStatus {
+  UNFULFILLED
+  SHIPPED
+  DELIVERED
+  RETURNED
 }
