@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { connectBostaAccount } from "@/actions/bosta.actions";
+import { connectBostaAccount, disconnectBostaAccount } from "@/actions/bosta.actions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ export function BostaConnectForm({ orgId, isConnectedInitially }: { orgId: strin
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(isConnectedInitially);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,15 +35,48 @@ export function BostaConnectForm({ orgId, isConnectedInitially }: { orgId: strin
     }
   }
 
+  async function handleDisconnect() {
+    setIsDisconnecting(true);
+    setError(null);
+    try {
+      const result = await disconnectBostaAccount(orgId);
+      if (result.success) {
+        setIsConnected(false);
+        setEmail("");
+        setPassword("");
+      } else {
+        setError(result.error || "Failed to disconnect");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred");
+    } finally {
+      setIsDisconnecting(false);
+    }
+  }
+
   if (isConnected) {
     return (
       <Card className="border-emerald-200 bg-emerald-50">
-        <CardContent className="pt-6 flex flex-col items-center justify-center text-center space-y-3">
+        <CardContent className="pt-6 flex flex-col items-center justify-center text-center space-y-4">
           <CheckCircle2 className="w-12 h-12 text-emerald-500" />
           <div>
             <h3 className="font-semibold text-emerald-900 text-lg">Bosta Account Connected Successfully</h3>
             <p className="text-sm text-emerald-700 mt-1">Your COD orders are now securely synced.</p>
           </div>
+          {error && (
+            <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md w-full max-w-sm">
+              {error}
+            </div>
+          )}
+          <Button 
+            variant="outline" 
+            onClick={handleDisconnect} 
+            disabled={isDisconnecting}
+            className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+          >
+            {isDisconnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Disconnect Account
+          </Button>
         </CardContent>
       </Card>
     );

@@ -168,3 +168,17 @@ export async function syncBostaDeliveries(organizationId: string) {
     return 0;
   }
 }
+
+/**
+ * Disconnects a Bosta account by removing its integration record.
+ */
+export async function disconnectBostaAccount(orgId: string) {
+  try {
+    await prisma.bostaIntegration.delete({
+      where: { organizationId: orgId }
+    });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to disconnect Bosta account" };
+  }
+}
