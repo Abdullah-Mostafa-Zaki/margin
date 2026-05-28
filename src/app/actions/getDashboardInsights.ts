@@ -63,6 +63,7 @@ export async function getDashboardInsights(
       category: true,
       shipmentFee: true,
       bostaState: true,
+      fulfillmentStatus: true,
     },
   });
 
@@ -78,13 +79,12 @@ export async function getDashboardInsights(
     .filter((t) => t.type === "INCOME" && t.status === "PENDING")
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  // 3. Ghost Revenue: INCOME where bostaState is Returned, Canceled, or RTO
+  // 3. Ghost Revenue: INCOME where fulfillmentStatus is RETURNED
   const ghostRevenue = transactions
     .filter(
       (t) =>
         t.type === "INCOME" &&
-        t.bostaState &&
-        ["Returned", "Canceled", "RTO", "Unreachable"].includes(t.bostaState)
+        (t as any).fulfillmentStatus === "RETURNED"
     )
     .reduce((sum, t) => sum + Number(t.amount), 0);
 

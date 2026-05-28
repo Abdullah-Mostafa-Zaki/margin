@@ -205,7 +205,7 @@ export default async function AnalyticsPage(props: {
               <div className="text-3xl font-bold tracking-tight text-red-950">
                 EGP {insights.ghostRevenue.toLocaleString()}
               </div>
-              <p className="text-xs text-red-700 mt-2 font-medium">Lost COD from returned orders.</p>
+              <p className="text-xs text-red-700 mt-2 font-medium">Lost revenue from returned orders.</p>
             </CardContent>
           </Card>
         </FadeIn>
