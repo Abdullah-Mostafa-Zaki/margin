@@ -561,24 +561,26 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
                     </div>
 
                     {/* Row 4 col 1 — Fulfillment */}
-                    <div className="col-span-1 md:col-span-1 space-y-2">
-                      <label className="text-sm font-semibold">Fulfillment Status</label>
-                      <Select
-                        name="fulfillmentStatus"
-                        value={fulfillmentStatus}
-                        onValueChange={(val) => { if (val) setFulfillmentStatus(val); }}
-                      >
-                        <SelectTrigger className="flex h-10 w-full rounded-md border border-neutral-300 bg-background px-3 py-2 text-sm font-medium">
-                          <SelectValue placeholder="Fulfillment Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="UNFULFILLED">Unfulfilled</SelectItem>
-                          <SelectItem value="SHIPPED">Shipped</SelectItem>
-                          <SelectItem value="DELIVERED">Delivered</SelectItem>
-                          <SelectItem value="RETURNED">Returned</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {type === "INCOME" && (
+                      <div className="col-span-1 md:col-span-1 space-y-2">
+                        <label className="text-sm font-semibold">Fulfillment Status</label>
+                        <Select
+                          name="fulfillmentStatus"
+                          value={fulfillmentStatus}
+                          onValueChange={(val) => { if (val) setFulfillmentStatus(val); }}
+                        >
+                          <SelectTrigger className="flex h-10 w-full rounded-md border border-neutral-300 bg-background px-3 py-2 text-sm font-medium">
+                            <SelectValue placeholder="Fulfillment Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="UNFULFILLED">Unfulfilled</SelectItem>
+                            <SelectItem value="SHIPPED">Shipped</SelectItem>
+                            <SelectItem value="DELIVERED">Delivered</SelectItem>
+                            <SelectItem value="RETURNED">Returned</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
                     {/* Optional section — full width */}
                     <div className="col-span-1 md:col-span-2 bg-muted/30 rounded-lg p-4 space-y-4">

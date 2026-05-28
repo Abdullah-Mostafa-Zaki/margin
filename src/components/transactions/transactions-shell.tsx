@@ -349,20 +349,24 @@ export function TransactionsShell({
                     </Badge>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
-                    <Badge
-                      variant="outline"
-                      className={
-                        (t as any).fulfillmentStatus === "DELIVERED"
-                          ? "text-emerald-700 bg-emerald-50 border-emerald-200"
-                          : (t as any).fulfillmentStatus === "SHIPPED"
-                          ? "text-blue-700 bg-blue-50 border-blue-200"
-                          : (t as any).fulfillmentStatus === "RETURNED"
-                          ? "text-red-700 bg-red-50 border-red-200"
-                          : "text-zinc-600 bg-zinc-100 border-zinc-200"
-                      }
-                    >
-                      {(t as any).fulfillmentStatus || "UNFULFILLED"}
-                    </Badge>
+                    {t.type === "INCOME" ? (
+                      <Badge
+                        variant="outline"
+                        className={
+                          (t as any).fulfillmentStatus === "DELIVERED"
+                            ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                            : (t as any).fulfillmentStatus === "SHIPPED"
+                            ? "text-blue-700 bg-blue-50 border-blue-200"
+                            : (t as any).fulfillmentStatus === "RETURNED"
+                            ? "text-red-700 bg-red-50 border-red-200"
+                            : "text-zinc-600 bg-zinc-100 border-zinc-200"
+                        }
+                      >
+                        {(t as any).fulfillmentStatus || "UNFULFILLED"}
+                      </Badge>
+                    ) : (
+                      <span className="text-zinc-400">-</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right font-medium whitespace-nowrap">
                     {Number(t.amount).toLocaleString()}
