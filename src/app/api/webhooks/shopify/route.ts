@@ -100,10 +100,6 @@ export async function POST(req: Request) {
       return new NextResponse("OK", { status: 200 });
     }
 
-    // Derive transaction status from Shopify's financial_status (e.g. COD = "pending")
-    const financialStatus = order.financial_status?.toLowerCase();
-    const txStatus = financialStatus === "pending" ? "PENDING" : "RECEIVED";
-
     const ownerId = organization.memberships[0]?.userId;
     if (!ownerId) {
       return new NextResponse("Organization has no owner", { status: 400 });
@@ -131,6 +127,13 @@ export async function POST(req: Request) {
     const shopifyGateway: string | undefined =
       order.payment_gateway_names?.[0] || order.gateway;
     const paymentMethod = mapPaymentMethod(shopifyGateway);
+
+    // Derive transaction status: COD always starts as PENDING. Others derive from Shopify's financial_status.
+    const financialStatus = order.financial_status?.toLowerCase();
+    let txStatus: "PENDING" | "RECEIVED" | "RETURNED" = financialStatus === "pending" ? "PENDING" : "RECEIVED";
+    if (paymentMethod === "COD") {
+      txStatus = "PENDING";
+    }
 
     // ── 8. Log the Transaction ──────────────────────────────────────────────
     await prisma.transaction.create({

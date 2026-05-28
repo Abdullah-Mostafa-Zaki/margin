@@ -53,7 +53,10 @@ export async function getCodFunnel(
   const shipped = await prisma.transaction.count({
     where: {
       ...baseWhere,
-      bostaTrackingNumber: { not: null },
+      OR: [
+        { bostaTrackingNumber: { not: null } },
+        { status: "RECEIVED" }
+      ]
     },
   });
 
