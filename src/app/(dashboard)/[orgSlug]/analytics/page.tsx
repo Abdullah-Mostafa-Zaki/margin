@@ -10,8 +10,12 @@ import { groupTransactionsByDate } from "@/lib/chart-utils";
 import { getDashboardInsights } from "@/app/actions/getDashboardInsights";
 import { getAnalyticsVelocity } from "@/app/actions/getAnalyticsVelocity";
 import { getDropPerformance } from "@/app/actions/getDropPerformance";
+import { getCodFunnel } from "@/app/actions/getCodFunnel";
+import { getReturnsByCity } from "@/app/actions/getReturnsByCity";
 import { VelocityBadge } from "@/components/dashboard/velocity-badge";
 import { DropPerformanceTable } from "@/components/dashboard/drop-performance-table";
+import { CodHealthFunnel } from "@/components/dashboard/cod-health-funnel";
+import { ReturnsByCity } from "@/components/dashboard/returns-by-city";
 import { FadeIn } from "@/components/ui/fade-in";
 
 export default async function AnalyticsPage(props: {
@@ -36,6 +40,8 @@ export default async function AnalyticsPage(props: {
   const insights = await getDashboardInsights(organization.id, startDate, endDate);
   const velocity = await getAnalyticsVelocity(organization.id, startDate, endDate);
   const dropPerformance = await getDropPerformance(organization.id, startDate, endDate);
+  const codFunnel = await getCodFunnel(organization.id, startDate, endDate);
+  const returnsByCity = await getReturnsByCity(organization.id, startDate, endDate);
 
   const dailyTransactions = await prisma.transaction.findMany({
     where: { organizationId: organization.id, status: 'RECEIVED', ...dateFilter },
@@ -208,6 +214,12 @@ export default async function AnalyticsPage(props: {
 
       {/* Drop Performance Matrix */}
       <DropPerformanceTable data={dropPerformance} />
+
+      {/* COD Health Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <CodHealthFunnel data={codFunnel} />
+        <ReturnsByCity data={returnsByCity} />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <FadeIn delay={0.4} duration={0.5}>
