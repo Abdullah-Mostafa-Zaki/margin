@@ -227,28 +227,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
   useEffect(() => {
     if (isOpen) {
       setError(null);
-      // Apple iOS Safari Body-Lock Method
-      document.body.style.position = "fixed";
-      document.body.style.width = "100%";
-      document.body.style.height = "100%";
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.position = "";
-      document.body.style.width = "";
-      document.body.style.height = "";
-      document.body.style.overflow = "";
-      document.body.style.pointerEvents = "";
-      document.body.removeAttribute("data-scroll-locked");
     }
-
-    return () => {
-      document.body.style.position = "";
-      document.body.style.width = "";
-      document.body.style.height = "";
-      document.body.style.overflow = "";
-      document.body.style.pointerEvents = "";
-      document.body.removeAttribute("data-scroll-locked");
-    };
   }, [isOpen]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
