@@ -8,6 +8,10 @@ import { IncomeExpenseChart } from "@/components/dashboard/income-expense-chart"
 import { ExpenseDonutChart } from "@/components/dashboard/expense-donut-chart";
 import { groupTransactionsByDate } from "@/lib/chart-utils";
 import { getDashboardInsights } from "@/app/actions/getDashboardInsights";
+import { getAnalyticsVelocity } from "@/app/actions/getAnalyticsVelocity";
+import { getDropPerformance } from "@/app/actions/getDropPerformance";
+import { VelocityBadge } from "@/components/dashboard/velocity-badge";
+import { DropPerformanceTable } from "@/components/dashboard/drop-performance-table";
 import { FadeIn } from "@/components/ui/fade-in";
 
 export default async function AnalyticsPage(props: {
@@ -28,6 +32,8 @@ export default async function AnalyticsPage(props: {
 
   // Insights is now the SINGLE SOURCE OF TRUTH for top-level KPIs
   const insights = await getDashboardInsights(organization.id, startDate, endDate);
+  const velocity = await getAnalyticsVelocity(organization.id, startDate, endDate);
+  const dropPerformance = await getDropPerformance(organization.id, startDate, endDate);
 
   const dailyTransactions = await prisma.transaction.findMany({
     where: { organizationId: organization.id, status: 'RECEIVED', ...dateFilter },
@@ -104,6 +110,7 @@ export default async function AnalyticsPage(props: {
             <div className={`text-4xl md:text-5xl font-bold tracking-tight ${insights.netProfit >= 0 ? 'text-emerald-950' : 'text-rose-950'}`}>
               {insights.netProfit < 0 ? '-' : ''}EGP {Math.abs(insights.netProfit).toLocaleString()}
             </div>
+            <VelocityBadge delta={velocity.netProfit} />
             <p className={`text-sm mt-2 font-medium ${insights.netProfit >= 0 ? 'text-emerald-800' : 'text-rose-800'}`}>
               {insights.netProfit >= 0 ? 'Your true take-home profit' : 'You are currently operating at a loss'}
             </p>
@@ -123,6 +130,7 @@ export default async function AnalyticsPage(props: {
               <div className="text-3xl font-bold tracking-tight text-emerald-950">
                 EGP {insights.realizedRevenue.toLocaleString()}
               </div>
+              <VelocityBadge delta={velocity.realizedRevenue} />
               <p className="text-xs text-emerald-700 mt-2 font-medium">Actual cash received</p>
             </CardContent>
           </Card>
@@ -138,6 +146,7 @@ export default async function AnalyticsPage(props: {
               <div className="text-3xl font-bold tracking-tight text-zinc-950">
                 EGP {insights.totalExpenses.toLocaleString()}
               </div>
+              <VelocityBadge delta={velocity.totalExpenses} />
               <p className="text-xs text-zinc-700 mt-2 font-medium">Manual entries & shipping costs</p>
             </CardContent>
           </Card>
@@ -153,6 +162,7 @@ export default async function AnalyticsPage(props: {
               <div className="text-3xl font-bold tracking-tight text-amber-950">
                 EGP {insights.pendingEscrow.toLocaleString()}
               </div>
+              <VelocityBadge delta={velocity.pendingEscrow} />
               <p className="text-xs text-amber-700 mt-2 font-medium">Cash held by couriers / in transit.</p>
             </CardContent>
           </Card>
@@ -193,6 +203,9 @@ export default async function AnalyticsPage(props: {
           </div>
         </div>
       )}
+
+      {/* Drop Performance Matrix */}
+      <DropPerformanceTable data={dropPerformance} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <FadeIn delay={0.4} duration={0.5}>
