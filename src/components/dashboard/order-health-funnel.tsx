@@ -1,13 +1,13 @@
-import { CodFunnelData } from "@/app/actions/getCodFunnel";
+import { OrderFunnelData } from "@/app/actions/getOrderFunnel";
 import { AlertCircle, CheckCircle2, Info } from "lucide-react";
 
-export function CodHealthFunnel({ data }: { data: CodFunnelData }) {
+export function OrderHealthFunnel({ data }: { data: OrderFunnelData }) {
   if (data.totalOrders === 0) {
     return (
       <div className="bg-white p-8 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 flex flex-col h-full">
-        <h3 className="uppercase tracking-[0.2em] text-[11px] font-bold text-slate-400 mb-8">COD Health Funnel</h3>
+        <h3 className="uppercase tracking-[0.2em] text-[11px] font-bold text-slate-400 mb-8">Order Health Funnel</h3>
         <div className="text-center text-slate-500 py-12 flex-1 flex items-center justify-center">
-          No COD orders found for this period.
+          No orders found for this period.
         </div>
       </div>
     );
@@ -69,7 +69,7 @@ export function CodHealthFunnel({ data }: { data: CodFunnelData }) {
 
   return (
     <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100 h-full flex flex-col min-w-0">
-      <h3 className="uppercase tracking-[0.2em] text-[11px] font-bold text-slate-400 mb-8">COD Health Funnel</h3>
+      <h3 className="uppercase tracking-[0.2em] text-[11px] font-bold text-slate-400 mb-8">Order Health Funnel</h3>
       
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 w-full my-auto pb-4">
         <FunnelColumn label="Total Orders" value={data.totalOrders} />

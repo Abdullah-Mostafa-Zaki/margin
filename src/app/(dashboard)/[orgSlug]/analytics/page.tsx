@@ -10,12 +10,12 @@ import { groupTransactionsByDate } from "@/lib/chart-utils";
 import { getDashboardInsights } from "@/app/actions/getDashboardInsights";
 import { getAnalyticsVelocity } from "@/app/actions/getAnalyticsVelocity";
 import { getDropPerformance } from "@/app/actions/getDropPerformance";
-import { getCodFunnel } from "@/app/actions/getCodFunnel";
+import { getOrderFunnel } from "@/app/actions/getOrderFunnel";
 import { getReturnsByCity } from "@/app/actions/getReturnsByCity";
 import { getMarketingMetrics } from "@/app/actions/getMarketingMetrics";
 import { VelocityBadge } from "@/components/dashboard/velocity-badge";
 import { DropPerformanceTable } from "@/components/dashboard/drop-performance-table";
-import { CodHealthFunnel } from "@/components/dashboard/cod-health-funnel";
+import { OrderHealthFunnel } from "@/components/dashboard/order-health-funnel";
 import { ReturnsByCity } from "@/components/dashboard/returns-by-city";
 import { FadeIn } from "@/components/ui/fade-in";
 
@@ -41,7 +41,7 @@ export default async function AnalyticsPage(props: {
   const insights = await getDashboardInsights(organization.id, startDate, endDate);
   const velocity = await getAnalyticsVelocity(organization.id, startDate, endDate);
   const dropPerformance = await getDropPerformance(organization.id, startDate, endDate);
-  const codFunnel = await getCodFunnel(organization.id, startDate, endDate);
+  const orderFunnel = await getOrderFunnel(organization.id, startDate, endDate);
   const returnsByCity = await getReturnsByCity(organization.id, startDate, endDate);
   const marketing = await getMarketingMetrics(organization.id, startDate || undefined, endDate || undefined);
 
@@ -283,9 +283,9 @@ export default async function AnalyticsPage(props: {
       {/* Drop Performance Matrix */}
       <DropPerformanceTable data={dropPerformance} />
 
-      {/* COD Health Section */}
+      {/* Order Health Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <CodHealthFunnel data={codFunnel} />
+        <OrderHealthFunnel data={orderFunnel} />
         <ReturnsByCity data={returnsByCity} />
       </div>
 

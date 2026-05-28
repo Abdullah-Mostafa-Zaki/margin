@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-export interface CodFunnelData {
+export interface OrderFunnelData {
   totalOrders: number;
   shipped: number;
   delivered: number;
@@ -12,11 +12,11 @@ export interface CodFunnelData {
   returnRate: number;
 }
 
-export async function getCodFunnel(
+export async function getOrderFunnel(
   organizationId: string,
   startDate: Date | null,
   endDate: Date | null
-): Promise<CodFunnelData> {
+): Promise<OrderFunnelData> {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized: No session");
 
@@ -38,10 +38,9 @@ export async function getCodFunnel(
     }
   } : {};
 
-  // Base query: COD INCOME transactions
+  // Base query: All INCOME transactions
   const baseWhere = {
     organizationId,
-    paymentMethod: "COD" as const,
     type: "INCOME" as const,
     ...dateFilter,
   };
