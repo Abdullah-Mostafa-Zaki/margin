@@ -29,6 +29,8 @@ export default async function AnalyticsPage(props: {
 
   const { startDate, endDate } = getDateRangeFromParams(resolvedSearchParams);
   const dateFilter = startDate && endDate ? { date: { gte: startDate, lte: endDate } } : {};
+  const isAllTime = !startDate && !endDate;
+  const subtitleText = isAllTime ? "vs last month" : "vs prev period";
 
   // Insights is now the SINGLE SOURCE OF TRUTH for top-level KPIs
   const insights = await getDashboardInsights(organization.id, startDate, endDate);
@@ -110,7 +112,7 @@ export default async function AnalyticsPage(props: {
             <div className={`text-4xl md:text-5xl font-bold tracking-tight ${insights.netProfit >= 0 ? 'text-emerald-950' : 'text-rose-950'}`}>
               {insights.netProfit < 0 ? '-' : ''}EGP {Math.abs(insights.netProfit).toLocaleString()}
             </div>
-            <VelocityBadge delta={velocity.netProfit} />
+            <VelocityBadge delta={velocity.netProfit} subtitleText={subtitleText} />
             <p className={`text-sm mt-2 font-medium ${insights.netProfit >= 0 ? 'text-emerald-800' : 'text-rose-800'}`}>
               {insights.netProfit >= 0 ? 'Your true take-home profit' : 'You are currently operating at a loss'}
             </p>
@@ -130,7 +132,7 @@ export default async function AnalyticsPage(props: {
               <div className="text-3xl font-bold tracking-tight text-emerald-950">
                 EGP {insights.realizedRevenue.toLocaleString()}
               </div>
-              <VelocityBadge delta={velocity.realizedRevenue} />
+              <VelocityBadge delta={velocity.realizedRevenue} subtitleText={subtitleText} />
               <p className="text-xs text-emerald-700 mt-2 font-medium">Actual cash received</p>
             </CardContent>
           </Card>
@@ -146,7 +148,7 @@ export default async function AnalyticsPage(props: {
               <div className="text-3xl font-bold tracking-tight text-zinc-950">
                 EGP {insights.totalExpenses.toLocaleString()}
               </div>
-              <VelocityBadge delta={velocity.totalExpenses} />
+              <VelocityBadge delta={velocity.totalExpenses} invert={true} subtitleText={subtitleText} />
               <p className="text-xs text-zinc-700 mt-2 font-medium">Manual entries & shipping costs</p>
             </CardContent>
           </Card>
@@ -162,7 +164,7 @@ export default async function AnalyticsPage(props: {
               <div className="text-3xl font-bold tracking-tight text-amber-950">
                 EGP {insights.pendingEscrow.toLocaleString()}
               </div>
-              <VelocityBadge delta={velocity.pendingEscrow} />
+              <VelocityBadge delta={velocity.pendingEscrow} subtitleText={subtitleText} />
               <p className="text-xs text-amber-700 mt-2 font-medium">Cash held by couriers / in transit.</p>
             </CardContent>
           </Card>
