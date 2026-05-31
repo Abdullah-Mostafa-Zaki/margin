@@ -31,6 +31,7 @@ interface DescriptionCategoryRule {
 }
 
 interface SheetRuleset {
+  orientation: "vertical" | "horizontal";
   dataStartRow: number;
   dataEndRow: number | "last";
   skipRowWhere: SkipRowWhere | null;
@@ -118,6 +119,10 @@ ${JSON.stringify(fingerprint.sample, null, 2)}
 
 IMPORTANT INSTRUCTIONS:
 - Analyze the sheet sample carefully before responding.
+- Detect the orientation of the sheet:
+  - If it's a standard format where each row is a transaction, set "orientation": "vertical".
+  - If it's transposed (each column is a transaction, e.g., row 1 = descriptions, row 2 = amounts), set "orientation": "horizontal".
+- If orientation is "horizontal", imagine the data is transposed so the first column becomes the new headers. Map the "columns" indices to these new headers (e.g., if the first column has 'Description' at row 0 and 'Amount' at row 1, then columns.description=0, columns.amount=1). The dataStartRow and dataEndRow will apply to the transposed rows (which were originally columns).
 - Support Arabic and English column names equally.
 - Column indices are 0-based and correspond to the order of the Column Headers array above.
 - If income/expense is expressed as positive/negative numbers in a single amount column, set "directionFromSign": true and "columns.direction": null.
@@ -137,6 +142,7 @@ Expense: "Raw Materials", "Packaging", "Logistics (Shipping)", "Ads", "Content C
 
 Return this exact JSON shape:
 {
+  "orientation": "vertical" | "horizontal",
   "dataStartRow": number,
   "dataEndRow": number | "last",
   "skipRowWhere": {
@@ -217,6 +223,7 @@ async function detectStructure(
 
     // Sanity-check required fields with null fallbacks
     return {
+      orientation: parsed.orientation === "horizontal" ? "horizontal" : "vertical",
       dataStartRow: typeof parsed.dataStartRow === "number" ? parsed.dataStartRow : 1,
       dataEndRow: parsed.dataEndRow ?? "last",
       skipRowWhere: parsed.skipRowWhere ?? null,
@@ -339,6 +346,29 @@ function extractTransactions(
   rows: Record<string, any>[],
   ruleset: SheetRuleset
 ): any[] {
+  // ── Transpose if horizontal ──
+  if (ruleset.orientation === "horizontal" && headers.length > 0) {
+    const tHeaders: string[] = [headers[0]];
+    for (const row of rows) {
+      const val = row[headers[0]];
+      tHeaders.push(val ? String(val).trim() : `Column_${tHeaders.length}`);
+    }
+
+    const tRows: Record<string, any>[] = [];
+    for (let i = 1; i < headers.length; i++) {
+      const originalHeader = headers[i];
+      const newRow: Record<string, any> = {};
+      newRow[tHeaders[0]] = originalHeader;
+      for (let r = 0; r < rows.length; r++) {
+        newRow[tHeaders[r + 1]] = rows[r][originalHeader];
+      }
+      tRows.push(newRow);
+    }
+    
+    headers = tHeaders;
+    rows = tRows;
+  }
+
   const transactions: any[] = [];
 
   // Determine row range
@@ -516,6 +546,79 @@ function extractTransactions(
 }
 
 // ────────────────────────────────────────────────────────────────────
+// Pass 1 Alternative — Direct One-Pass Extraction (for <= 200 rows)
+// ────────────────────────────────────────────────────────────────────
+
+async function extractTransactionsDirect(groq: Groq, headers: string[], rows: Record<string, any>[]): Promise<any[]> {
+  // Format sheet as text table
+  let tableStr = headers.join(" | ") + "\n" + headers.map(() => "---").join(" | ") + "\n";
+  for (const row of rows) {
+    const rowValues = headers.map(h => {
+      const v = row[h];
+      return v !== null && v !== undefined ? String(v).trim() : "";
+    });
+    tableStr += rowValues.join(" | ") + "\n";
+  }
+
+  const prompt = `This is a financial spreadsheet from an Egyptian clothing brand. It may have any structure — vertical, horizontal, Arabic, English, mixed, with or without headers, with summary rows, with merged cells. 
+Read the entire sheet, understand what it contains, and extract every financial transaction you can identify.
+
+Valid categories to map to:
+Income: "Sales Revenue", "Pop-up/Bazaar Sales", "Wholesale/B2B", "Supplier Refund", "Other"
+Expense: "Raw Materials", "Packaging", "Logistics (Shipping)", "Ads", "Content Creation", "Other"
+
+Valid payment methods: "CASH", "CARD", "INSTAPAY", "COD"
+
+Return ONLY a JSON object containing a "transactions" array with this exact schema for each transaction:
+{
+  "date": "YYYY-MM-DD", // default to today if unknown
+  "description": string, // map to "Unknown charge" if missing
+  "amount": number, // positive absolute value
+  "type": "INCOME" | "EXPENSE",
+  "category": string, // map to one of the Valid categories
+  "paymentMethod": string, // default "CASH". Cannot be COD for EXPENSE
+  "confidence": "high" | "medium" | "low", // use medium/low if fields were defaulted
+  "confidenceNote": string | null
+}
+
+Data:
+${tableStr}`;
+
+  let responseText = "";
+  try {
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      response_format: { type: "json_object" },
+      messages: [{ role: "user", content: prompt }],
+    });
+    responseText = completion.choices[0]?.message?.content ?? "";
+  } catch (err: any) {
+    console.warn("🔴 [CSV Direct] Groq JSON mode failed, retrying without response_format:", err.message);
+    try {
+      const completion = await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: prompt }],
+      });
+      responseText = completion.choices[0]?.message?.content ?? "";
+    } catch (retryErr: any) {
+      console.error("🔴 [CSV Direct] Groq retry also failed:", retryErr.message);
+      return [];
+    }
+  }
+
+  responseText = responseText.replace(/```json/gi, "").replace(/```/g, "").trim();
+  if (!responseText) return [];
+
+  try {
+    const parsed = JSON.parse(responseText);
+    return Array.isArray(parsed.transactions) ? parsed.transactions : [];
+  } catch (e) {
+    console.error("🔴 [CSV Direct] Failed to parse transactions JSON:", e);
+    return [];
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────
 // Route handler
 // ────────────────────────────────────────────────────────────────────
 
@@ -599,27 +702,35 @@ export async function POST(
       }
       const groq = new Groq({ apiKey });
 
-      // Pass 1: Build fingerprint & detect structure
-      const fingerprint = buildFingerprint(headers, rows);
-      console.log("📋 [CSV Pass1] Fingerprint built:", fingerprint.sample.length, "sample rows");
+      if (rows.length <= 200) {
+        // ═══════════════════════════════════════════════════════════════
+        // Flexible path — Direct One-Pass Extraction (<= 200 rows)
+        // ═══════════════════════════════════════════════════════════════
+        console.log(`📋 [CSV Direct] Sending ${rows.length} rows directly to Groq for one-pass extraction.`);
+        const directTransactions = await extractTransactionsDirect(groq, headers, rows);
+        allTransactions.push(...directTransactions);
+        console.log(`✅ [CSV Direct] Extracted ${directTransactions.length} transactions via one-pass`);
+      } else {
+        // ═══════════════════════════════════════════════════════════════
+        // Flexible path — Two-Pass Structure Detection (> 200 rows)
+        // ═══════════════════════════════════════════════════════════════
+        console.log(`📋 [CSV Pass1] Fallback two-pass extraction for large sheet (${rows.length} rows)`);
+        
+        const fingerprint = buildFingerprint(headers, rows);
+        const ruleset = await detectStructure(groq, fingerprint);
 
-      const ruleset = await detectStructure(groq, fingerprint);
+        if (!ruleset) {
+          console.error("🔴 [CSV] Structure detection failed — returning empty");
+          return NextResponse.json({
+            transactions: [],
+            error: "Failed to analyze spreadsheet structure. Please try a different format.",
+          });
+        }
 
-      if (!ruleset) {
-        console.error("🔴 [CSV] Structure detection failed — returning empty");
-        return NextResponse.json({
-          transactions: [],
-          error: "Failed to analyze spreadsheet structure. Please try a different format.",
-        });
+        const extracted = extractTransactions(headers, rows, ruleset);
+        allTransactions.push(...extracted);
+        console.log(`✅ [CSV Pass2] Extracted ${extracted.length} transactions from ${rows.length} rows`);
       }
-
-      console.log("✅ [CSV Pass1] Ruleset detected:", JSON.stringify(ruleset, null, 2));
-
-      // Pass 2: Deterministic extraction
-      const extracted = extractTransactions(headers, rows, ruleset);
-      allTransactions.push(...extracted);
-
-      console.log(`✅ [CSV Pass2] Extracted ${extracted.length} transactions from ${rows.length} rows`);
     }
 
     return NextResponse.json({ transactions: allTransactions });

@@ -64,6 +64,28 @@ function mapCategory(raw, categoryMap) {
 }
 
 function extractTransactions(headers, rows, ruleset) {
+  if (ruleset.orientation === "horizontal" && headers.length > 0) {
+    const tHeaders = [headers[0]];
+    for (const row of rows) {
+      const val = row[headers[0]];
+      tHeaders.push(val ? String(val).trim() : `Column_${tHeaders.length}`);
+    }
+
+    const tRows = [];
+    for (let i = 1; i < headers.length; i++) {
+      const originalHeader = headers[i];
+      const newRow = {};
+      newRow[tHeaders[0]] = originalHeader;
+      for (let r = 0; r < rows.length; r++) {
+        newRow[tHeaders[r + 1]] = rows[r][originalHeader];
+      }
+      tRows.push(newRow);
+    }
+    
+    headers = tHeaders;
+    rows = tRows;
+  }
+
   const transactions = [];
   const startRow = ruleset.dataStartRow;
   const endRow = ruleset.dataEndRow === "last" ? rows.length : ruleset.dataEndRow;
@@ -304,3 +326,40 @@ const test4Ruleset = {
 const test4Result = extractTransactions(test4Headers, test4Rows, test4Ruleset);
 console.log(JSON.stringify(test4Result, null, 2));
 console.log(`\nTest 4: ${test4Result.length} transactions`);
+
+// ══════════════════════════════════════════════════════════════════
+// Test 5 — Transposed Horizontal Sheet
+// ══════════════════════════════════════════════════════════════════
+
+console.log("\n═══ TEST 5: Transposed Horizontal Sheet ═══\n");
+
+const test5Headers = ["Description", "Fabric Sourcing", "Website Sales", "Facebook Ads"];
+const test5Rows = [
+  { "Description": "Amount", "Fabric Sourcing": "-2500", "Website Sales": "4500", "Facebook Ads": "-800" }
+];
+
+const test5Ruleset = {
+  orientation: "horizontal",
+  dataStartRow: 0,
+  dataEndRow: "last",
+  skipRowWhere: null,
+  skipEmptyAmounts: true,
+  amountMode: "single",
+  // In the transposed data, headers become: ["Description", "Amount"]
+  // So description is at index 0, amount is at index 1
+  columns: { date: null, description: 0, amount: 1, debit: null, credit: null, direction: null, category: null, paymentMethod: null },
+  directionMap: {},
+  directionFromSign: true,
+  categoryMap: {},
+  descriptionToCategoryRules: [
+    { keywords: ["fabric"], category: "Raw Materials" },
+    { keywords: ["sales"], category: "Sales Revenue" },
+    { keywords: ["ads"], category: "Ads" }
+  ],
+  defaultPaymentMethod: "CASH",
+};
+
+const test5Result = extractTransactions(test5Headers, test5Rows, test5Ruleset);
+console.log(JSON.stringify(test5Result, null, 2));
+console.log(`\nTest 5: ${test5Result.length} transactions`);
+
