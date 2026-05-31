@@ -84,6 +84,9 @@ Standard Fields needed:
 - typeIncomeValue: If typeCol exists, what value indicates INCOME (e.g. "Deposit", "Credit").
 - typeExpenseValue: If typeCol exists, what value indicates EXPENSE (e.g. "Withdrawal", "Debit").
 - categoryCol: The exact name of the column containing the category, if any.
+- categoryValueMapping: A JSON object mapping the raw category values found in the CSV to our exact valid categories.
+  Valid categories are ONLY: "Sales Revenue", "Pop-up/Bazaar Sales", "Wholesale/B2B", "Supplier Refund", "Raw Materials", "Packaging", "Logistics (Shipping)", "Ads", "Content Creation", "Other".
+  Explicitly apply these mappings if you see them: "Sales" -> "Sales Revenue", "Materials" -> "Raw Materials", "Logistics" -> "Logistics (Shipping)", "Shipping" -> "Logistics (Shipping)", "Marketing" -> "Ads", "Production" -> "Raw Materials", "Operations" -> "Other". Include these exact mappings and any others you infer.
 - paymentMethodCol: The exact name of the column containing the payment method, if any.
 
 Return ONLY a JSON object exactly like this (use null if a column doesn't exist):
@@ -96,7 +99,8 @@ Return ONLY a JSON object exactly like this (use null if a column doesn't exist)
     "typeIncomeValue": string | null,
     "typeExpenseValue": string | null,
     "categoryCol": string | null,
-    "paymentMethodCol": string | null
+    "paymentMethodCol": string | null,
+    "categoryValueMapping": { "raw_value": "Valid Category" } | null
   }
 }`;
 
@@ -155,9 +159,17 @@ Return ONLY a JSON object exactly like this (use null if a column doesn't exist)
 
         let dateStr = new Date().toISOString().split('T')[0];
         if (mapping.dateCol && row[mapping.dateCol]) {
-            const d = new Date(row[mapping.dateCol]);
-            if (!isNaN(d.getTime())) {
-                dateStr = d.toISOString().split('T')[0];
+            const dVal = row[mapping.dateCol];
+            if (!isNaN(Number(dVal)) && Number(dVal) > 10000 && Number(dVal) < 100000) {
+               // Excel serial date (days since Dec 30, 1899)
+               const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+               const d = new Date(excelEpoch.getTime() + (Number(dVal) + 1) * 86400000);
+               dateStr = d.toISOString().split('T')[0];
+            } else {
+               const d = new Date(dVal);
+               if (!isNaN(d.getTime())) {
+                   dateStr = d.toISOString().split('T')[0];
+               }
             }
         }
 
@@ -177,8 +189,26 @@ Return ONLY a JSON object exactly like this (use null if a column doesn't exist)
         const validCategories = ["Sales Revenue", "Pop-up/Bazaar Sales", "Wholesale/B2B", "Supplier Refund", "Raw Materials", "Packaging", "Logistics (Shipping)", "Ads", "Content Creation", "Other"];
         let category = "Other";
         if (mapping.categoryCol && row[mapping.categoryCol]) {
-            const catStr = String(row[mapping.categoryCol]);
-            const match = validCategories.find(c => c.toLowerCase() === catStr.toLowerCase());
+            const rawCat = String(row[mapping.categoryCol]);
+            let mappedCat = rawCat;
+            
+            if (mapping.categoryValueMapping) {
+                // Try exact match first
+                if (mapping.categoryValueMapping[rawCat]) {
+                    mappedCat = mapping.categoryValueMapping[rawCat];
+                } else {
+                    // Try case-insensitive match
+                    const lowerRaw = rawCat.toLowerCase();
+                    for (const [key, val] of Object.entries(mapping.categoryValueMapping)) {
+                        if (key.toLowerCase() === lowerRaw) {
+                            mappedCat = String(val);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            const match = validCategories.find(c => c.toLowerCase() === mappedCat.toLowerCase());
             if (match) category = match;
         }
 
