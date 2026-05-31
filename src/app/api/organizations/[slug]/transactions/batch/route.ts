@@ -45,8 +45,6 @@ export async function POST(
     const body = await request.json();
     const { transactions } = body;
 
-    console.log("FIRST INCOMING TX:", JSON.stringify(transactions[0], null, 2));
-
     if (!transactions || !Array.isArray(transactions) || transactions.length === 0) {
       return NextResponse.json({ error: "No transactions provided" }, { status: 400 });
     }
