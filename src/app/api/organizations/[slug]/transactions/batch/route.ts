@@ -45,46 +45,63 @@ export async function POST(
     const body = await request.json();
     const { transactions } = body;
 
+    console.log("FIRST INCOMING TX:", JSON.stringify(transactions[0], null, 2));
+
     if (!transactions || !Array.isArray(transactions) || transactions.length === 0) {
       return NextResponse.json({ error: "No transactions provided" }, { status: 400 });
     }
 
-    const createdTransactions = [];
-
-    // Create transactions in the database
-    // We use a loop instead of createMany to handle any complex relations or triggers if needed,
-    // though createMany is also fine. Let's use a transaction block for safety.
-    await prisma.$transaction(async (tx) => {
-      for (const t of transactions) {
-        // Enforce basic validation
-        if (!t.amount || !t.type || !t.category || !t.paymentMethod) {
-            continue; // Skip invalid rows or handle error
-        }
-
-        let status: "PENDING" | "RECEIVED" | "RETURNED" = "RECEIVED";
-        if (t.paymentMethod === "COD") {
-            status = "PENDING";
-        }
-
-        const newTx = await tx.transaction.create({
-          data: {
-            organizationId: org.id,
-            createdById: user.id,
-            type: t.type === "INCOME" ? "INCOME" : "EXPENSE",
-            amount: t.amount,
-            date: new Date(t.date || new Date()),
-            category: t.category,
-            paymentMethod: ["CASH", "CARD", "INSTAPAY", "COD"].includes(t.paymentMethod) ? t.paymentMethod : "CASH",
-            status,
-            notes: t.description || null,
-            receiptUrl: t.imageUrl || null,
-          }
-        });
-        createdTransactions.push(newTx);
+    // Create transactions in the database using Promise.all for concurrent execution
+    // without wrapping in an interactive transaction to prevent timeouts on large datasets.
+    const createPromises = transactions.map(async (t: any) => {
+      // Enforce basic validation
+      const amountNum = Number(t.amount);
+      if (isNaN(amountNum) || amountNum === 0 || !t.type || !t.category || !t.paymentMethod) {
+          return null; // Skip invalid rows
       }
+
+      let status: "PENDING" | "RECEIVED" | "RETURNED" = "RECEIVED";
+      if (String(t.paymentMethod).toUpperCase() === "COD") {
+          status = "PENDING";
+      }
+
+      return prisma.transaction.create({
+        data: {
+          organizationId: org.id,
+          createdById: user.id,
+          type: String(t.type).toUpperCase() === "INCOME" ? "INCOME" : "EXPENSE",
+          amount: amountNum,
+          date: new Date(t.date || new Date()),
+          category: String(t.category),
+          paymentMethod: ["CASH", "CARD", "INSTAPAY", "COD"].includes(String(t.paymentMethod).toUpperCase()) 
+            ? (String(t.paymentMethod).toUpperCase() as any) 
+            : "CASH",
+          status,
+          fulfillmentStatus: ["UNFULFILLED", "SHIPPED", "DELIVERED", "RETURNED"].includes(String(t.fulfillmentStatus).toUpperCase()) 
+            ? (String(t.fulfillmentStatus).toUpperCase() as any) 
+            : "UNFULFILLED",
+          notes: t.description ? String(t.description) : null,
+          receiptUrl: t.imageUrl ? String(t.imageUrl) : null,
+        }
+      });
     });
 
-    return NextResponse.json({ success: true, count: createdTransactions.length });
+    const results = await Promise.allSettled(createPromises);
+    
+    // Filter out skipped rows (nulls) and failed promises
+    const successfulTransactions = results
+      .filter((r) => r.status === "fulfilled" && r.value !== null)
+      .map((r: any) => r.value);
+    
+    const errors = results
+      .filter((r) => r.status === "rejected")
+      .map((r: any) => r.reason);
+
+    if (errors.length > 0) {
+      console.warn("Some transactions failed to import:", errors);
+    }
+
+    return NextResponse.json({ success: true, count: successfulTransactions.length });
 
   } catch (error: any) {
     console.error("batch write error:", error);

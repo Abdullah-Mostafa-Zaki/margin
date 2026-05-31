@@ -51,6 +51,17 @@ export async function POST(
       // Deterministic Shopify parsing
       const grouped = groupShopifyRows(rows) as any[];
       for (const t of grouped) {
+        let fStatus = "UNFULFILLED";
+        if (t.finStatus === "refunded") {
+            fStatus = "RETURNED";
+        } else if (t.fulfillmentStatus === "fulfilled") {
+            fStatus = "DELIVERED";
+        } else if (t.fulfillmentStatus === "unfulfilled") {
+            fStatus = "UNFULFILLED";
+        } else if (t.fulfillmentStatus === "in transit" || t.fulfillmentStatus === "partial") {
+            fStatus = "SHIPPED";
+        }
+
         allTransactions.push({
           date: t.date ? new Date(t.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           description: `Shopify Order #${t.shopifyOrderId}`,
@@ -58,6 +69,7 @@ export async function POST(
           type: "INCOME",
           category: "Sales Revenue",
           paymentMethod: ["CASH", "CARD", "INSTAPAY", "COD"].includes(t.paymentMethod) ? t.paymentMethod : "CARD",
+          fulfillmentStatus: fStatus,
           confidence: "high",
           confidenceNote: null
         });

@@ -22,6 +22,7 @@ export interface UnifiedTransaction {
   type: "INCOME" | "EXPENSE";
   category: string;
   paymentMethod: "CASH" | "CARD" | "INSTAPAY" | "COD";
+  fulfillmentStatus?: "UNFULFILLED" | "SHIPPED" | "DELIVERED" | "RETURNED";
   confidence: "high" | "medium" | "low";
   confidenceNote?: string;
   imageUrl?: string;

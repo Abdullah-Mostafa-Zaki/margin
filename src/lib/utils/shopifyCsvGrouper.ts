@@ -7,6 +7,7 @@ export function groupShopifyRows(rows: Record<string, string>[]): unknown[] {
 
     if (!acc[nameStr]) {
       const finStatus = row["Financial Status"]?.trim().toLowerCase() || "";
+      const fulfillmentStatus = row["Fulfillment Status"]?.trim().toLowerCase() || "";
       const paymentMethod = finStatus === "paid" ? "CARD" : "COD";
 
       acc[nameStr] = {
@@ -15,6 +16,8 @@ export function groupShopifyRows(rows: Record<string, string>[]): unknown[] {
         amount: row["Total"]?.trim() || "0", 
         date: row["Created at"]?.trim() || "",
         paymentMethod,
+        finStatus,
+        fulfillmentStatus,
         lineItems: []
       };
     }
