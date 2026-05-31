@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { completeOnboarding } from "@/actions/onboarding.actions";
 import { Loader2, Zap } from "lucide-react";
+import { BostaConnectForm } from "@/components/settings/bosta-connect-form";
 
 export function OnboardingWizard() {
   const [step, setStep] = useState(1);
@@ -14,6 +15,8 @@ export function OnboardingWizard() {
     startingCapital: 0,
     shopifyWebhookUrl: "",
     shopifyWebhookSecret: "",
+    bostaEmail: "",
+    bostaPassword: "",
     firstDropName: "",
   });
 
@@ -40,7 +43,7 @@ export function OnboardingWizard() {
     <div className="w-full max-w-md rounded-xl border bg-card p-8 shadow-sm">
       {/* Progress Bar */}
       <div className="mb-8 flex gap-2">
-        {[1, 2, 3, 4].map((i) => (
+        {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className={`h-2 flex-1 rounded-full ${step >= i ? "bg-primary" : "bg-muted"}`} />
         ))}
       </div>
@@ -189,6 +192,54 @@ export function OnboardingWizard() {
       )}
 
       {step === 4 && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">Do you want to connect Bosta?</h1>
+            <p className="text-sm text-muted-foreground mt-2">Automatically track your COD shipments and cash flow.</p>
+          </div>
+          
+          <div className="border rounded-lg overflow-hidden">
+            <BostaConnectForm 
+              onCredentialsSubmit={async (email, pass) => {
+                const { testBostaCredentials } = await import("@/actions/bosta.actions");
+                const res = await testBostaCredentials(email, pass);
+                if (res.success) {
+                  setFormData(prev => ({ ...prev, bostaEmail: email, bostaPassword: pass }));
+                }
+                return res;
+              }}
+            />
+          </div>
+
+          <div className="flex flex-col pt-2">
+            <div className="flex justify-between gap-3">
+              <button
+                onClick={handleBack}
+                className="h-10 px-4 rounded-md border border-input bg-transparent text-sm font-medium hover:bg-muted transition-colors"
+              >
+                Go Back
+              </button>
+              <button
+                onClick={handleNext}
+                disabled={!formData.bostaEmail}
+                className="h-10 flex-1 rounded-md bg-red-600 border border-red-600 text-white font-medium hover:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Continue with Bosta
+              </button>
+            </div>
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={handleNext}
+                className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+              >
+                Skip for now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {step === 5 && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
           <div className="text-center">
             <h1 className="text-2xl font-bold">Your First Drop</h1>

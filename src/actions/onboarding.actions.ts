@@ -10,8 +10,10 @@ export async function completeOnboarding(data: {
   courierFee: number;
   startingCapital: number;
   firstDropName: string;
-  shopifyWebhookUrl?: string; // <-- Added
-  shopifyWebhookSecret?: string;  // <-- Added
+  shopifyWebhookUrl?: string;
+  shopifyWebhookSecret?: string;
+  bostaEmail?: string;
+  bostaPassword?: string;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
@@ -63,6 +65,15 @@ export async function completeOnboarding(data: {
         createdById: user.id,
       }
     });
+  }
+
+  // 4. Connect Bosta if provided
+  if (data.bostaEmail && data.bostaPassword) {
+    // We already have `connectBostaAccount` from bosta.actions.ts, but wait, `bosta.actions.ts` is in another module.
+    // Instead of importing `connectBostaAccount` and dealing with circular dependencies, we can just fetch here
+    // or better, since we are in `onboarding.actions.ts` we can import it.
+    const { connectBostaAccount } = await import('./bosta.actions');
+    await connectBostaAccount(data.bostaEmail, data.bostaPassword, newOrg.id);
   }
 
   redirect(`/${newOrg.slug}`);

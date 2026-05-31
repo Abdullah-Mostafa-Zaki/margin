@@ -138,7 +138,7 @@ export function DateRangePicker() {
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="w-auto p-3 flex flex-col gap-3 z-[100]" align="end">
                 <Calendar
                   initialFocus
                   mode="range"
@@ -147,28 +147,40 @@ export function DateRangePicker() {
                   onSelect={setDate}
                   numberOfMonths={2}
                 />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleCustomApply}
+                    disabled={!date?.from || !date?.to || isPending}
+                    className="h-9 px-4 rounded-lg bg-emerald-600 text-white text-xs font-semibold disabled:opacity-40 hover:bg-emerald-700 transition-colors"
+                  >
+                    Apply
+                  </button>
+                </div>
               </PopoverContent>
             </Popover>
           ) : (
-            <div className="w-full bg-white rounded-xl border shadow-sm overflow-hidden flex justify-center p-2">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={date?.from}
-                selected={date}
-                onSelect={setDate}
-                numberOfMonths={1}
-              />
+            <div className="flex flex-col gap-2 w-full">
+              <div className="w-full bg-white rounded-xl border shadow-sm overflow-visible flex justify-center p-2 z-[100]">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={date?.from}
+                  selected={date}
+                  onSelect={setDate}
+                  numberOfMonths={1}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleCustomApply}
+                disabled={!date?.from || !date?.to || isPending}
+                className="h-10 w-full px-3 rounded-lg bg-emerald-600 text-white text-sm font-semibold disabled:opacity-40 shrink-0 hover:bg-emerald-700 transition-colors mb-4"
+              >
+                Apply
+              </button>
             </div>
           )}
-          <button
-            type="button"
-            onClick={handleCustomApply}
-            disabled={!date?.from || !date?.to || isPending}
-            className="h-9 w-full sm:w-auto px-3 rounded-lg bg-emerald-600 text-white text-xs font-semibold disabled:opacity-40 shrink-0 hover:bg-emerald-700 transition-colors"
-          >
-            Apply
-          </button>
         </div>
       )}
     </div>

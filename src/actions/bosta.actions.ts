@@ -11,6 +11,24 @@ const formatAuthHeader = (token: string) => {
 };
 
 /**
+ * Tests Bosta credentials without saving to the database.
+ */
+export async function testBostaCredentials(email: string, password: string) {
+  try {
+    const response = await fetch("https://app.bosta.co/api/v2/users/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!response.ok) return { success: false, error: "Invalid Bosta credentials" };
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "An error occurred connecting to Bosta." };
+  }
+}
+
+/**
  * Connects a Bosta account and stores the initial tokens.
  */
 export async function connectBostaAccount(email: string, password: string, orgId: string) {

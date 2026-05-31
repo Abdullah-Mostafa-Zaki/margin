@@ -8,7 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { CheckCircle2, Loader2, Truck } from "lucide-react";
 
-export function BostaConnectForm({ orgId, isConnectedInitially }: { orgId: string, isConnectedInitially: boolean }) {
+export function BostaConnectForm({ 
+  orgId, 
+  isConnectedInitially,
+  onCredentialsSubmit 
+}: { 
+  orgId?: string, 
+  isConnectedInitially?: boolean,
+  onCredentialsSubmit?: (email: string, pass: string) => Promise<{success: boolean, error?: string}> 
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -22,12 +30,22 @@ export function BostaConnectForm({ orgId, isConnectedInitially }: { orgId: strin
     setError(null);
 
     try {
-      const result = await connectBostaAccount(email, password, orgId);
-      if (result.success) {
-        setIsConnected(true);
-      } else {
-        setError(result.error || "Failed to connect to Bosta");
+      if (onCredentialsSubmit) {
+        const result = await onCredentialsSubmit(email, password);
+        if (result.success) {
+          setIsConnected(true);
+        } else {
+          setError(result.error || "Failed to connect to Bosta");
+        }
+      } else if (orgId) {
+        const result = await connectBostaAccount(email, password, orgId);
+        if (result.success) {
+          setIsConnected(true);
+        } else {
+          setError(result.error || "Failed to connect to Bosta");
+        }
       }
+
     } catch (err) {
       setError("An unexpected error occurred");
     } finally {
@@ -39,14 +57,21 @@ export function BostaConnectForm({ orgId, isConnectedInitially }: { orgId: strin
     setIsDisconnecting(true);
     setError(null);
     try {
-      const result = await disconnectBostaAccount(orgId);
-      if (result.success) {
+      if (onCredentialsSubmit) {
         setIsConnected(false);
         setEmail("");
         setPassword("");
-      } else {
-        setError(result.error || "Failed to disconnect");
+      } else if (orgId) {
+        const result = await disconnectBostaAccount(orgId);
+        if (result.success) {
+          setIsConnected(false);
+          setEmail("");
+          setPassword("");
+        } else {
+          setError(result.error || "Failed to disconnect");
+        }
       }
+
     } catch (err) {
       setError("An unexpected error occurred");
     } finally {
