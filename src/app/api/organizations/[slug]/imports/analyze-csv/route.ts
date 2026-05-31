@@ -5,6 +5,495 @@ import prisma from "@/lib/prisma";
 import Groq from "groq-sdk";
 import { groupShopifyRows } from "@/lib/utils/shopifyCsvGrouper";
 
+// ────────────────────────────────────────────────────────────────────
+// Types
+// ────────────────────────────────────────────────────────────────────
+
+interface SkipRowWhere {
+  columnIndex: number;
+  valueMatchesAny: string[];
+}
+
+interface ColumnMap {
+  date: number | null;
+  description: number | null;
+  amount: number | null;
+  debit: number | null;
+  credit: number | null;
+  direction: number | null;
+  category: number | null;
+  paymentMethod: number | null;
+}
+
+interface SheetRuleset {
+  dataStartRow: number;
+  dataEndRow: number | "last";
+  skipRowWhere: SkipRowWhere | null;
+  skipEmptyAmounts: boolean;
+  amountMode: "single" | "debit_credit";
+  columns: ColumnMap;
+  directionMap: Record<string, string>;
+  directionFromSign: boolean;
+  categoryMap: Record<string, string>;
+  defaultPaymentMethod: "CASH" | "CARD" | "INSTAPAY" | "COD";
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Valid categories enum
+// ────────────────────────────────────────────────────────────────────
+
+const VALID_CATEGORIES = [
+  "Sales Revenue",
+  "Pop-up/Bazaar Sales",
+  "Wholesale/B2B",
+  "Supplier Refund",
+  "Raw Materials",
+  "Packaging",
+  "Logistics (Shipping)",
+  "Ads",
+  "Content Creation",
+  "Other",
+];
+
+const VALID_PAYMENT_METHODS = ["CASH", "CARD", "INSTAPAY", "COD"];
+
+// ────────────────────────────────────────────────────────────────────
+// Pass 1 — Build sheet fingerprint & call Groq for structure detection
+// ────────────────────────────────────────────────────────────────────
+
+function buildFingerprint(
+  headers: string[],
+  rows: Record<string, any>[]
+): { headers: string[]; sample: Record<string, any>[] } {
+  // Convert rows to arrays of values for index-based access later, but
+  // for the fingerprint we keep the key-value format the AI can read.
+
+  const first8 = rows.slice(0, 8);
+  const last3 = rows.length > 8 ? rows.slice(-3) : [];
+
+  // Detect "label rows" — rows where the first cell looks like a
+  // non-data label (non-numeric, non-date, non-empty, short string).
+  const labelRows: Record<string, any>[] = [];
+  const firstKey = headers[0];
+  for (let i = 8; i < rows.length - 3; i++) {
+    const val = rows[i]?.[firstKey];
+    if (!val) continue;
+    const s = String(val).trim();
+    if (s.length === 0) continue;
+    // Not a number, not a date-like string, and short
+    if (!isNaN(Number(s))) continue;
+    if (/^\d{4}[/-]\d{2}[/-]\d{2}/.test(s)) continue;
+    if (s.length < 50) {
+      labelRows.push(rows[i]);
+      if (labelRows.length >= 5) break; // cap
+    }
+  }
+
+  // Deduplicate: remove any last3 rows that are already in first8
+  const seen = new Set(first8.map((r) => JSON.stringify(r)));
+  const uniqueLast3 = last3.filter((r) => !seen.has(JSON.stringify(r)));
+  const uniqueLabels = labelRows.filter((r) => !seen.has(JSON.stringify(r)));
+
+  return {
+    headers,
+    sample: [...first8, ...uniqueLabels, ...uniqueLast3],
+  };
+}
+
+function buildStructurePrompt(fingerprint: {
+  headers: string[];
+  sample: Record<string, any>[];
+}): string {
+  return `You are a spreadsheet structure analyzer. Given the column headers and a sample of rows from a financial spreadsheet, determine the sheet's structure and return a JSON ruleset.
+
+Column Headers: ${JSON.stringify(fingerprint.headers)}
+Sample Rows (first 8 rows, any detected label rows from the middle, last 3 rows):
+${JSON.stringify(fingerprint.sample, null, 2)}
+
+IMPORTANT INSTRUCTIONS:
+- Analyze the sheet sample carefully before responding.
+- Support Arabic and English column names equally.
+- Column indices are 0-based and correspond to the order of the Column Headers array above.
+- If income/expense is expressed as positive/negative numbers in a single amount column, set "directionFromSign": true and "columns.direction": null.
+- If there are separate debit/credit columns, set "amountMode": "debit_credit" and populate "columns.debit" and "columns.credit" with their column indices.
+- Identify and exclude summary/total rows at the bottom by setting "dataEndRow" to the correct 0-based row index (exclusive). Use "last" if data goes to the end.
+- Identify mid-sheet label rows (section headers like "May Expenses", "مصاريف مايو") and add their patterns to "skipRowWhere.valueMatchesAny".
+- Always include these in "skipRowWhere.valueMatchesAny": ["total", "إجمالي", "المجموع", "subtotal", "الإجمالي"]
+- Build "categoryMap" based on actual values found in the sample rows, mapping them to valid categories.
+- Build "directionMap" based on actual direction/type values found in the sample rows.
+- Return ONLY a raw JSON object — no markdown fences, no prose, no explanation.
+- Every field must have a value — use null for missing columns, never omit a field.
+
+Valid categories to map to:
+Income: "Sales Revenue", "Pop-up/Bazaar Sales", "Wholesale/B2B", "Supplier Refund", "Other"
+Expense: "Raw Materials", "Packaging", "Logistics (Shipping)", "Ads", "Content Creation", "Other"
+
+Return this exact JSON shape:
+{
+  "dataStartRow": number,
+  "dataEndRow": number | "last",
+  "skipRowWhere": {
+    "columnIndex": number,
+    "valueMatchesAny": ["total", "إجمالي", "المجموع", "subtotal", "الإجمالي", ...]
+  },
+  "skipEmptyAmounts": true,
+  "amountMode": "single" | "debit_credit",
+  "columns": {
+    "date": number | null,
+    "description": number | null,
+    "amount": number | null,
+    "debit": number | null,
+    "credit": number | null,
+    "direction": number | null,
+    "category": number | null,
+    "paymentMethod": number | null
+  },
+  "directionMap": {
+    "in": "INCOME",
+    "out": "EXPENSE",
+    "income": "INCOME",
+    "expense": "EXPENSE",
+    "دخل": "INCOME",
+    "مصروف": "EXPENSE",
+    "إيراد": "INCOME",
+    "مدفوعات": "EXPENSE"
+  },
+  "directionFromSign": boolean,
+  "categoryMap": { "raw_value": "Valid Category" },
+  "defaultPaymentMethod": "CASH" | "CARD" | "INSTAPAY" | "COD"
+}`;
+}
+
+async function detectStructure(
+  groq: Groq,
+  fingerprint: { headers: string[]; sample: Record<string, any>[] }
+): Promise<SheetRuleset | null> {
+  const prompt = buildStructurePrompt(fingerprint);
+
+  let responseText = "";
+  try {
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      response_format: { type: "json_object" },
+      messages: [{ role: "user", content: prompt }],
+    });
+    responseText = completion.choices[0]?.message?.content ?? "";
+  } catch (err: any) {
+    console.warn(
+      "🟡 [CSV Pass1] Groq JSON mode failed, retrying without response_format:",
+      err.message
+    );
+    try {
+      const completion = await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [{ role: "user", content: prompt }],
+      });
+      responseText = completion.choices[0]?.message?.content ?? "";
+    } catch (retryErr: any) {
+      console.error("🔴 [CSV Pass1] Groq retry also failed:", retryErr.message);
+      return null;
+    }
+  }
+
+  responseText = responseText
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
+
+  if (!responseText) return null;
+
+  try {
+    const parsed = JSON.parse(responseText) as SheetRuleset;
+
+    // Sanity-check required fields with null fallbacks
+    return {
+      dataStartRow: typeof parsed.dataStartRow === "number" ? parsed.dataStartRow : 1,
+      dataEndRow: parsed.dataEndRow ?? "last",
+      skipRowWhere: parsed.skipRowWhere ?? null,
+      skipEmptyAmounts: parsed.skipEmptyAmounts !== false,
+      amountMode: parsed.amountMode === "debit_credit" ? "debit_credit" : "single",
+      columns: {
+        date: parsed.columns?.date ?? null,
+        description: parsed.columns?.description ?? null,
+        amount: parsed.columns?.amount ?? null,
+        debit: parsed.columns?.debit ?? null,
+        credit: parsed.columns?.credit ?? null,
+        direction: parsed.columns?.direction ?? null,
+        category: parsed.columns?.category ?? null,
+        paymentMethod: parsed.columns?.paymentMethod ?? null,
+      },
+      directionMap: parsed.directionMap ?? {},
+      directionFromSign: parsed.directionFromSign === true,
+      categoryMap: parsed.categoryMap ?? {},
+      defaultPaymentMethod: VALID_PAYMENT_METHODS.includes(parsed.defaultPaymentMethod)
+        ? (parsed.defaultPaymentMethod as "CASH" | "CARD" | "INSTAPAY" | "COD")
+        : "CASH",
+    };
+  } catch (e) {
+    console.error("🔴 [CSV Pass1] Failed to parse ruleset JSON:", e);
+    return null;
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Pass 2 — Deterministic extraction using the ruleset
+// ────────────────────────────────────────────────────────────────────
+
+function parseDate(raw: any): string {
+  if (!raw) return new Date().toISOString().split("T")[0];
+  const s = String(raw).trim();
+  if (!s) return new Date().toISOString().split("T")[0];
+
+  // Excel serial date
+  const num = Number(s);
+  if (!isNaN(num) && num > 10000 && num < 100000) {
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+    const d = new Date(excelEpoch.getTime() + num * 86400000);
+    return d.toISOString().split("T")[0];
+  }
+
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    return d.toISOString().split("T")[0];
+  }
+
+  return new Date().toISOString().split("T")[0];
+}
+
+function parseAmount(raw: any): number {
+  if (raw == null) return 0;
+  const s = String(raw).replace(/[^0-9.\-]/g, "");
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
+function lookupCaseInsensitive(
+  map: Record<string, string>,
+  key: string
+): string | null {
+  const lower = key.toLowerCase().trim();
+  for (const [k, v] of Object.entries(map)) {
+    if (k.toLowerCase().trim() === lower) return v;
+  }
+  return null;
+}
+
+function mapCategory(
+  raw: string,
+  categoryMap: Record<string, string>
+): string {
+  if (!raw || !raw.trim()) return "Other";
+
+  // Try AI-built map first
+  const mapped = lookupCaseInsensitive(categoryMap, raw);
+  if (mapped) {
+    const valid = VALID_CATEGORIES.find(
+      (c) => c.toLowerCase() === mapped.toLowerCase()
+    );
+    if (valid) return valid;
+  }
+
+  // Hardcoded fallback
+  const hardcoded: Record<string, string> = {
+    sales: "Sales Revenue",
+    "b2c sales": "Sales Revenue",
+    "b2b sales": "Wholesale/B2B",
+    materials: "Raw Materials",
+    logistics: "Logistics (Shipping)",
+    shipping: "Logistics (Shipping)",
+    marketing: "Ads",
+    production: "Raw Materials",
+    operations: "Other",
+    مواد: "Raw Materials",
+    شحن: "Logistics (Shipping)",
+    إعلانات: "Ads",
+    تغليف: "Packaging",
+    مبيعات: "Sales Revenue",
+  };
+
+  const hc = hardcoded[raw.toLowerCase().trim()];
+  if (hc) return hc;
+
+  // Direct match against valid categories
+  const direct = VALID_CATEGORIES.find(
+    (c) => c.toLowerCase() === raw.toLowerCase().trim()
+  );
+  if (direct) return direct;
+
+  return "Other";
+}
+
+function extractTransactions(
+  headers: string[],
+  rows: Record<string, any>[],
+  ruleset: SheetRuleset
+): any[] {
+  const transactions: any[] = [];
+
+  // Determine row range
+  const startRow = ruleset.dataStartRow;
+  const endRow =
+    ruleset.dataEndRow === "last" ? rows.length : ruleset.dataEndRow;
+
+  // Pre-build lowercase skip values
+  const skipValues = (ruleset.skipRowWhere?.valueMatchesAny ?? []).map((v) =>
+    v.toLowerCase().trim()
+  );
+  const skipColIdx = ruleset.skipRowWhere?.columnIndex ?? 0;
+  const skipColHeader = headers[skipColIdx] ?? headers[0];
+
+  for (let i = startRow; i < endRow; i++) {
+    const row = rows[i];
+    if (!row || Object.keys(row).length === 0) continue;
+
+    // Get cell values by column index (using headers array order)
+    const cellByIdx = (idx: number | null): any => {
+      if (idx == null || idx < 0 || idx >= headers.length) return null;
+      return row[headers[idx]] ?? null;
+    };
+
+    // ── Skip row check ──
+    if (skipValues.length > 0) {
+      const checkVal = String(cellByIdx(skipColIdx) ?? "")
+        .toLowerCase()
+        .trim();
+      if (checkVal && skipValues.some((sv) => checkVal.includes(sv))) {
+        continue;
+      }
+    }
+
+    // ── Amount ──
+    let amount = 0;
+    let type: "INCOME" | "EXPENSE" = "EXPENSE";
+    let inferredFields = 0;
+    let defaultedFields = 0;
+
+    if (ruleset.amountMode === "debit_credit") {
+      const debitRaw = cellByIdx(ruleset.columns.debit);
+      const creditRaw = cellByIdx(ruleset.columns.credit);
+      const debitAmt = parseAmount(debitRaw);
+      const creditAmt = parseAmount(creditRaw);
+
+      if (creditAmt > 0) {
+        amount = creditAmt;
+        type = "INCOME";
+      } else if (debitAmt > 0) {
+        amount = debitAmt;
+        type = "EXPENSE";
+      } else {
+        // Both empty or zero
+        if (ruleset.skipEmptyAmounts) continue;
+        defaultedFields++;
+      }
+    } else {
+      // single amount mode
+      const rawAmt = parseAmount(cellByIdx(ruleset.columns.amount));
+
+      if (rawAmt === 0 && ruleset.skipEmptyAmounts) continue;
+
+      if (ruleset.directionFromSign) {
+        type = rawAmt >= 0 ? "INCOME" : "EXPENSE";
+        amount = Math.abs(rawAmt);
+      } else {
+        amount = Math.abs(rawAmt);
+        // Direction from direction column
+        const dirRaw = cellByIdx(ruleset.columns.direction);
+        if (dirRaw) {
+          const dirMapped = lookupCaseInsensitive(
+            ruleset.directionMap,
+            String(dirRaw)
+          );
+          if (dirMapped === "INCOME" || dirMapped === "EXPENSE") {
+            type = dirMapped;
+          } else {
+            // Try common fallbacks
+            const lower = String(dirRaw).toLowerCase().trim();
+            if (
+              lower.includes("income") ||
+              lower.includes("credit") ||
+              lower.includes("in") ||
+              lower.includes("دخل") ||
+              lower.includes("إيراد")
+            ) {
+              type = "INCOME";
+              inferredFields++;
+            } else {
+              type = "EXPENSE";
+              inferredFields++;
+            }
+          }
+        } else {
+          // No direction info at all — default to EXPENSE
+          type = "EXPENSE";
+          defaultedFields++;
+        }
+      }
+    }
+
+    // ── Date ──
+    const dateRaw = cellByIdx(ruleset.columns.date);
+    const dateStr = parseDate(dateRaw);
+    const dateClean = dateRaw != null && dateStr !== new Date().toISOString().split("T")[0];
+    if (!dateClean) inferredFields++;
+
+    // ── Description ──
+    const descRaw = cellByIdx(ruleset.columns.description);
+    const description = descRaw ? String(descRaw).trim() : "Imported transaction";
+    if (!descRaw) defaultedFields++;
+
+    // ── Category ──
+    const catRaw = cellByIdx(ruleset.columns.category);
+    const category = catRaw
+      ? mapCategory(String(catRaw), ruleset.categoryMap)
+      : "Other";
+    if (!catRaw) defaultedFields++;
+
+    // ── Payment Method ──
+    const pmRaw = cellByIdx(ruleset.columns.paymentMethod);
+    let paymentMethod = ruleset.defaultPaymentMethod;
+    if (pmRaw) {
+      const pmStr = String(pmRaw).toUpperCase().trim();
+      if (pmStr.includes("CARD")) paymentMethod = "CARD";
+      else if (pmStr.includes("INSTAPAY")) paymentMethod = "INSTAPAY";
+      else if (pmStr.includes("COD")) paymentMethod = "COD";
+      else if (pmStr.includes("CASH")) paymentMethod = "CASH";
+    }
+
+    // ── COD never valid for expenses ──
+    if (type === "EXPENSE" && paymentMethod === "COD") {
+      paymentMethod = "CASH";
+    }
+
+    // ── Confidence scoring ──
+    let confidence: "high" | "medium" | "low" = "high";
+    let confidenceNote: string | null = null;
+    if (defaultedFields >= 2) {
+      confidence = "low";
+      confidenceNote = "Multiple fields could not be extracted and were defaulted.";
+    } else if (inferredFields > 0 || defaultedFields > 0) {
+      confidence = "medium";
+      confidenceNote = "Some fields were inferred from defaults.";
+    }
+
+    transactions.push({
+      date: dateStr,
+      description,
+      amount,
+      type,
+      category,
+      paymentMethod,
+      confidence,
+      confidenceNote,
+    });
+  }
+
+  return transactions;
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Route handler
+// ────────────────────────────────────────────────────────────────────
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -48,7 +537,7 @@ export async function POST(
     const allTransactions: any[] = [];
 
     if (tag === "shopify") {
-      // Deterministic Shopify parsing
+      // Deterministic Shopify parsing — UNTOUCHED
       const grouped = groupShopifyRows(rows) as any[];
       for (const t of grouped) {
         let fStatus = "UNFULFILLED";
@@ -75,185 +564,37 @@ export async function POST(
         });
       }
     } else {
-      // Flexible path: AI mapping on headers + first 3 rows
-      const sampleRows = rows.slice(0, 3);
+      // ═══════════════════════════════════════════════════════════════
+      // Flexible path — Two-Pass Structure Detection
+      // ═══════════════════════════════════════════════════════════════
+
       const apiKey = process.env.GROQ_API_KEY;
       if (!apiKey) {
         return NextResponse.json({ error: "GROQ_API_KEY is not configured" }, { status: 500 });
       }
       const groq = new Groq({ apiKey });
 
-      const prompt = `You are a data mapper. Given the following CSV headers and first 3 rows of data, map the columns to the required standard transaction fields.
-      
-Headers: ${JSON.stringify(headers)}
-Rows: ${JSON.stringify(sampleRows)}
+      // Pass 1: Build fingerprint & detect structure
+      const fingerprint = buildFingerprint(headers, rows);
+      console.log("📋 [CSV Pass1] Fingerprint built:", fingerprint.sample.length, "sample rows");
 
-Standard Fields needed:
-- amountCol: The exact name of the column containing the transaction amount.
-- descriptionCol: The exact name of the column containing the description or merchant.
-- dateCol: The exact name of the column containing the date.
-- typeCol: The exact name of the column containing transaction type (Income vs Expense), if any.
-- typeIncomeValue: If typeCol exists, what value indicates INCOME (e.g. "Deposit", "Credit").
-- typeExpenseValue: If typeCol exists, what value indicates EXPENSE (e.g. "Withdrawal", "Debit").
-- categoryCol: The exact name of the column containing the category, if any.
-- categoryValueMapping: A JSON object mapping the raw category values found in the CSV to our exact valid categories.
-  Valid categories are ONLY: "Sales Revenue", "Pop-up/Bazaar Sales", "Wholesale/B2B", "Supplier Refund", "Raw Materials", "Packaging", "Logistics (Shipping)", "Ads", "Content Creation", "Other".
-  Explicitly apply these mappings if you see them: "Sales" -> "Sales Revenue", "Materials" -> "Raw Materials", "Logistics" -> "Logistics (Shipping)", "Shipping" -> "Logistics (Shipping)", "Marketing" -> "Ads", "Production" -> "Raw Materials", "Operations" -> "Other". Include these exact mappings and any others you infer.
-- paymentMethodCol: The exact name of the column containing the payment method, if any.
+      const ruleset = await detectStructure(groq, fingerprint);
 
-Return ONLY a JSON object exactly like this (use null if a column doesn't exist):
-{
-  "mappings": {
-    "amountCol": string | null,
-    "descriptionCol": string | null,
-    "dateCol": string | null,
-    "typeCol": string | null,
-    "typeIncomeValue": string | null,
-    "typeExpenseValue": string | null,
-    "categoryCol": string | null,
-    "paymentMethodCol": string | null,
-    "categoryValueMapping": { "raw_value": "Valid Category" } | null
-  }
-}`;
-
-      let mappingText = "";
-      try {
-        const completion = await groq.chat.completions.create({
-          model: "llama-3.3-70b-versatile",
-          response_format: { type: "json_object" },
-          messages: [{ role: "user", content: prompt }]
-        });
-        mappingText = completion.choices[0]?.message?.content ?? "";
-      } catch (err: any) {
-        console.warn("🟡 [CSV] Groq JSON mode failed, retrying without response_format:", err.message);
-        const completion = await groq.chat.completions.create({
-          model: "llama-3.3-70b-versatile",
-          messages: [{ role: "user", content: prompt }]
-        });
-        mappingText = completion.choices[0]?.message?.content ?? "";
-      }
-
-      mappingText = mappingText.replace(/```json/gi, "").replace(/```/g, "").trim();
-      let mapping: any = {};
-      try {
-        const parsed = JSON.parse(mappingText);
-        mapping = parsed.mappings || {};
-      } catch (e) {
-        console.error("Failed to parse AI mappings:", e);
-      }
-
-      // Deterministic loop over full dataset
-      for (const row of rows) {
-        // Skip empty rows
-        if (!row || Object.keys(row).length === 0) continue;
-
-        let type = "EXPENSE"; // default
-        if (mapping.typeCol && row[mapping.typeCol]) {
-          const tVal = String(row[mapping.typeCol]).toLowerCase();
-          const iVal = mapping.typeIncomeValue ? String(mapping.typeIncomeValue).toLowerCase() : null;
-          const eVal = mapping.typeExpenseValue ? String(mapping.typeExpenseValue).toLowerCase() : null;
-          
-          if (iVal && tVal.includes(iVal)) {
-            type = "INCOME";
-          } else if (eVal && tVal.includes(eVal)) {
-            type = "EXPENSE";
-          } else if (tVal.includes("deposit") || tVal.includes("credit") || tVal.includes("income")) {
-            type = "INCOME";
-          }
-        }
-
-        let amount = 0;
-        if (mapping.amountCol && row[mapping.amountCol]) {
-          // Remove non-numeric except . and -
-          const parsedAmt = parseFloat(String(row[mapping.amountCol]).replace(/[^0-9.-]/g, ''));
-          if (!isNaN(parsedAmt)) amount = Math.abs(parsedAmt);
-        }
-
-        let dateStr = new Date().toISOString().split('T')[0];
-        if (mapping.dateCol && row[mapping.dateCol]) {
-            const dVal = row[mapping.dateCol];
-            if (!isNaN(Number(dVal)) && Number(dVal) > 10000 && Number(dVal) < 100000) {
-               // Excel serial date (days since Dec 30, 1899)
-               const excelEpoch = new Date(Date.UTC(1899, 11, 30));
-               const d = new Date(excelEpoch.getTime() + Number(dVal) * 86400000);
-               dateStr = d.toISOString().split('T')[0];
-            } else {
-               const d = new Date(dVal);
-               if (!isNaN(d.getTime())) {
-                   dateStr = d.toISOString().split('T')[0];
-               }
-            }
-        }
-
-        let paymentMethod = "CASH";
-        if (mapping.paymentMethodCol && row[mapping.paymentMethodCol]) {
-           const pStr = String(row[mapping.paymentMethodCol]).toUpperCase();
-           if (pStr.includes("CARD")) paymentMethod = "CARD";
-           else if (pStr.includes("INSTAPAY")) paymentMethod = "INSTAPAY";
-           else if (pStr.includes("COD")) paymentMethod = "COD";
-        }
-
-        // COD never valid for expenses -- enforce server-side
-        if (type === "EXPENSE" && paymentMethod === "COD") {
-            paymentMethod = "CASH";
-        }
-
-        const validCategories = ["Sales Revenue", "Pop-up/Bazaar Sales", "Wholesale/B2B", "Supplier Refund", "Raw Materials", "Packaging", "Logistics (Shipping)", "Ads", "Content Creation", "Other"];
-        let category = "Other";
-        if (mapping.categoryCol && row[mapping.categoryCol]) {
-            const rawCat = String(row[mapping.categoryCol]);
-            let mappedCat = rawCat;
-            
-            if (mapping.categoryValueMapping) {
-                // Try exact match first
-                if (mapping.categoryValueMapping[rawCat]) {
-                    mappedCat = mapping.categoryValueMapping[rawCat];
-                } else {
-                    // Try case-insensitive match
-                    const lowerRaw = rawCat.toLowerCase();
-                    for (const [key, val] of Object.entries(mapping.categoryValueMapping)) {
-                        if (key.toLowerCase() === lowerRaw) {
-                            mappedCat = String(val);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // Hardcoded fallback for known values if AI missed it
-            const lowerRaw = rawCat.toLowerCase();
-            const hardcodedMap: Record<string, string> = {
-                "sales": "Sales Revenue",
-                "b2c sales": "Sales Revenue",
-                "b2b sales": "Wholesale/B2B",
-                "materials": "Raw Materials",
-                "logistics": "Logistics (Shipping)",
-                "shipping": "Logistics (Shipping)",
-                "marketing": "Ads",
-                "production": "Raw Materials",
-                "operations": "Other"
-            };
-            if (hardcodedMap[lowerRaw]) {
-                mappedCat = hardcodedMap[lowerRaw];
-            }
-
-            const match = validCategories.find(c => c.toLowerCase() === mappedCat.toLowerCase());
-            if (match) category = match;
-        }
-
-        allTransactions.push({
-          date: dateStr,
-          description: mapping.descriptionCol && row[mapping.descriptionCol] 
-            ? String(row[mapping.descriptionCol]) 
-            : "Imported transaction",
-          amount,
-          type,
-          category,
-          paymentMethod,
-          confidence: "medium", // AI mapping on headers inherently has some risk
-          confidenceNote: "Mapped automatically from CSV headers."
+      if (!ruleset) {
+        console.error("🔴 [CSV] Structure detection failed — returning empty");
+        return NextResponse.json({
+          transactions: [],
+          error: "Failed to analyze spreadsheet structure. Please try a different format.",
         });
       }
+
+      console.log("✅ [CSV Pass1] Ruleset detected:", JSON.stringify(ruleset, null, 2));
+
+      // Pass 2: Deterministic extraction
+      const extracted = extractTransactions(headers, rows, ruleset);
+      allTransactions.push(...extracted);
+
+      console.log(`✅ [CSV Pass2] Extracted ${extracted.length} transactions from ${rows.length} rows`);
     }
 
     return NextResponse.json({ transactions: allTransactions });
