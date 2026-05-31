@@ -11,6 +11,7 @@ import { X } from "lucide-react";
 import RealtimeListener from "@/components/dashboard/realtime-listener";
 import { TransactionsShell } from "@/components/transactions/transactions-shell";
 import { getDateRangeFromParams } from "@/lib/date-utils";
+import { Suspense } from "react";
 
 export default async function TransactionsPage(props: {
   params: Promise<{ orgSlug: string }>;
@@ -112,16 +113,18 @@ export default async function TransactionsPage(props: {
         </Card>
       )}
 
-      <TransactionsShell
-        transactions={organization.transactions.map((t: any) => ({
-          ...t,
-          amount: Number(t.amount)
-        }))}
-        orgSlug={resolvedParams.orgSlug}
-        orgId={organization.id}
-        tags={tags}
-        activeTagLabel={activeTag?.name}
-      />
+      <Suspense fallback={<div className="h-96 w-full animate-pulse bg-muted/50 rounded-lg" />}>
+        <TransactionsShell
+          transactions={organization.transactions.map((t: any) => ({
+            ...t,
+            amount: Number(t.amount)
+          }))}
+          orgSlug={resolvedParams.orgSlug}
+          orgId={organization.id}
+          tags={tags}
+          activeTagLabel={activeTag?.name}
+        />
+      </Suspense>
     </div>
   );
 }

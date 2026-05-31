@@ -163,7 +163,7 @@ Return ONLY a JSON object exactly like this (use null if a column doesn't exist)
             if (!isNaN(Number(dVal)) && Number(dVal) > 10000 && Number(dVal) < 100000) {
                // Excel serial date (days since Dec 30, 1899)
                const excelEpoch = new Date(Date.UTC(1899, 11, 30));
-               const d = new Date(excelEpoch.getTime() + (Number(dVal) + 1) * 86400000);
+               const d = new Date(excelEpoch.getTime() + Number(dVal) * 86400000);
                dateStr = d.toISOString().split('T')[0];
             } else {
                const d = new Date(dVal);
@@ -206,6 +206,23 @@ Return ONLY a JSON object exactly like this (use null if a column doesn't exist)
                         }
                     }
                 }
+            }
+
+            // Hardcoded fallback for known values if AI missed it
+            const lowerRaw = rawCat.toLowerCase();
+            const hardcodedMap: Record<string, string> = {
+                "sales": "Sales Revenue",
+                "b2c sales": "Sales Revenue",
+                "b2b sales": "Wholesale/B2B",
+                "materials": "Raw Materials",
+                "logistics": "Logistics (Shipping)",
+                "shipping": "Logistics (Shipping)",
+                "marketing": "Ads",
+                "production": "Raw Materials",
+                "operations": "Other"
+            };
+            if (hardcodedMap[lowerRaw]) {
+                mappedCat = hardcodedMap[lowerRaw];
             }
 
             const match = validCategories.find(c => c.toLowerCase() === mappedCat.toLowerCase());
