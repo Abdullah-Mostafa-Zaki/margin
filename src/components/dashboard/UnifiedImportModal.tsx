@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScanLine, Sheet, Plus, ChevronLeft, Loader2, CheckCircle2, UploadCloud, AlertCircle } from "lucide-react";
+import { ScanLine, Sheet, Plus, ChevronLeft, Loader2, CheckCircle2, UploadCloud, AlertCircle, Trash2 } from "lucide-react";
 import { useUploadThing } from "@/lib/uploadthing";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,6 +15,24 @@ import * as XLSX from "xlsx";
 import { usePostHog } from 'posthog-js/react';
 
 type ImportStep = "SPLIT" | "AI_SCANNER" | "SMART_SPREADSHEET" | "REVIEW" | "SAVING" | "DONE";
+
+const EXPENSE_CATEGORIES = [
+  "Raw Materials",
+  "Manufacturing",
+  "Packaging",
+  "Logistics (Shipping)",
+  "Ads",
+  "Content Creation",
+  "Other"
+];
+
+const INCOME_CATEGORIES = [
+  "Sales Revenue",
+  "Pop-up / Bazaar Sales",
+  "Wholesale / B2B",
+  "Supplier Refund",
+  "Other"
+];
 
 export interface UnifiedTransaction {
   date: string;
@@ -48,7 +66,7 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
       try {
         const urls = res.map((f) => f.ufsUrl);
         // Call the new Image Route Handler
-        const response = await fetch(`/api/organizations/${orgSlug}/import/analyze-image`, {
+        const response = await fetch(`/api/organizations/${orgSlug}/imports/analyze-image`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ urls })
@@ -128,7 +146,7 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
         routeTag = "shopify";
       }
 
-      const response = await fetch(`/api/organizations/${orgSlug}/import/analyze-csv`, {
+      const response = await fetch(`/api/organizations/${orgSlug}/imports/analyze-csv`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tag: routeTag, headers, rows })
@@ -152,6 +170,12 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  const handleDeleteTransaction = (index: number) => {
+    const newTx = [...transactions];
+    newTx.splice(index, 1);
+    setTransactions(newTx);
   };
 
   const handleBatchSave = async () => {
@@ -323,6 +347,7 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
                     <th className="px-4 py-3 font-medium">Type</th>
                     <th className="px-4 py-3 font-medium min-w-[150px]">Category</th>
                     <th className="px-4 py-3 font-medium">Method</th>
+                    <th className="px-4 py-3 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -363,6 +388,7 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
                         <Select value={t.type} onValueChange={(val: any) => {
                           const newTx = [...transactions];
                           newTx[i].type = val;
+                          newTx[i].category = val === "INCOME" ? "Sales Revenue" : "Raw Materials";
                           setTransactions(newTx);
                         }}>
                           <SelectTrigger className={`w-[110px] h-8 ${t.type === "INCOME" ? "text-emerald-600 border-emerald-200 bg-emerald-50" : "text-red-600 border-red-200 bg-red-50"}`}>
@@ -384,13 +410,9 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
                             <SelectValue placeholder="Category" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Sales Revenue">Sales Revenue</SelectItem>
-                            <SelectItem value="Raw Materials">Raw Materials</SelectItem>
-                            <SelectItem value="Packaging">Packaging</SelectItem>
-                            <SelectItem value="Logistics (Shipping)">Logistics (Shipping)</SelectItem>
-                            <SelectItem value="Ads">Ads</SelectItem>
-                            <SelectItem value="Content Creation">Content Creation</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
+                            {(t.type === "INCOME" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map((cat) => (
+                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </td>
@@ -411,6 +433,11 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
                           </SelectContent>
                         </Select>
                       </td>
+                      <td className="px-4 py-3">
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteTransaction(i)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -426,19 +453,25 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
                       Transaction #{i + 1}
                       {t.confidence !== "high" && <AlertCircle className={`w-4 h-4 ${t.confidence === "low" ? "text-red-500" : "text-amber-500"}`} />}
                     </span>
-                    <Select value={t.type} onValueChange={(val: any) => {
-                      const newTx = [...transactions];
-                      newTx[i].type = val;
-                      setTransactions(newTx);
-                    }}>
-                      <SelectTrigger className={`w-[110px] h-8 ${t.type === "INCOME" ? "text-emerald-600 border-emerald-200 bg-emerald-50" : "text-red-600 border-red-200 bg-red-50"}`}>
-                        <SelectValue placeholder="Type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="INCOME">INCOME</SelectItem>
-                        <SelectItem value="EXPENSE">EXPENSE</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2">
+                      <Select value={t.type} onValueChange={(val: any) => {
+                        const newTx = [...transactions];
+                        newTx[i].type = val;
+                        newTx[i].category = val === "INCOME" ? "Sales Revenue" : "Raw Materials";
+                        setTransactions(newTx);
+                      }}>
+                        <SelectTrigger className={`w-[110px] h-8 ${t.type === "INCOME" ? "text-emerald-600 border-emerald-200 bg-emerald-50" : "text-red-600 border-red-200 bg-red-50"}`}>
+                          <SelectValue placeholder="Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="INCOME">INCOME</SelectItem>
+                          <SelectItem value="EXPENSE">EXPENSE</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button variant="ghost" size="icon" onClick={() => handleDeleteTransaction(i)} className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="space-y-1">
@@ -477,13 +510,9 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
                     }}>
                       <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Sales Revenue">Sales Revenue</SelectItem>
-                        <SelectItem value="Raw Materials">Raw Materials</SelectItem>
-                        <SelectItem value="Packaging">Packaging</SelectItem>
-                        <SelectItem value="Logistics (Shipping)">Logistics (Shipping)</SelectItem>
-                        <SelectItem value="Ads">Ads</SelectItem>
-                        <SelectItem value="Content Creation">Content Creation</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                        {(t.type === "INCOME" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map((cat) => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
