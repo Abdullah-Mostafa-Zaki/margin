@@ -18,6 +18,7 @@ import { DropPerformanceTable } from "@/components/dashboard/drop-performance-ta
 import { OrderHealthFunnel } from "@/components/dashboard/order-health-funnel";
 import { ReturnsByCity } from "@/components/dashboard/returns-by-city";
 import { FadeIn } from "@/components/ui/fade-in";
+import { PageTracker } from "@/components/analytics/PageTracker";
 
 export default async function AnalyticsPage(props: {
   params: Promise<{ orgSlug: string }>;
@@ -114,6 +115,7 @@ export default async function AnalyticsPage(props: {
 
   return (
     <div className="flex-1 space-y-6 p-4 md:p-8 overflow-y-auto pb-24">
+      <PageTracker feature="Analytics" />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Financial Analytics</h1>

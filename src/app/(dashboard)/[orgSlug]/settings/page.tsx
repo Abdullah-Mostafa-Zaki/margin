@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { EditOrgForm } from "@/components/settings/edit-org-form";
 import { ShopifyIntegration } from "@/components/settings/shopify-integration";
 import { BostaConnectForm } from "@/components/settings/bosta-connect-form";
+import { PageTracker } from "@/components/analytics/PageTracker";
 
 export default async function SettingsPage({
   params,
@@ -62,6 +63,7 @@ export default async function SettingsPage({
 
   return (
     <div className="space-y-6 max-w-[100vw] mx-auto p-4 md:p-8 w-full overflow-x-hidden">
+      <PageTracker feature="Settings" />
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Brand Settings</h1>
         <p className="text-zinc-500">Manage your brand and team members.</p>

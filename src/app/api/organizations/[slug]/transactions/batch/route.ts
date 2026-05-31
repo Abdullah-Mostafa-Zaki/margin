@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { posthog } from "@/lib/posthog";
 
 export async function POST(
   request: NextRequest,
@@ -43,7 +44,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { transactions } = body;
+    const { transactions, method = 'unknown' } = body;
 
     if (!transactions || !Array.isArray(transactions) || transactions.length === 0) {
       return NextResponse.json({ error: "No transactions provided" }, { status: 400 });
@@ -97,6 +98,17 @@ export async function POST(
 
     if (errors.length > 0) {
       console.warn("Some transactions failed to import:", errors);
+    }
+
+    if (successfulTransactions.length > 0) {
+      posthog.capture({
+        distinctId: session.user.email,
+        event: 'import_completed',
+        properties: {
+          method,
+          count: successfulTransactions.length
+        }
+      });
     }
 
     return NextResponse.json({ success: true, count: successfulTransactions.length });

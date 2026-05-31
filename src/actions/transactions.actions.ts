@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { posthog } from "@/lib/posthog";
 
 export async function createTransaction(orgSlug: string, formData: FormData) {
   const session = await getServerSession(authOptions);
@@ -80,6 +81,17 @@ export async function createTransaction(orgSlug: string, formData: FormData) {
         create: tagIds.map(tagId => ({ tagId })),
       },
     },
+  });
+
+  posthog.capture({
+    distinctId: session.user.email,
+    event: 'transaction_created',
+    properties: {
+      type,
+      paymentMethod,
+      category,
+      amount
+    }
   });
 
   revalidatePath(`/${orgSlug}/transactions`);

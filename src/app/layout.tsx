@@ -5,6 +5,7 @@ import SessionProvider from "@/components/providers/session-provider";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "@/app/api/uploadthing/core";
+import { PostHogProvider } from "@/components/providers/PostHogProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -31,7 +32,9 @@ export default function RootLayout({
       <body className={inter.className} suppressHydrationWarning>
         <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
         <SessionProvider>
-          {children}
+          <PostHogProvider>
+            {children}
+          </PostHogProvider>
         </SessionProvider>
       </body>
     </html>

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
+import { usePostHog } from 'posthog-js/react';
 
 type ImportStep = "SPLIT" | "AI_SCANNER" | "SMART_SPREADSHEET" | "REVIEW" | "SAVING" | "DONE";
 
@@ -33,7 +34,9 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
   const [step, setStep] = useState<ImportStep>("SPLIT");
   const [isUploading, setIsUploading] = useState(false);
   const [transactions, setTransactions] = useState<UnifiedTransaction[]>([]);
+  const [importMethod, setImportMethod] = useState<"image" | "shopify" | "flexible">("flexible");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const posthog = usePostHog();
 
   const { startUpload } = useUploadThing("receiptUploader", {
     onUploadBegin: () => {
@@ -56,6 +59,7 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
         
         if (data.transactions && Array.isArray(data.transactions)) {
           setTransactions(data.transactions);
+          setImportMethod("image");
           setStep("REVIEW");
         } else {
           toast.error("No transactions found.");
@@ -77,6 +81,9 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
   const handleOpenChange = (val: boolean) => {
     if (isUploading || step === "SAVING") return;
     setOpen(val);
+    if (val) {
+      posthog?.capture('import_started');
+    }
     if (!val) {
       resetState();
     }
@@ -132,6 +139,7 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
 
       if (data.transactions && Array.isArray(data.transactions)) {
         setTransactions(data.transactions);
+        setImportMethod(routeTag as "shopify" | "flexible");
         setStep("REVIEW");
       } else {
         toast.error("No transactions found in file.");
@@ -152,7 +160,7 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
       const response = await fetch(`/api/organizations/${orgSlug}/transactions/batch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transactions })
+        body: JSON.stringify({ transactions, method: importMethod })
       });
       
       if (!response.ok) throw new Error("Failed to save transactions");

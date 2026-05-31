@@ -4,6 +4,7 @@ import { GodMetric } from "@/components/dashboard/GodMetric";
 import { Insights } from "@/components/dashboard/Insights";
 import { getDateRangeFromParams } from "@/lib/date-utils";
 import { getDashboardInsights } from "@/app/actions/getDashboardInsights";
+import { PageTracker } from "@/components/analytics/PageTracker";
 
 export default async function RecommendationsPage(props: {
   params: Promise<{ orgSlug: string }>;
@@ -57,6 +58,7 @@ export default async function RecommendationsPage(props: {
 
   return (
     <div className="flex-1 space-y-6 p-4 md:p-8 overflow-y-auto pb-24">
+      <PageTracker feature="Recommendations" />
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">War Room</h1>
         <p className="text-zinc-500 md:mt-1 mt-2">Actionable AI insights and recommendations</p>
