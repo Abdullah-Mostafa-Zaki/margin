@@ -39,6 +39,8 @@ export async function createTransaction(orgSlug: string, formData: FormData) {
   const notes = rawNotes?.trim() ? rawNotes.trim() : null;
   
   const receiptUrl = formData.get("receiptUrl") as string | null;
+  const sourceRaw = formData.get("source") as string | null;
+  const sourceEnum = ["MANUAL", "IMPORT_IMAGE", "IMPORT_CSV", "VOICE"].includes(sourceRaw || "") ? sourceRaw : "MANUAL";
 
   let status: "PENDING" | "RECEIVED";
   if (paymentMethod === "COD") {
@@ -77,6 +79,7 @@ export async function createTransaction(orgSlug: string, formData: FormData) {
       receiptUrl,
       organizationId: org.id,
       createdById: membership?.userId || (session.user as any).id,
+      source: sourceEnum as any,
       tags: {
         create: tagIds.map(tagId => ({ tagId })),
       },

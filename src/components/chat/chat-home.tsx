@@ -115,7 +115,7 @@ export function ChatHome({ orgSlug, tags = [] }: { orgSlug: string, tags?: any[]
       try {
         const result = await parseVoiceTransaction(base64Audio, recordedMimeType);
         if (result.success) {
-          setExtractedData(result.data);
+          setExtractedData({ ...result.data, source: "VOICE" });
         } else {
           appendAssistantMessage(result.error || "Failed to process voice note.");
         }
@@ -183,7 +183,7 @@ export function ChatHome({ orgSlug, tags = [] }: { orgSlug: string, tags?: any[]
     try {
       const result = await parseTextTransaction(textToSend);
       if (result.success) {
-        setExtractedData(result.data);
+        setExtractedData({ ...result.data, source: "MANUAL" });
       } else {
         appendAssistantMessage(result.error || "Couldn't parse that. Please try again.");
       }
@@ -232,7 +232,7 @@ export function ChatHome({ orgSlug, tags = [] }: { orgSlug: string, tags?: any[]
         const uploadUrl = res[0].ufsUrl || res[0].url;
         const result = await parseReceiptFromImage(uploadUrl);
         if (result && result.length > 0) {
-          setExtractedData(result[0]);
+          setExtractedData({ ...result[0], source: "IMPORT_IMAGE" });
         } else {
           appendAssistantMessage("Could not extract any transaction data from the image.");
         }

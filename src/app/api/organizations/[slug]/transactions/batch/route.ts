@@ -76,12 +76,13 @@ export async function POST(
             ? (String(t.paymentMethod).toUpperCase() as any) 
             : "CASH",
           status,
+          source: method === 'image' ? 'IMPORT_IMAGE' : method === 'shopify' || method === 'flexible' ? 'IMPORT_CSV' : 'MANUAL',
           fulfillmentStatus: ["UNFULFILLED", "SHIPPED", "DELIVERED", "RETURNED"].includes(String(t.fulfillmentStatus).toUpperCase()) 
             ? (String(t.fulfillmentStatus).toUpperCase() as any) 
             : "UNFULFILLED",
           notes: t.description ? String(t.description) : null,
           receiptUrl: t.imageUrl ? String(t.imageUrl) : null,
-        }
+        } as any
       });
     });
 

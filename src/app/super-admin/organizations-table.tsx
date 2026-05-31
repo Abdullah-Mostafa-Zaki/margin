@@ -107,7 +107,17 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
 
                 return (
                   <TableRow key={org.id}>
-                    <TableCell className="font-medium">{org.name}</TableCell>
+                    <TableCell className="font-medium flex items-center gap-2">
+                      <div 
+                        className={`w-2 h-2 rounded-full ${
+                          (new Date().getTime() - new Date(org.updatedAt).getTime()) / (1000 * 3600 * 24) <= 7 ? 'bg-green-500' :
+                          (new Date().getTime() - new Date(org.updatedAt).getTime()) / (1000 * 3600 * 24) <= 30 ? 'bg-yellow-400' :
+                          'bg-red-500'
+                        }`}
+                        title="Activity Status"
+                      />
+                      {org.name}
+                    </TableCell>
                     <TableCell className="text-zinc-500 font-mono text-sm">
                       {org.slug}
                     </TableCell>

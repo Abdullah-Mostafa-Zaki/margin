@@ -35,10 +35,11 @@ export async function completeOnboarding(data: {
       courierFee: data.courierFee || 0,
       shopifyWebhookUrl: data.shopifyWebhookUrl || null, // <-- Saved to DB
       shopifyWebhookSecret: data.shopifyWebhookSecret || null,   // <-- Saved to DB
+      onboardingCompleted: true, // <-- New field
       memberships: {
         create: { userId: user.id, role: "ADMIN" }
       }
-    }
+    } as any
   });
 
   // 2. Create First Drop (Tag) if provided

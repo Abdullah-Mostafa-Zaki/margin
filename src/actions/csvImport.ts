@@ -74,9 +74,10 @@ export async function bulkImportTransactions(organizationId: string, data: unkno
             category: "Shopify Sale",
             paymentMethod: paymentMethod || "COD",
             status: "RECEIVED",
+            source: "IMPORT_CSV",
             createdById,
             lineItems: { create: lineItems }
-          },
+          } as any,
         });
       });
       created++;
@@ -131,13 +132,14 @@ export async function bulkSaveReceipts(organizationId: string, receipts: ParsedR
           type: "EXPENSE",
           status: "RECEIVED",
           paymentMethod: "CASH",
+          source: "IMPORT_IMAGE",
           amount: receipt.amount ?? 0,
           date: receipt.date ? new Date(receipt.date) : new Date(),
           category: receipt.category ?? "Other",
           merchant: receipt.merchant ?? null,
           notes: receipt.notes ?? null,
           receiptUrl: receipt.imageUrl,
-        }
+        } as any
       });
       saved++;
     } catch (err) {

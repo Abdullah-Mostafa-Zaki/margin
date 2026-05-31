@@ -12,6 +12,7 @@ export interface VoiceTransactionData {
   paymentMethod: "CASH" | "CARD" | "COD" | "INSTAPAY";
   date: string;
   notes: string;
+  source?: string;
 }
 
 interface MagicVoiceButtonProps {
@@ -45,7 +46,7 @@ export function MagicVoiceButton({ onResult }: MagicVoiceButtonProps) {
     parseVoiceTransaction(base64Audio, mimeType)
       .then((result) => {
         if (result.success) {
-          onResult(result.data);
+          onResult({ ...result.data, source: "VOICE" });
         } else {
           setError(result.error);
         }

@@ -62,6 +62,7 @@ export interface TransactionDefaultValues {
   paymentMethod?: "CASH" | "CARD" | "COD" | "INSTAPAY";
   date?: string;
   notes?: string;
+  source?: string;
 }
 
 export interface TransactionToEdit {
@@ -101,6 +102,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
   const [statusOverride, setStatusOverride] = useState("");
   const [showStatusOverride, setShowStatusOverride] = useState(false);
   const [fulfillmentStatus, setFulfillmentStatus] = useState("UNFULFILLED");
+  const [source, setSource] = useState("MANUAL");
 
   const [showTags, setShowTags] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -148,6 +150,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
       setStatusOverride("");
       setShowStatusOverride(false);
       setFulfillmentStatus("UNFULFILLED");
+      setSource(defaults.source || "MANUAL");
       setError(null);
       setIsOpen(true);
       fillRefs(defaults.amount, defaults.date, defaults.notes);
@@ -203,6 +206,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
       setStatusOverride("");
       setShowStatusOverride(false);
       setFulfillmentStatus("UNFULFILLED");
+      setSource(prefillData.source || "MANUAL");
       setError(null);
       setIsOpen(true);
       fillRefs(prefillData.amount, prefillData.date, prefillData.notes);
@@ -246,6 +250,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
     formData.set("paymentMethod", paymentMethod);
     formData.set("status", displayStatus);
     formData.set("fulfillmentStatus", fulfillmentStatus);
+    formData.set("source", source);
 
     if (receiptUrl) {
       formData.append("receiptUrl", receiptUrl);
@@ -280,6 +285,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
         setStatusOverride("");
         setShowStatusOverride(false);
         setFulfillmentStatus("UNFULFILLED");
+        setSource("MANUAL");
         setSelectedTags([]);
         setShowTags(false);
 
