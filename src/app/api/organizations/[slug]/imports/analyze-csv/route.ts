@@ -560,6 +560,8 @@ async function extractTransactionsDirect(groq: Groq, headers: string[], rows: Re
     tableStr += rowValues.join(" | ") + "\n";
   }
 
+  const todayDate = new Date().toISOString().split('T')[0];
+
   const prompt = `This is a financial spreadsheet from an Egyptian clothing brand. It may have any structure — vertical, horizontal, Arabic, English, mixed, with or without headers, with summary rows, with merged cells. 
 Read the entire sheet, understand what it contains, and extract every financial transaction you can identify.
 
@@ -569,9 +571,11 @@ Expense: "Raw Materials", "Packaging", "Logistics (Shipping)", "Ads", "Content C
 
 Valid payment methods: "CASH", "CARD", "INSTAPAY", "COD"
 
+If no date is provided for a transaction, use today's date in YYYY-MM-DD format: ${todayDate}
+
 Return ONLY a JSON object containing a "transactions" array with this exact schema for each transaction:
 {
-  "date": "YYYY-MM-DD", // default to today if unknown
+  "date": "YYYY-MM-DD", // default to ${todayDate} if unknown
   "description": string, // map to "Unknown charge" if missing
   "amount": number, // positive absolute value
   "type": "INCOME" | "EXPENSE",
