@@ -351,9 +351,19 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
                         }} />
                       </td>
                       <td className="px-4 py-3">
-                        <Badge variant={t.type === "INCOME" ? "default" : "destructive"} className={t.type === "INCOME" ? "bg-emerald-500 hover:bg-emerald-600" : ""}>
-                          {t.type}
-                        </Badge>
+                        <Select value={t.type} onValueChange={(val: any) => {
+                          const newTx = [...transactions];
+                          newTx[i].type = val;
+                          setTransactions(newTx);
+                        }}>
+                          <SelectTrigger className={`w-[110px] h-8 ${t.type === "INCOME" ? "text-emerald-600 border-emerald-200 bg-emerald-50" : "text-red-600 border-red-200 bg-red-50"}`}>
+                            <SelectValue placeholder="Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="INCOME">INCOME</SelectItem>
+                            <SelectItem value="EXPENSE">EXPENSE</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </td>
                       <td className="px-4 py-3">
                         <Select value={t.category || ""} onValueChange={(val) => {
@@ -407,7 +417,19 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
                       Transaction #{i + 1}
                       {t.confidence !== "high" && <AlertCircle className={`w-4 h-4 ${t.confidence === "low" ? "text-red-500" : "text-amber-500"}`} />}
                     </span>
-                    <Badge variant={t.type === "INCOME" ? "default" : "destructive"}>{t.type}</Badge>
+                    <Select value={t.type} onValueChange={(val: any) => {
+                      const newTx = [...transactions];
+                      newTx[i].type = val;
+                      setTransactions(newTx);
+                    }}>
+                      <SelectTrigger className={`w-[110px] h-8 ${t.type === "INCOME" ? "text-emerald-600 border-emerald-200 bg-emerald-50" : "text-red-600 border-red-200 bg-red-50"}`}>
+                        <SelectValue placeholder="Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="INCOME">INCOME</SelectItem>
+                        <SelectItem value="EXPENSE">EXPENSE</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div className="space-y-1">
