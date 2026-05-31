@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { useEffect } from 'react';
 
 if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
+  console.log('PostHog initialized', process.env.NEXT_PUBLIC_POSTHOG_KEY);
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
     api_host: 'https://eu.posthog.com',
     capture_pageview: false, // We handle pageviews manually if needed or leave default on
