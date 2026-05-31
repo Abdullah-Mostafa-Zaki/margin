@@ -27,7 +27,7 @@ export interface UnifiedTransaction {
   imageUrl?: string;
 }
 
-export function UnifiedImportModal({ organizationId }: { organizationId: string }) {
+export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<ImportStep>("SPLIT");
   const [isUploading, setIsUploading] = useState(false);
@@ -44,7 +44,7 @@ export function UnifiedImportModal({ organizationId }: { organizationId: string 
       try {
         const urls = res.map((f) => f.ufsUrl);
         // Call the new Image Route Handler
-        const response = await fetch(`/api/organizations/${organizationId}/import/analyze-image`, {
+        const response = await fetch(`/api/organizations/${orgSlug}/import/analyze-image`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ urls })
@@ -120,7 +120,7 @@ export function UnifiedImportModal({ organizationId }: { organizationId: string 
         routeTag = "shopify";
       }
 
-      const response = await fetch(`/api/organizations/${organizationId}/import/analyze-csv`, {
+      const response = await fetch(`/api/organizations/${orgSlug}/import/analyze-csv`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tag: routeTag, headers, rows })
@@ -148,7 +148,7 @@ export function UnifiedImportModal({ organizationId }: { organizationId: string 
   const handleBatchSave = async () => {
     setStep("SAVING");
     try {
-      const response = await fetch(`/api/organizations/${organizationId}/transactions/batch`, {
+      const response = await fetch(`/api/organizations/${orgSlug}/transactions/batch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ transactions })
