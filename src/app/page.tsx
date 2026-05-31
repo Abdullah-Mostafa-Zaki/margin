@@ -59,7 +59,7 @@ export default async function LandingPage() {
 
   return (
     <div
-      className={`${dmSans.className} min-h-screen flex flex-col bg-[#08080A] text-[#F0EAE0] relative overflow-hidden`}
+      className={`${dmSans.className} min-h-screen flex flex-col bg-zinc-50 text-zinc-900 relative overflow-hidden`}
       style={{ fontFeatureSettings: '"ss01"' }}
     >
       {/* Subtle grid background */}
@@ -81,7 +81,7 @@ export default async function LandingPage() {
       />
 
       {/* ─── Navigation ─── */}
-      <nav className="relative z-10 border-b border-[#1C1C22] bg-[#08080A]/50 backdrop-blur-md">
+      <nav className="relative z-10 border-b border-zinc-200 bg-white/50 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {/* White app-icon wrapper for your specific logo */}
@@ -94,18 +94,18 @@ export default async function LandingPage() {
                 className="w-full h-full object-contain"
               />
             </div>
-            <span className="text-[20px] font-semibold tracking-tight text-[#F0EAE0]">Margin.</span>
+            <span className="text-[20px] font-semibold tracking-tight text-zinc-900">Margin.</span>
           </div>
           <div className="flex items-center gap-4">
             <Link
               href="/login"
-              className="text-sm font-medium text-[#8A8490] hover:text-[#F0EAE0] transition-colors hidden sm:block"
+              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors hidden sm:block"
             >
               Sign In
             </Link>
             <Link
               href="/login"
-              className="text-sm font-medium bg-[#10B981] text-[#08080A] px-5 py-2.5 rounded-lg hover:bg-[#0EA5E9] hover:text-white transition-all duration-200"
+              className="text-sm font-medium bg-[#10B981] text-white px-5 py-2.5 rounded-lg hover:bg-[#0EA5E9] hover:text-white transition-all duration-200"
             >
               Get Started
             </Link>
@@ -126,14 +126,14 @@ export default async function LandingPage() {
           </div>
 
           {/* Headline */}
-          <h1 className={`${playfair.className} text-[60px] md:text-[80px] leading-[1.05] font-bold text-[#F0EAE0] tracking-tight`}>
+          <h1 className={`${playfair.className} text-[60px] md:text-[80px] leading-[1.05] font-bold text-zinc-900 tracking-tight`}>
             Stop typing expenses.
             <br />
             <span className="text-[#10B981] italic">Let AI do the math.</span>
           </h1>
 
           {/* Subheadline */}
-          <p className="text-[18px] md:text-[22px] leading-relaxed text-[#8A8490] max-w-2xl mx-auto">
+          <p className="text-[18px] md:text-[22px] leading-relaxed text-zinc-600 max-w-2xl mx-auto">
             The first financial dashboard built for the local hustle. Connect Shopify, upload Instapay receipts, and let AI track your real profitability per drop.
           </p>
 
@@ -141,13 +141,13 @@ export default async function LandingPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-5 pt-4">
             <Link
               href="/login"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-[#10B981] text-[#08080A] text-[16px] font-bold hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all duration-200 hover:scale-105 active:scale-95"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-[#10B981] text-white text-[16px] font-bold hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all duration-200 hover:scale-105 active:scale-95"
             >
               Create Free Workspace
             </Link>
             <Link
               href="/login"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-[#111116] border border-[#2A2A32] text-[#F0EAE0] text-[16px] font-medium hover:bg-[#1C1C22] hover:border-[#10B981]/50 transition-all duration-200"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-white border border-zinc-200 text-zinc-900 text-[16px] font-medium hover:bg-zinc-50 hover:border-[#10B981]/50 transition-all duration-200 shadow-sm"
             >
               Sign in to Dashboard
             </Link>
@@ -157,29 +157,29 @@ export default async function LandingPage() {
         {/* ─── Feature Grid ─── */}
         <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-6 mt-32 text-left">
           {features.map((f, i) => (
-            <div key={i} className="p-8 rounded-2xl border border-[#1C1C22] bg-[#0B0B0D]/50 hover:border-[#10B981]/40 transition-colors backdrop-blur-sm group">
+            <div key={i} className="p-8 rounded-2xl border border-zinc-200 bg-white hover:border-[#10B981]/40 transition-colors shadow-sm group">
               <div className="w-12 h-12 rounded-xl bg-[#10B981]/10 border border-[#10B981]/20 flex items-center justify-center mb-6 text-2xl group-hover:scale-110 transition-transform">
                 {f.icon}
               </div>
-              <h3 className="text-[18px] font-bold text-[#F0EAE0] mb-3">{f.title}</h3>
-              <p className="text-[15px] text-[#8A8490] leading-relaxed">{f.desc}</p>
+              <h3 className="text-[18px] font-bold text-zinc-900 mb-3">{f.title}</h3>
+              <p className="text-[15px] text-zinc-600 leading-relaxed">{f.desc}</p>
             </div>
           ))}
         </div>
       </main>
 
       {/* ─── Footer Stats ─── */}
-      <footer className="relative z-10 border-t border-[#1C1C22] bg-[#0B0B0D]">
+      <footer className="relative z-10 border-t border-zinc-200 bg-white">
         <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-10">
             {stats.map((s, i) => (
               <div key={i}>
                 <p className="text-[20px] font-bold text-[#10B981] tracking-tight">{s.value}</p>
-                <p className="text-[12px] text-[#6B6572] mt-1">{s.label}</p>
+                <p className="text-[12px] text-zinc-500 mt-1">{s.label}</p>
               </div>
             ))}
           </div>
-          <div className="text-[13px] text-[#4A4550]">
+          <div className="text-[13px] text-zinc-400">
             Margin © {new Date().getFullYear()} — Engineered in Egypt.
           </div>
         </div>
