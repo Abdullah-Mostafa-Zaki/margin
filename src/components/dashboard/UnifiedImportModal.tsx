@@ -214,7 +214,7 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
           Import Data
         </Button>
       </DialogTrigger>
-      <DialogContent className="!w-[95vw] !max-w-[95vw] md:!max-w-5xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+      <DialogContent className="!w-[95vw] !max-w-[95vw] xl:!max-w-[1200px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         
         {step === "SPLIT" && (
           <div className="space-y-6">
@@ -340,21 +340,21 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
               <table className="w-full text-sm text-left hidden sm:table">
                 <thead className="bg-muted text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-3 font-medium">#</th>
-                    <th className="px-4 py-3 font-medium">Date</th>
-                    <th className="px-4 py-3 font-medium">Description</th>
-                    <th className="px-4 py-3 font-medium">Amount</th>
-                    <th className="px-4 py-3 font-medium">Type</th>
-                    <th className="px-4 py-3 font-medium min-w-[150px]">Category</th>
-                    <th className="px-4 py-3 font-medium">Method</th>
-                    <th className="px-4 py-3 font-medium"></th>
+                    <th className="px-2 py-3 font-medium">#</th>
+                    <th className="px-2 py-3 font-medium">Date</th>
+                    <th className="px-2 py-3 font-medium">Description</th>
+                    <th className="px-2 py-3 font-medium">Amount</th>
+                    <th className="px-2 py-3 font-medium">Type</th>
+                    <th className="px-2 py-3 font-medium">Category</th>
+                    <th className="px-1 py-3 font-medium text-center">Method</th>
+                    <th className="px-2 py-3 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {transactions.map((t, i) => (
                     <tr key={i} className={`bg-card ${t.confidence === "low" ? "bg-red-50/50" : t.confidence === "medium" ? "bg-amber-50/50" : ""}`}>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        <div className="flex items-center gap-2">
+                      <td className="px-2 py-3 text-muted-foreground">
+                        <div className="flex items-center gap-1">
                           {i + 1}
                           {t.confidence !== "high" && (
                             <div title={t.confidenceNote || "Review needed"} className="inline-flex">
@@ -363,35 +363,35 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 min-w-[140px]">
-                        <Input type="date" value={t.date || ""} onChange={(e) => {
+                      <td className="px-2 py-3 w-[130px]">
+                        <Input type="date" value={t.date || ""} className="px-2" onChange={(e) => {
                           const newTx = [...transactions];
                           newTx[i].date = e.target.value;
                           setTransactions(newTx);
                         }} />
                       </td>
-                      <td className="px-4 py-3 min-w-[150px]">
-                        <Input value={t.description || ""} onChange={(e) => {
+                      <td className="px-2 py-3 min-w-[120px]">
+                        <Input value={t.description || ""} className="px-2" onChange={(e) => {
                           const newTx = [...transactions];
                           newTx[i].description = e.target.value;
                           setTransactions(newTx);
                         }} />
                       </td>
-                      <td className="px-4 py-3 min-w-[100px]">
-                        <Input type="number" value={t.amount || ""} onChange={(e) => {
+                      <td className="px-2 py-3 w-[90px]">
+                        <Input type="number" value={t.amount || ""} className="px-2 w-[80px]" onChange={(e) => {
                           const newTx = [...transactions];
                           newTx[i].amount = parseFloat(e.target.value) || 0;
                           setTransactions(newTx);
                         }} />
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-2 py-3 w-[100px]">
                         <Select value={t.type} onValueChange={(val: any) => {
                           const newTx = [...transactions];
                           newTx[i].type = val;
                           newTx[i].category = val === "INCOME" ? "Sales Revenue" : "Raw Materials";
                           setTransactions(newTx);
                         }}>
-                          <SelectTrigger className={`w-[110px] h-8 ${t.type === "INCOME" ? "text-emerald-600 border-emerald-200 bg-emerald-50" : "text-red-600 border-red-200 bg-red-50"}`}>
+                          <SelectTrigger className={`w-[95px] h-8 px-2 ${t.type === "INCOME" ? "text-emerald-600 border-emerald-200 bg-emerald-50" : "text-red-600 border-red-200 bg-red-50"}`}>
                             <SelectValue placeholder="Type" />
                           </SelectTrigger>
                           <SelectContent>
@@ -400,13 +400,13 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
                           </SelectContent>
                         </Select>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-2 py-3 w-[140px]">
                         <Select value={t.category || ""} onValueChange={(val) => {
                           const newTx = [...transactions];
                           newTx[i].category = val || "";
                           setTransactions(newTx);
                         }}>
-                          <SelectTrigger>
+                          <SelectTrigger className="px-2">
                             <SelectValue placeholder="Category" />
                           </SelectTrigger>
                           <SelectContent>
@@ -416,13 +416,13 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
                           </SelectContent>
                         </Select>
                       </td>
-                      <td className="px-4 py-3 min-w-[120px]">
+                      <td className="px-1 py-3 w-[100px]">
                         <Select value={t.paymentMethod} onValueChange={(val: any) => {
                           const newTx = [...transactions];
                           newTx[i].paymentMethod = val;
                           setTransactions(newTx);
                         }}>
-                          <SelectTrigger>
+                          <SelectTrigger className="px-2">
                             <SelectValue placeholder="Method" />
                           </SelectTrigger>
                           <SelectContent>
@@ -433,7 +433,7 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
                           </SelectContent>
                         </Select>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-2 py-3 w-[40px]">
                         <Button variant="ghost" size="icon" onClick={() => handleDeleteTransaction(i)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
                           <Trash2 className="w-4 h-4" />
                         </Button>

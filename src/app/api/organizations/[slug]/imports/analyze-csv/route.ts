@@ -25,6 +25,11 @@ interface ColumnMap {
   paymentMethod: number | null;
 }
 
+interface DescriptionCategoryRule {
+  keywords: string[];
+  category: string;
+}
+
 interface SheetRuleset {
   dataStartRow: number;
   dataEndRow: number | "last";
@@ -35,6 +40,7 @@ interface SheetRuleset {
   directionMap: Record<string, string>;
   directionFromSign: boolean;
   categoryMap: Record<string, string>;
+  descriptionToCategoryRules: DescriptionCategoryRule[];
   defaultPaymentMethod: "CASH" | "CARD" | "INSTAPAY" | "COD";
 }
 
@@ -121,6 +127,7 @@ IMPORTANT INSTRUCTIONS:
 - Always include these in "skipRowWhere.valueMatchesAny": ["total", "إجمالي", "المجموع", "subtotal", "الإجمالي"]
 - Build "categoryMap" based on actual values found in the sample rows, mapping them to valid categories.
 - Build "directionMap" based on actual direction/type values found in the sample rows.
+- If there is no category column, build "descriptionToCategoryRules" based on the actual description values in the sample rows. It should map keywords found in the descriptions to valid categories. It should recognize Arabic keywords too.
 - Return ONLY a raw JSON object — no markdown fences, no prose, no explanation.
 - Every field must have a value — use null for missing columns, never omit a field.
 
@@ -160,6 +167,9 @@ Return this exact JSON shape:
   },
   "directionFromSign": boolean,
   "categoryMap": { "raw_value": "Valid Category" },
+  "descriptionToCategoryRules": [
+    { "keywords": ["fabric", "material", "شحن"], "category": "Raw Materials" }
+  ],
   "defaultPaymentMethod": "CASH" | "CARD" | "INSTAPAY" | "COD"
 }`;
 }
@@ -225,6 +235,7 @@ async function detectStructure(
       directionMap: parsed.directionMap ?? {},
       directionFromSign: parsed.directionFromSign === true,
       categoryMap: parsed.categoryMap ?? {},
+      descriptionToCategoryRules: Array.isArray(parsed.descriptionToCategoryRules) ? parsed.descriptionToCategoryRules : [],
       defaultPaymentMethod: VALID_PAYMENT_METHODS.includes(parsed.defaultPaymentMethod)
         ? (parsed.defaultPaymentMethod as "CASH" | "CARD" | "INSTAPAY" | "COD")
         : "CASH",
@@ -443,10 +454,24 @@ function extractTransactions(
 
     // ── Category ──
     const catRaw = cellByIdx(ruleset.columns.category);
-    const category = catRaw
-      ? mapCategory(String(catRaw), ruleset.categoryMap)
-      : "Other";
-    if (!catRaw) defaultedFields++;
+    let category = "Other";
+    if (catRaw) {
+      category = mapCategory(String(catRaw), ruleset.categoryMap);
+    } else {
+      defaultedFields++;
+      
+      // Apply description-to-category rules
+      const descLower = description.toLowerCase();
+      const matchedRule = ruleset.descriptionToCategoryRules.find(rule => 
+        rule.keywords.some(kw => descLower.includes(kw.toLowerCase()))
+      );
+      
+      if (matchedRule && VALID_CATEGORIES.includes(matchedRule.category)) {
+        category = matchedRule.category;
+        defaultedFields--; // It's no longer purely defaulted, it was inferred
+        inferredFields++;
+      }
+    }
 
     // ── Payment Method ──
     const pmRaw = cellByIdx(ruleset.columns.paymentMethod);

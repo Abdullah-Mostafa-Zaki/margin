@@ -122,8 +122,23 @@ function extractTransactions(headers, rows, ruleset) {
     if (!descRaw) defaultedFields++;
 
     const catRaw = cellByIdx(ruleset.columns.category);
-    const category = catRaw ? mapCategory(String(catRaw), ruleset.categoryMap) : "Other";
-    if (!catRaw) defaultedFields++;
+    let category = "Other";
+    if (catRaw) {
+      category = mapCategory(String(catRaw), ruleset.categoryMap);
+    } else {
+      defaultedFields++;
+      
+      const descLower = description.toLowerCase();
+      const matchedRule = (ruleset.descriptionToCategoryRules || []).find(rule => 
+        rule.keywords.some(kw => descLower.includes(kw.toLowerCase()))
+      );
+      
+      if (matchedRule && VALID_CATEGORIES.includes(matchedRule.category)) {
+        category = matchedRule.category;
+        defaultedFields--;
+        inferredFields++;
+      }
+    }
 
     let paymentMethod = ruleset.defaultPaymentMethod;
     const pmRaw = cellByIdx(ruleset.columns.paymentMethod);
@@ -249,3 +264,43 @@ console.log("\n═══ SUMMARY ═══");
 console.log(`Test 1: ${test1Result.length} transactions`);
 console.log(`Test 2: ${test2Result.length} transactions`);
 console.log(`Test 3: ${test3Result.length} transactions`);
+
+// ══════════════════════════════════════════════════════════════════
+// Test 4 — Simple Ins and Outs (No Category Column)
+// ══════════════════════════════════════════════════════════════════
+
+console.log("\n═══ TEST 4: Simple Ins and Outs (No Category Col) ═══\n");
+
+const test4Headers = ["Description", "Amount"];
+const test4Rows = [
+  { Description: "Website Sales", Amount: "45000" },
+  { Description: "Fabric Sourcing", Amount: "-8000" },
+  { Description: "Shipping & Fulfillment", Amount: "-2500" },
+  { Description: "Facebook Ads", Amount: "-4000" },
+  { Description: "Bazaar pre-orders", Amount: "12000" },
+  { Description: "Unknown charge", Amount: "-500" },
+];
+
+const test4Ruleset = {
+  dataStartRow: 0,
+  dataEndRow: "last",
+  skipRowWhere: null,
+  skipEmptyAmounts: true,
+  amountMode: "single",
+  columns: { date: null, description: 0, amount: 1, debit: null, credit: null, direction: null, category: null, paymentMethod: null },
+  directionMap: {},
+  directionFromSign: true,
+  categoryMap: {},
+  descriptionToCategoryRules: [
+    { keywords: ["fabric", "material", "cotton"], category: "Raw Materials" },
+    { keywords: ["shipping", "logistics", "fulfillment"], category: "Logistics (Shipping)" },
+    { keywords: ["ads", "facebook", "marketing"], category: "Ads" },
+    { keywords: ["sales", "website sales", "revenue"], category: "Sales Revenue" },
+    { keywords: ["bazaar", "popup", "pop-up"], category: "Pop-up/Bazaar Sales" }
+  ],
+  defaultPaymentMethod: "CASH",
+};
+
+const test4Result = extractTransactions(test4Headers, test4Rows, test4Ruleset);
+console.log(JSON.stringify(test4Result, null, 2));
+console.log(`\nTest 4: ${test4Result.length} transactions`);
