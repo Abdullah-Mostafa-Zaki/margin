@@ -14,7 +14,8 @@ export interface VelocityDeltas {
 export async function getAnalyticsVelocity(
   organizationId: string,
   startDate: Date | null,
-  endDate: Date | null
+  endDate: Date | null,
+  tagId?: string
 ): Promise<VelocityDeltas> {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized: No session");
@@ -49,11 +50,14 @@ export async function getAnalyticsVelocity(
     prevEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
   }
 
+  const tagFilter = tagId ? { tags: { some: { tagId } } } : {};
+
   // Fetch current period transactions
   const currentTransactions = await prisma.transaction.findMany({
     where: {
       organizationId,
       date: { gte: currentStart, lte: currentEnd },
+      ...tagFilter,
     },
     select: { type: true, amount: true, status: true, shipmentFee: true },
   });
@@ -63,6 +67,7 @@ export async function getAnalyticsVelocity(
     where: {
       organizationId,
       date: { gte: prevStart, lte: prevEnd },
+      ...tagFilter,
     },
     select: { type: true, amount: true, status: true, shipmentFee: true },
   });

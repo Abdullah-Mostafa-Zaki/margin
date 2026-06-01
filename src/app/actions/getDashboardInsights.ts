@@ -40,7 +40,8 @@ function formatPercent(value: number): string {
 export async function getDashboardInsights(
   organizationId: string,
   startDate: Date | null,
-  endDate: Date | null
+  endDate: Date | null,
+  tagId?: string
 ): Promise<DashboardInsights> {
 
   const dateFilter = startDate && endDate ? {
@@ -50,11 +51,14 @@ export async function getDashboardInsights(
     }
   } : {};
 
+  const tagFilter = tagId ? { tags: { some: { tagId } } } : {};
+
   // Fetch all transactions for this org in the filtered date range
   const transactions = await prisma.transaction.findMany({
     where: {
       organizationId,
       ...dateFilter,
+      ...tagFilter,
     },
     select: {
       type: true,

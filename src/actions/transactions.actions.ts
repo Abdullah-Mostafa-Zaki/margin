@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { posthog } from "@/lib/posthog";
+import { FulfillmentStatus } from "@prisma/client";
 
 export async function createTransaction(orgSlug: string, formData: FormData) {
   const session = await getServerSession(authOptions);
@@ -274,6 +275,117 @@ export async function markAllPendingAsReceived(orgSlug: string) {
     data: {
       status: "RECEIVED",
     },
+  });
+
+  revalidatePath(`/${orgSlug}/transactions`);
+}
+
+export async function bulkDeleteTransactions(ids: string[], orgSlug: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const org = await prisma.organization.findUnique({
+    where: { slug: orgSlug },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
+
+  await prisma.transaction.deleteMany({
+    where: {
+      id: { in: ids },
+      organizationId: org.id,
+    },
+  });
+
+  revalidatePath(`/${orgSlug}/transactions`);
+}
+
+export async function bulkUpdateStatus(ids: string[], status: "PENDING" | "RECEIVED", orgSlug: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const org = await prisma.organization.findUnique({
+    where: { slug: orgSlug },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
+
+  await prisma.transaction.updateMany({
+    where: {
+      id: { in: ids },
+      organizationId: org.id,
+    },
+    data: { status },
+  });
+
+  revalidatePath(`/${orgSlug}/transactions`);
+}
+
+export async function bulkAssignDrop(ids: string[], tagId: string, orgSlug: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const org = await prisma.organization.findUnique({
+    where: { slug: orgSlug },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
+
+  // Verify the tag belongs to the org
+  const tag = await prisma.tag.findFirst({
+    where: { id: tagId, organizationId: org.id }
+  });
+  
+  if (!tag) throw new Error("Tag not found or does not belong to this organization");
+
+  // Create assignments, skip duplicates if a transaction already has this tag
+  await prisma.transactionTag.createMany({
+    data: ids.map((id) => ({
+      transactionId: id,
+      tagId: tagId,
+    })),
+    skipDuplicates: true,
+  });
+
+  revalidatePath(`/${orgSlug}/transactions`);
+}
+
+export async function bulkUpdateFulfillmentStatus(ids: string[], status: FulfillmentStatus, orgSlug: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const org = await prisma.organization.findUnique({
+    where: { slug: orgSlug },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
+
+  await prisma.transaction.updateMany({
+    where: {
+      id: { in: ids },
+      organizationId: org.id,
+    },
+    data: { fulfillmentStatus: status },
   });
 
   revalidatePath(`/${orgSlug}/transactions`);

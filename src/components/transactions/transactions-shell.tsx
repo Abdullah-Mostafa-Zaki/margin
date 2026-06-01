@@ -19,6 +19,8 @@ import { TransactionActions } from "@/components/transactions/transaction-action
 import type { TransactionFormHandle, TransactionToEdit } from "@/components/transactions/transaction-form";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { TagFilter } from "@/components/transactions/tag-filter";
+import { Checkbox } from "@/components/ui/checkbox";
+import { BulkActionBar } from "@/components/transactions/bulk-action-bar";
 
 interface TagProp {
   id: string;
@@ -46,9 +48,13 @@ export function TransactionsShell({
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const searchParams = useSearchParams();
   const formHandleRef = useRef<TransactionFormHandle | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const isDateFiltered = !!searchParams.get("range") || !!searchParams.get("from");
-  const isTagFiltered = !!searchParams.get("tag");
+  const tagParam = searchParams.get("tag");
+  const rangeParam = searchParams.get("range");
+
+  const isDateFiltered = !!rangeParam || !!searchParams.get("from");
+  const isTagFiltered = !!tagParam;
   const isCategoryFiltered = selectedCategory !== "All";
   const isSortFiltered = sortOrder !== "newest";
   const hasActiveFilters = isDateFiltered || isTagFiltered || isCategoryFiltered || isSortFiltered;
@@ -100,6 +106,12 @@ export function TransactionsShell({
       document.body.removeAttribute("data-scroll-locked");
     };
   }, []);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [activeTab, selectedCategory, sortOrder, tagParam, rangeParam]);
 
 
   const incomeCount = transactions.filter((t) => t.type === "INCOME").length;
@@ -298,6 +310,25 @@ export function TransactionsShell({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12 px-4">
+                <Checkbox
+                  checked={
+                    displayedTransactions.length > 0 && selectedIds.size === displayedTransactions.length
+                      ? true
+                      : selectedIds.size > 0
+                      ? "indeterminate"
+                      : false
+                  }
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedIds(new Set(displayedTransactions.map((t) => t.id)));
+                    } else {
+                      setSelectedIds(new Set());
+                    }
+                  }}
+                  aria-label="Select all"
+                />
+              </TableHead>
               <TableHead className="whitespace-nowrap">Date</TableHead>
               <TableHead className="whitespace-nowrap">Category</TableHead>
               <TableHead className="whitespace-nowrap">Payment</TableHead>
@@ -314,7 +345,7 @@ export function TransactionsShell({
           <TableBody>
             {displayedTransactions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center text-zinc-400">
+                <TableCell colSpan={8} className="h-32 text-center text-zinc-400">
                   <div className="flex flex-col items-center gap-2">
                     {activeTab === "INCOME" ? (
                       <TrendingUp className="w-7 h-7 text-zinc-300" />
@@ -332,6 +363,23 @@ export function TransactionsShell({
                   className="cursor-pointer hover:bg-zinc-50 transition-colors"
                   onClick={() => openEdit(t)}
                 >
+                  <TableCell className="px-4" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedIds.has(t.id)}
+                      onCheckedChange={(checked) => {
+                        setSelectedIds((prev) => {
+                          const next = new Set(prev);
+                          if (checked) {
+                            next.add(t.id);
+                          } else {
+                            next.delete(t.id);
+                          }
+                          return next;
+                        });
+                      }}
+                      aria-label="Select row"
+                    />
+                  </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {new Date(t.date).toLocaleDateString()}
                   </TableCell>
@@ -417,6 +465,14 @@ export function TransactionsShell({
           ))
         )}
       </div>
+
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        selectedIds={[...selectedIds]}
+        tags={tags}
+        orgSlug={orgSlug}
+        onDismiss={() => setSelectedIds(new Set())}
+      />
     </div>
   );
 }

@@ -14,7 +14,8 @@ export interface CityReturnData {
 export async function getReturnsByCity(
   organizationId: string,
   startDate: Date | null,
-  endDate: Date | null
+  endDate: Date | null,
+  tagId?: string
 ): Promise<CityReturnData[]> {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized: No session");
@@ -37,6 +38,8 @@ export async function getReturnsByCity(
     }
   } : {};
 
+  const tagFilter = tagId ? { tags: { some: { tagId } } } : {};
+
   // Fetch COD INCOME transactions with a city
   const transactions = await prisma.transaction.findMany({
     where: {
@@ -45,6 +48,7 @@ export async function getReturnsByCity(
       type: "INCOME",
       customerCity: { not: null },
       ...dateFilter,
+      ...tagFilter,
     },
     select: {
       customerCity: true,

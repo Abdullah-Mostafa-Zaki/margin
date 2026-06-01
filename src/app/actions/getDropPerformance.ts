@@ -16,7 +16,8 @@ export interface DropPerformance {
 export async function getDropPerformance(
   organizationId: string,
   startDate: Date | null,
-  endDate: Date | null
+  endDate: Date | null,
+  tagId?: string
 ): Promise<DropPerformance[]> {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized: No session");
@@ -39,9 +40,9 @@ export async function getDropPerformance(
     }
   } : {};
 
-  // Fetch all tags (drops) for the org
+  // Fetch all tags (drops) for the org, filtered by tagId if provided
   const tags = await prisma.tag.findMany({
-    where: { organizationId },
+    where: { organizationId, ...(tagId ? { id: tagId } : {}) },
     include: {
       transactions: {
         where: {

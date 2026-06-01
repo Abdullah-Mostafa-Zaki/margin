@@ -19,6 +19,7 @@ import { OrderHealthFunnel } from "@/components/dashboard/order-health-funnel";
 import { ReturnsByCity } from "@/components/dashboard/returns-by-city";
 import { FadeIn } from "@/components/ui/fade-in";
 import { PageTracker } from "@/components/analytics/PageTracker";
+import { DropFilter } from "@/components/analytics/drop-filter";
 
 export default async function AnalyticsPage(props: {
   params: Promise<{ orgSlug: string }>;
@@ -38,16 +39,25 @@ export default async function AnalyticsPage(props: {
   const isAllTime = !startDate && !endDate;
   const subtitleText = isAllTime ? "vs last month" : "vs prev period";
 
+  const tagId = typeof resolvedSearchParams.tagId === "string" ? resolvedSearchParams.tagId : undefined;
+  const tagFilter = tagId ? { tags: { some: { tagId } } } : {};
+
+  const tags = await prisma.tag.findMany({
+    where: { organizationId: organization.id },
+    select: { id: true, name: true },
+    orderBy: { createdAt: "desc" },
+  });
+
   // Insights is now the SINGLE SOURCE OF TRUTH for top-level KPIs
-  const insights = await getDashboardInsights(organization.id, startDate, endDate);
-  const velocity = await getAnalyticsVelocity(organization.id, startDate, endDate);
-  const dropPerformance = await getDropPerformance(organization.id, startDate, endDate);
-  const orderFunnel = await getOrderFunnel(organization.id, startDate, endDate);
-  const returnsByCity = await getReturnsByCity(organization.id, startDate, endDate);
-  const marketing = await getMarketingMetrics(organization.id, startDate || undefined, endDate || undefined);
+  const insights = await getDashboardInsights(organization.id, startDate, endDate, tagId);
+  const velocity = await getAnalyticsVelocity(organization.id, startDate, endDate, tagId);
+  const dropPerformance = await getDropPerformance(organization.id, startDate, endDate, tagId);
+  const orderFunnel = await getOrderFunnel(organization.id, startDate, endDate, tagId);
+  const returnsByCity = await getReturnsByCity(organization.id, startDate, endDate, tagId);
+  const marketing = await getMarketingMetrics(organization.id, startDate || undefined, endDate || undefined, tagId);
 
   const dailyTransactions = await prisma.transaction.findMany({
-    where: { organizationId: organization.id, status: 'RECEIVED', ...dateFilter },
+    where: { organizationId: organization.id, status: 'RECEIVED', ...dateFilter, ...tagFilter },
     select: { date: true, type: true, amount: true },
     orderBy: { date: 'asc' }
   });
@@ -72,7 +82,7 @@ export default async function AnalyticsPage(props: {
 
   const expenseByCategory = await prisma.transaction.groupBy({
     by: ['category'],
-    where: { organizationId: organization.id, type: 'EXPENSE', status: 'RECEIVED', ...dateFilter },
+    where: { organizationId: organization.id, type: 'EXPENSE', status: 'RECEIVED', ...dateFilter, ...tagFilter },
     _sum: { amount: true },
     orderBy: { _sum: { amount: 'desc' } }
   });
@@ -88,7 +98,8 @@ export default async function AnalyticsPage(props: {
         organizationId: organization.id,
         type: 'INCOME',
         status: 'RECEIVED',
-        ...dateFilter
+        ...dateFilter,
+        ...tagFilter
       }
     }
   });
@@ -122,6 +133,7 @@ export default async function AnalyticsPage(props: {
           <p className="text-zinc-500 md:mt-1 mt-2">Breakdown of your revenue and costs</p>
         </div>
         <div className="flex items-center gap-2">
+          <DropFilter tags={tags} currentTagId={tagId} />
           <DateRangePicker />
         </div>
       </div>

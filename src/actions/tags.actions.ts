@@ -110,3 +110,38 @@ export async function getTagROI(tagId: string, orgSlug: string) {
     transactionCount: transactions.length,
   };
 }
+
+export async function updateTag(id: string, orgSlug: string, name: string, description?: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const org = await prisma.organization.findUnique({
+    where: { slug: orgSlug },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
+
+  const duplicate = await prisma.tag.findFirst({
+    where: {
+      name,
+      organizationId: org.id,
+      NOT: { id }
+    }
+  });
+
+  if (duplicate) {
+    throw new Error("A drop with this name already exists. Please choose a different name.");
+  }
+
+  await prisma.tag.update({
+    where: { id },
+    data: { name, description }
+  });
+
+  revalidatePath(`/${orgSlug}/tags`);
+}

@@ -2,8 +2,8 @@
 
 import posthog from 'posthog-js';
 import { PostHogProvider as CSPostHogProvider } from 'posthog-js/react';
-import { useSession } from 'next-auth/react';
 import { useEffect } from 'react';
+import type { Session } from 'next-auth';
 
 if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
   console.log('PostHog initialized', process.env.NEXT_PUBLIC_POSTHOG_KEY);
@@ -13,8 +13,7 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
   });
 }
 
-export function PostHogProvider({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession();
+export function PostHogProvider({ children, session }: { children: React.ReactNode, session: Session | null }) {
 
   useEffect(() => {
     if (session?.user?.email) {

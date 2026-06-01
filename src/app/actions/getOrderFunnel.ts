@@ -15,7 +15,8 @@ export interface OrderFunnelData {
 export async function getOrderFunnel(
   organizationId: string,
   startDate: Date | null,
-  endDate: Date | null
+  endDate: Date | null,
+  tagId?: string
 ): Promise<OrderFunnelData> {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized: No session");
@@ -38,11 +39,14 @@ export async function getOrderFunnel(
     }
   } : {};
 
+  const tagFilter = tagId ? { tags: { some: { tagId } } } : {};
+
   // Base query: All INCOME transactions
   const baseWhere = {
     organizationId,
     type: "INCOME" as const,
     ...dateFilter,
+    ...tagFilter,
   };
 
   const totalOrders = await prisma.transaction.count({

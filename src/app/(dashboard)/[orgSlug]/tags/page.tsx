@@ -4,8 +4,7 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import TagForm from "@/components/tags/tag-form";
-import { DeleteTagButton } from "@/components/tags/action-buttons";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DropCard } from "@/components/tags/drop-card";
 
 export default async function TagsPage({
   params,
@@ -75,57 +74,25 @@ export default async function TagsPage({
             });
 
             const netROI = totalIncome - totalExpenses;
+            
+            const dates = tag.transactions.map((tt) => tt.transaction.date);
+            const startDate = dates.length ? new Date(Math.min(...dates.map((d) => d.getTime()))) : null;
+            const endDate = dates.length ? new Date(Math.max(...dates.map((d) => d.getTime()))) : null;
 
             return (
-              <Card key={tag.id} className="flex flex-col">
-                <CardHeader className="flex flex-row items-start justify-between pb-2">
-                  <div className="space-y-1">
-                    <CardTitle className="text-lg">{tag.name}</CardTitle>
-                    {tag.description && (
-                      <p className="text-sm text-zinc-500 line-clamp-2">{tag.description}</p>
-                    )}
-                  </div>
-                  <DeleteTagButton id={tag.id} orgSlug={orgSlug} />
-                </CardHeader>
-                <CardContent className="flex-1 space-y-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm mt-4">
-                    <div className="space-y-1">
-                      <p className="text-zinc-500">Income</p>
-                      <p className="font-semibold text-green-600">EGP {totalIncome.toLocaleString()}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-zinc-500">Expense</p>
-                      <p className="font-semibold text-red-600">EGP {totalExpenses.toLocaleString()}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="rounded-lg bg-zinc-50 p-3 flex justify-between items-center">
-                    <span className="text-sm font-medium">Net ROI</span>
-                    <span className={`font-bold ${netROI >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {netROI >= 0 ? '+' : ''}EGP {netROI.toLocaleString()}
-                    </span>
-                  </div>
-
-                  <div className="text-sm text-zinc-500 flex justify-between items-center">
-                    <span>{tag.transactions.length} transactions</span>
-                  </div>
-
-                  <div className="flex gap-2 pt-4 mt-auto">
-                    <Link
-                      href={`/${orgSlug}/transactions?tag=${tag.id}`}
-                      className="inline-flex h-9 flex-1 items-center justify-center rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-medium hover:bg-zinc-100 hover:text-zinc-900"
-                    >
-                      View Transactions
-                    </Link>
-                    <Link
-                      href={`/${orgSlug}/tags/${tag.id}`}
-                      className="inline-flex h-9 flex-1 items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-900/90"
-                    >
-                      View Details
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
+              <DropCard
+                key={tag.id}
+                id={tag.id}
+                orgSlug={orgSlug}
+                name={tag.name}
+                description={tag.description}
+                startDate={startDate}
+                endDate={endDate}
+                totalIncome={totalIncome}
+                totalExpenses={totalExpenses}
+                netROI={netROI}
+                transactionCount={tag.transactions.length}
+              />
             );
           })}
         </div>

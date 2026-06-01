@@ -12,7 +12,8 @@ export interface MarketingMetrics {
 export async function getMarketingMetrics(
   organizationId: string,
   startDate?: Date,
-  endDate?: Date
+  endDate?: Date,
+  tagId?: string
 ): Promise<MarketingMetrics> {
   // 1. Verify organization and membership
   const org = await prisma.organization.findUnique({
@@ -29,6 +30,8 @@ export async function getMarketingMetrics(
 
   // Helper to fetch metrics for a given period
   const fetchPeriodMetrics = async (filter: Prisma.TransactionWhereInput, pStart?: Date) => {
+    const localTagFilter = tagId ? { tags: { some: { tagId } } } : {};
+
     // A. Ad Spend
     const adSpendTxs = await prisma.transaction.findMany({
       where: {
@@ -36,6 +39,7 @@ export async function getMarketingMetrics(
         type: "EXPENSE",
         status: "RECEIVED",
         ...filter,
+        ...localTagFilter,
         OR: [
           { category: { equals: "Ads", mode: "insensitive" } },
           { category: { equals: "Marketing", mode: "insensitive" } },
@@ -55,6 +59,7 @@ export async function getMarketingMetrics(
         type: "INCOME",
         status: "RECEIVED",
         ...filter,
+        ...localTagFilter,
       },
       _sum: { amount: true },
     });
@@ -71,6 +76,7 @@ export async function getMarketingMetrics(
         type: "INCOME",
         customerId: { not: null },
         ...filter,
+        ...localTagFilter,
       },
       select: { customerId: true },
       distinct: ["customerId"],
@@ -88,6 +94,7 @@ export async function getMarketingMetrics(
             type: "INCOME",
             customerId: { in: customerIds },
             date: { lt: pStart },
+            ...localTagFilter,
           },
           select: { customerId: true },
           distinct: ["customerId"],
