@@ -72,6 +72,11 @@ Return NOTHING else — no explanation, no markdown, no commentary.
 - "Logistics (Shipping)"  → شحن، توصيل، مندوب، logistics، shipping
 - "Ads"                   → إعلانات، ميتا، meta، facebook، فيسبوك، Instagram، boost، reels، ممولة
 - "Content Creation"      → كونتنت، تصوير، سيشن، موديل، content
+- "Facilities"         → إيجار، كهرباء، مياه، فواتير، facilities، مكان
+- "Subscriptions"      → اشتراك، سوفتوير، تطبيق، subscriptions، software، SaaS
+- "Salaries"           → مرتب، راتب، أجر، موظف، salaries، عمالة
+- "Taxes & Legal"      → ضرايب، ضرائب، محامي، قانوني، taxes، legal، حكومة
+- "Returns & Refunds"  → مرتجع، استرداد، رجع فلوس، returns، refunds، استرجاع
 - "Sales Revenue"         → مبيعات، بيع، أوردر، order، sales، قبضت، بعت
 - "Other"                 → anything else
 
@@ -447,7 +452,7 @@ export async function parseReceiptFromImage(imageUrl: string): Promise<ParsedRec
         content: [
           {
             type: "text",
-            text: `You extract structured data from Egyptian receipts and Instapay screenshots. Rules: Return ONLY a valid JSON object. Do not include explanations, markdown formatting, or extra text. If a field is missing or illegible, return null. Fields: amount: total paid (number, strip all currency symbols like EGP or USD. Prefer final total amount). merchant: business name (string, translate Arabic names to English context if possible). date: format YYYY-MM-DD (string, infer from context if needed, else null). For the 'category' field, you MUST choose exactly one of the following exact strings: "Raw Materials", "Manufacturing", "Packaging", "Logistics (Shipping)", "Ads", "Content Creation", or "Other". Do not invent new categories. If the expense does not clearly fit into the first six, you must default to "Other". notes: short optional context (string or null). Identify every distinct transaction, line item, or expense visible in this image. Return a JSON object in exactly this format: { "transactions": [ { "amount": number|null, "merchant": string|null, "date": string|null, "category": string|null, "notes": string|null } ] }. If no transactions are found, return { "transactions": [] }. Never return a single object — always return the transactions array.`,
+            text: `You extract structured data from Egyptian receipts and Instapay screenshots. Rules: Return ONLY a valid JSON object. Do not include explanations, markdown formatting, or extra text. If a field is missing or illegible, return null. Fields: amount: total paid (number, strip all currency symbols like EGP or USD. Prefer final total amount). merchant: business name (string, translate Arabic names to English context if possible). date: format YYYY-MM-DD (string, infer from context if needed, else null). For the 'category' field, you MUST choose exactly one of the following exact strings: "Raw Materials", "Manufacturing", "Packaging", "Logistics (Shipping)", "Ads", "Content Creation", "Facilities", "Subscriptions", "Salaries", "Taxes & Legal", "Returns & Refunds", or "Other". Do not invent new categories. If the expense does not clearly fit into the first eleven, you must default to "Other". notes: short optional context (string or null). Identify every distinct transaction, line item, or expense visible in this image. Return a JSON object in exactly this format: { "transactions": [ { "amount": number|null, "merchant": string|null, "date": string|null, "category": string|null, "notes": string|null } ] }. If no transactions are found, return { "transactions": [] }. Never return a single object — always return the transactions array.`,
           },
           { type: "image_url", image_url: { url: imageUrl } },
         ],
@@ -494,6 +499,11 @@ export async function parseReceiptFromImage(imageUrl: string): Promise<ParsedRec
       "Logistics (Shipping)",
       "Ads",
       "Content Creation",
+      "Facilities",
+      "Subscriptions",
+      "Salaries",
+      "Taxes & Legal",
+      "Returns & Refunds",
       "Other",
     ] as const;
 

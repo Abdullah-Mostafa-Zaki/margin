@@ -23,6 +23,11 @@ const EXPENSE_CATEGORIES = [
   "Logistics (Shipping)",
   "Ads",
   "Content Creation",
+  "Facilities",
+  "Subscriptions",
+  "Salaries",
+  "Taxes & Legal",
+  "Returns & Refunds",
   "Other"
 ];
 

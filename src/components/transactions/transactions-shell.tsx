@@ -83,7 +83,7 @@ export function TransactionsShell({
   }, []);
 
   // Static category lists — mirrors the TransactionForm constants
-  const EXPENSE_CATEGORIES = ["Raw Materials", "Manufacturing", "Packaging", "Logistics (Shipping)", "Ads", "Content Creation", "Other"];
+  const EXPENSE_CATEGORIES = ["Raw Materials", "Manufacturing", "Packaging", "Logistics (Shipping)", "Ads", "Content Creation", "Facilities", "Subscriptions", "Salaries", "Taxes & Legal", "Returns & Refunds", "Other"];
   const INCOME_CATEGORIES = ["Sales Revenue", "Shopify Sale", "Pop-up / Bazaar Sales", "Wholesale / B2B", "Supplier Refund", "Other"];
   const availableCategories = activeTab === "INCOME" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 

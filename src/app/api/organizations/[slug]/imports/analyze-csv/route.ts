@@ -55,10 +55,16 @@ const VALID_CATEGORIES = [
   "Wholesale/B2B",
   "Supplier Refund",
   "Raw Materials",
+  "Manufacturing",
   "Packaging",
   "Logistics (Shipping)",
   "Ads",
   "Content Creation",
+  "Facilities",
+  "Subscriptions",
+  "Salaries",
+  "Taxes & Legal",
+  "Returns & Refunds",
   "Other",
 ];
 
@@ -138,7 +144,7 @@ IMPORTANT INSTRUCTIONS:
 
 Valid categories to map to:
 Income: "Sales Revenue", "Pop-up/Bazaar Sales", "Wholesale/B2B", "Supplier Refund", "Other"
-Expense: "Raw Materials", "Packaging", "Logistics (Shipping)", "Ads", "Content Creation", "Other"
+Expense: "Raw Materials", "Manufacturing", "Packaging", "Logistics (Shipping)", "Ads", "Content Creation", "Facilities", "Subscriptions", "Salaries", "Taxes & Legal", "Returns & Refunds", "Other"
 
 Return this exact JSON shape:
 {
@@ -327,6 +333,23 @@ function mapCategory(
     إعلانات: "Ads",
     تغليف: "Packaging",
     مبيعات: "Sales Revenue",
+    إيجار: "Facilities",
+    facilities: "Facilities",
+    كهرباء: "Facilities",
+    اشتراك: "Subscriptions",
+    subscription: "Subscriptions",
+    software: "Subscriptions",
+    مرتب: "Salaries",
+    salary: "Salaries",
+    salaries: "Salaries",
+    راتب: "Salaries",
+    ضرائب: "Taxes & Legal",
+    tax: "Taxes & Legal",
+    legal: "Taxes & Legal",
+    ضرايب: "Taxes & Legal",
+    مرتجع: "Returns & Refunds",
+    refund: "Returns & Refunds",
+    return: "Returns & Refunds",
   };
 
   const hc = hardcoded[raw.toLowerCase().trim()];
@@ -567,7 +590,7 @@ Read the entire sheet, understand what it contains, and extract every financial 
 
 Valid categories to map to:
 Income: "Sales Revenue", "Pop-up/Bazaar Sales", "Wholesale/B2B", "Supplier Refund", "Other"
-Expense: "Raw Materials", "Packaging", "Logistics (Shipping)", "Ads", "Content Creation", "Other"
+Expense: "Raw Materials", "Manufacturing", "Packaging", "Logistics (Shipping)", "Ads", "Content Creation", "Facilities", "Subscriptions", "Salaries", "Taxes & Legal", "Returns & Refunds", "Other"
 
 Valid payment methods: "CASH", "CARD", "INSTAPAY", "COD"
 
