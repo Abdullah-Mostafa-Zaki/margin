@@ -1,0 +1,83 @@
+"use client";
+
+import { useState } from "react";
+import type { Transaction } from "@prisma/client";
+import { CodEscrowCard } from "@/components/transactions/cod-escrow-card";
+import { TransactionsShell } from "@/components/transactions/transactions-shell";
+import { BulkActionBar } from "@/components/transactions/bulk-action-bar";
+
+interface TransactionsPageClientProps {
+  codTransactions: {
+    id: string;
+    amount: any;
+    date: Date;
+    notes: string | null;
+  }[];
+  totalPendingCod: number;
+  showCodCard: boolean;
+  transactions: Transaction[];
+  orgSlug: string;
+  orgId: string;
+  tags: { id: string; name: string }[];
+  activeTagLabel?: string;
+}
+
+export function TransactionsPageClient({
+  codTransactions,
+  totalPendingCod,
+  showCodCard,
+  transactions,
+  orgSlug,
+  orgId,
+  tags,
+  activeTagLabel,
+}: TransactionsPageClientProps) {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleId = (id: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const selectMany = (ids: string[], selected: boolean) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => (selected ? next.add(id) : next.delete(id)));
+      return next;
+    });
+
+  return (
+    <>
+      {showCodCard && (
+        <CodEscrowCard
+          transactions={codTransactions}
+          totalPendingCod={totalPendingCod}
+          orgSlug={orgSlug}
+          tags={tags}
+          selectedIds={selectedIds}
+          onToggle={toggleId}
+          onSelectAll={selectMany}
+        />
+      )}
+      <TransactionsShell
+        transactions={transactions}
+        orgSlug={orgSlug}
+        orgId={orgId}
+        tags={tags}
+        activeTagLabel={activeTagLabel}
+        selectedIds={selectedIds}
+        onToggle={toggleId}
+        onSelectAll={selectMany}
+      />
+      <BulkActionBar
+        selectedCount={selectedIds.size}
+        selectedIds={[...selectedIds]}
+        tags={tags}
+        orgSlug={orgSlug}
+        onDismiss={() => setSelectedIds(new Set())}
+      />
+    </>
+  );
+}

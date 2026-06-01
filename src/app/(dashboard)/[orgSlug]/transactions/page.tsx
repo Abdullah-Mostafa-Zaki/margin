@@ -5,14 +5,10 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { Transaction } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MarkReceivedButton, MarkAllReceivedButton } from "@/components/transactions/action-buttons";
+import { TransactionsPageClient } from "@/components/transactions/transactions-page-client";
 import { X } from "lucide-react";
 import RealtimeListener from "@/components/dashboard/realtime-listener";
-import { TransactionsShell } from "@/components/transactions/transactions-shell";
 import { getDateRangeFromParams } from "@/lib/date-utils";
-import { Suspense } from "react";
-
 export default async function TransactionsPage(props: {
   params: Promise<{ orgSlug: string }>;
   searchParams: Promise<{ tag?: string; range?: string; from?: string; to?: string }>;
@@ -84,47 +80,22 @@ export default async function TransactionsPage(props: {
         </div>
       )}
 
-      {!activeTag && pendingCODTransactions.length > 0 && (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardHeader className="flex flex-row items-center justify-between pb-4">
-            <div>
-              <CardTitle className="text-amber-900">Pending COD Escrow</CardTitle>
-              <p className="text-sm text-amber-700 mt-1">
-                Total pending amount: <span className="font-bold text-lg">EGP {totalPendingCod.toLocaleString()}</span>
-              </p>
-            </div>
-            <MarkAllReceivedButton orgSlug={resolvedParams.orgSlug} />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {pendingCODTransactions.map((t: Transaction) => (
-                <div key={t.id} className="flex items-center justify-between rounded-lg bg-white p-4 shadow-sm border border-amber-100">
-                  <div>
-                    <div className="font-medium text-amber-900">EGP {Number(t.amount).toLocaleString()}</div>
-                    <div className="text-sm text-amber-600">
-                      {new Date(t.date).toLocaleDateString()} • {t.notes || "No courier specified"}
-                    </div>
-                  </div>
-                  <MarkReceivedButton id={t.id} orgSlug={resolvedParams.orgSlug} />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <Suspense fallback={<div className="h-96 w-full animate-pulse bg-muted/50 rounded-lg" />}>
-        <TransactionsShell
-          transactions={organization.transactions.map((t: any) => ({
-            ...t,
-            amount: Number(t.amount)
-          }))}
-          orgSlug={resolvedParams.orgSlug}
-          orgId={organization.id}
-          tags={tags}
-          activeTagLabel={activeTag?.name}
-        />
-      </Suspense>
+      <TransactionsPageClient
+        codTransactions={pendingCODTransactions.map((t: any) => ({
+          ...t,
+          amount: Number(t.amount)
+        }))}
+        totalPendingCod={totalPendingCod}
+        showCodCard={!activeTag && pendingCODTransactions.length > 0}
+        transactions={organization.transactions.map((t: any) => ({
+          ...t,
+          amount: Number(t.amount)
+        }))}
+        orgSlug={resolvedParams.orgSlug}
+        orgId={organization.id}
+        tags={tags}
+        activeTagLabel={activeTag?.name}
+      />
     </div>
   );
 }

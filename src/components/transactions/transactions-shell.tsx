@@ -20,7 +20,6 @@ import type { TransactionFormHandle, TransactionToEdit } from "@/components/tran
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { TagFilter } from "@/components/transactions/tag-filter";
 import { Checkbox } from "@/components/ui/checkbox";
-import { BulkActionBar } from "@/components/transactions/bulk-action-bar";
 
 interface TagProp {
   id: string;
@@ -33,6 +32,9 @@ interface TransactionsShellProps {
   orgId: string;
   tags: TagProp[];
   activeTagLabel?: string;
+  selectedIds: Set<string>;
+  onToggle: (id: string) => void;
+  onSelectAll: (ids: string[], selected: boolean) => void;
 }
 
 export function TransactionsShell({
@@ -41,6 +43,9 @@ export function TransactionsShell({
   orgId,
   tags,
   activeTagLabel,
+  selectedIds,
+  onToggle,
+  onSelectAll,
 }: TransactionsShellProps) {
   const [activeTab, setActiveTab] = useState<"INCOME" | "EXPENSE">("INCOME");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
@@ -48,7 +53,6 @@ export function TransactionsShell({
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const searchParams = useSearchParams();
   const formHandleRef = useRef<TransactionFormHandle | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const tagParam = searchParams.get("tag");
   const rangeParam = searchParams.get("range");
@@ -110,7 +114,7 @@ export function TransactionsShell({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
-    setSelectedIds(new Set());
+    onSelectAll([...selectedIds], false);
   }, [activeTab, selectedCategory, sortOrder, tagParam, rangeParam]);
 
 
@@ -313,18 +317,15 @@ export function TransactionsShell({
               <TableHead className="w-12 px-4">
                 <Checkbox
                   checked={
-                    displayedTransactions.length > 0 && selectedIds.size === displayedTransactions.length
+                    displayedTransactions.length > 0 && displayedTransactions.every((t) => selectedIds.has(t.id))
                       ? true
-                      : selectedIds.size > 0
+                      : displayedTransactions.some((t) => selectedIds.has(t.id))
                       ? "indeterminate"
                       : false
                   }
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setSelectedIds(new Set(displayedTransactions.map((t) => t.id)));
-                    } else {
-                      setSelectedIds(new Set());
-                    }
+                  onCheckedChange={() => {
+                    const allSelected = displayedTransactions.length > 0 && displayedTransactions.every((t) => selectedIds.has(t.id));
+                    onSelectAll(displayedTransactions.map((t) => t.id), !allSelected);
                   }}
                   aria-label="Select all"
                 />
@@ -366,17 +367,7 @@ export function TransactionsShell({
                   <TableCell className="px-4" onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={selectedIds.has(t.id)}
-                      onCheckedChange={(checked) => {
-                        setSelectedIds((prev) => {
-                          const next = new Set(prev);
-                          if (checked) {
-                            next.add(t.id);
-                          } else {
-                            next.delete(t.id);
-                          }
-                          return next;
-                        });
-                      }}
+                      onCheckedChange={() => onToggle(t.id)}
                       aria-label="Select row"
                     />
                   </TableCell>
@@ -466,13 +457,6 @@ export function TransactionsShell({
         )}
       </div>
 
-      <BulkActionBar
-        selectedCount={selectedIds.size}
-        selectedIds={[...selectedIds]}
-        tags={tags}
-        orgSlug={orgSlug}
-        onDismiss={() => setSelectedIds(new Set())}
-      />
     </div>
   );
 }

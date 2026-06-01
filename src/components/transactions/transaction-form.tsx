@@ -332,7 +332,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
       }
     }}>
       {/* Desktop Button */}
-      <Button className="hidden md:flex bg-[#27A67A] hover:bg-[#27A67A]/90 text-white" onClick={() => setIsOpen(true)}>Add Transaction</Button>
+      <Button className="hidden md:flex h-8 px-2.5 rounded-lg bg-[#27A67A] hover:bg-[#27A67A]/90 text-white" onClick={() => setIsOpen(true)}>Add Transaction</Button>
 
       {/* Mobile FAB */}
       <button

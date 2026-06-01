@@ -108,7 +108,7 @@ export function BulkActionBar({
 
       <div className="flex items-center gap-2">
         <Select disabled={isLoading} onValueChange={handleAssignDrop}>
-          <SelectTrigger className="h-8 border-zinc-700 bg-zinc-800 text-xs text-white hover:bg-zinc-700 focus:ring-0 focus:ring-offset-0">
+          <SelectTrigger className="h-8 border-zinc-700 bg-zinc-800 text-xs text-white hover:bg-zinc-700 hover:text-white focus:ring-0 focus:ring-offset-0 data-[placeholder]:text-white [&>svg]:opacity-100 [&>svg]:text-white">
             <SelectValue placeholder="Assign Drop" />
           </SelectTrigger>
           <SelectContent>
@@ -121,7 +121,7 @@ export function BulkActionBar({
         </Select>
 
         <Select disabled={isLoading} onValueChange={handleUpdateFulfillment}>
-          <SelectTrigger className="h-8 border-zinc-700 bg-zinc-800 text-xs text-white hover:bg-zinc-700 focus:ring-0 focus:ring-offset-0">
+          <SelectTrigger className="h-8 border-zinc-700 bg-zinc-800 text-xs text-white hover:bg-zinc-700 hover:text-white focus:ring-0 focus:ring-offset-0 data-[placeholder]:text-white [&>svg]:opacity-100 [&>svg]:text-white">
             <SelectValue placeholder="Fulfillment" />
           </SelectTrigger>
           <SelectContent>

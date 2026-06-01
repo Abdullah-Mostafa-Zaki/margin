@@ -79,7 +79,7 @@ export function MagicVoiceButton({ onResult }: MagicVoiceButtonProps) {
         type="button"
         onClick={handleToggle}
         disabled={isProcessing}
-        className={`hidden md:inline-flex items-center justify-center gap-2 h-10 rounded-md border px-4 text-sm font-medium transition-all duration-200 ${
+        className={`hidden md:inline-flex items-center justify-center gap-2 h-8 px-2.5 rounded-lg border text-sm font-medium transition-all duration-200 ${
           isProcessing
             ? "border-[#27A67A]/20 bg-[#27A67A]/5 text-[#27A67A]/40 cursor-wait"
             : isRecording

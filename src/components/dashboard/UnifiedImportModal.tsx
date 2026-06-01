@@ -209,7 +209,7 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2 h-8 px-2.5 rounded-lg">
           <Plus className="w-4 h-4" />
           Import Data
         </Button>
