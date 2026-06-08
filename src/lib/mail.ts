@@ -60,3 +60,86 @@ export async function sendResetPasswordEmail(to: string, token: string) {
     `,
   });
 }
+
+export async function sendReportEmail(
+  to: string[],
+  orgName: string,
+  reportType: string,
+  report: any
+) {
+  const subject = `Margin ${reportType} Report: ${orgName}`;
+  const metrics = report.metrics as any;
+
+  // Build HTML payload
+  const actionItemsHtml = (metrics?.actionItems || []).map((item: any) => `
+    <li style="margin-bottom:12px;">
+      <strong>${item.title} (${item.priority})</strong><br/>
+      <span style="color:#52525b;font-size:14px;">${item.reason}</span>
+    </li>
+  `).join("");
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+      <body style="margin:0;padding:0;background:#f9fafb;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="padding:48px 16px;">
+          <tr>
+            <td align="center">
+              <table width="100%" style="max-width:600px;background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;padding:40px;">
+                <tr>
+                  <td>
+                    <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#09090b;">Your ${reportType} Report</h1>
+                    
+                    <div style="background:#f4f4f5;padding:16px;border-radius:8px;margin-bottom:24px;">
+                      <p style="margin:0;font-size:16px;color:#27272a;line-height:1.6;font-weight:500;">
+                        ${report.oneParagraphStory}
+                      </p>
+                    </div>
+
+                    <h2 style="font-size:18px;margin-top:0;margin-bottom:12px;color:#09090b;">Snapshot</h2>
+                    <table width="100%" style="margin-bottom:24px;border-collapse:collapse;">
+                      <tr>
+                        <td style="padding:12px;border:1px solid #e5e7eb;text-align:center;">
+                          <div style="font-size:12px;color:#71717a;text-transform:uppercase;">Revenue</div>
+                          <div style="font-size:18px;font-weight:bold;color:#09090b;">${Number(report.revenue).toLocaleString()} EGP</div>
+                        </td>
+                        <td style="padding:12px;border:1px solid #e5e7eb;text-align:center;">
+                          <div style="font-size:12px;color:#71717a;text-transform:uppercase;">Profit</div>
+                          <div style="font-size:18px;font-weight:bold;color:#09090b;">${Number(report.profit).toLocaleString()} EGP</div>
+                        </td>
+                        <td style="padding:12px;border:1px solid #e5e7eb;text-align:center;">
+                          <div style="font-size:12px;color:#71717a;text-transform:uppercase;">Margin</div>
+                          <div style="font-size:18px;font-weight:bold;color:#09090b;">${((Number(report.marginPercent) || 0) * 100).toFixed(1)}%</div>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <h2 style="font-size:18px;margin-bottom:12px;color:#09090b;">Action Items</h2>
+                    <ul style="margin:0 0 24px 0;padding-left:20px;">
+                      ${actionItemsHtml}
+                    </ul>
+
+                    <p style="margin:0;font-size:14px;color:#52525b;">
+                      Log into your Margin dashboard to see the full analysis, deep dives, and export options.
+                    </p>
+                    
+                    <div style="margin-top:32px;text-align:center;">
+                      <a href="${process.env.NEXTAUTH_URL}" style="display:inline-block;background:#09090b;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;">View Dashboard</a>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+  `;
+
+  await transporter.sendMail({
+    from: `"Margin" <${process.env.EMAIL_SERVER_USER}>`,
+    to: to.join(","),
+    subject,
+    html,
+  });
+}

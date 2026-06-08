@@ -78,6 +78,7 @@ model Organization {
   subscription         Subscription?
   bostaIntegration     BostaIntegration?
   onboardingCompleted  Boolean       @default(false)
+  reports              Report[]
 
   @@index([slug])
 }
@@ -235,4 +236,56 @@ enum TransactionSource {
   IMPORT_IMAGE
   IMPORT_CSV
   VOICE
+}
+
+enum ReportType {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum ReportStatus {
+  GENERATING
+  COMPLETED
+  FAILED
+  INSUFFICIENT_DATA
+}
+
+model Report {
+  id               String       @id @default(cuid())
+
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  type             ReportType
+  status           ReportStatus @default(GENERATING)
+  version          Int          @default(1)
+
+  startDate        DateTime
+  endDate          DateTime
+
+  // Hero content
+  oneParagraphStory String?     @db.Text
+
+  // Frequently queried report snapshots
+  revenue          Decimal?
+  expenses         Decimal?
+  profit           Decimal?
+  marginPercent    Decimal?
+
+  // Structured report sections
+  metrics          Json?
+  narrative        Json?
+
+  // Exact payload sent to the LLM
+  inputPayload     Json?
+
+  error            String?
+
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@unique([organizationId, type, startDate, endDate])
+  @@index([organizationId, type])
 }

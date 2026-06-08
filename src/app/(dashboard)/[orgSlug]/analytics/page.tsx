@@ -20,7 +20,7 @@ import { ReturnsByCity } from "@/components/dashboard/returns-by-city";
 import { FadeIn } from "@/components/ui/fade-in";
 import { PageTracker } from "@/components/analytics/PageTracker";
 import { DropFilter } from "@/components/analytics/drop-filter";
-
+import { GenerateReportModal } from "@/components/analytics/generate-report-modal";
 export default async function AnalyticsPage(props: {
   params: Promise<{ orgSlug: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -30,7 +30,10 @@ export default async function AnalyticsPage(props: {
 
   const organization = await prisma.organization.findUnique({
     where: { slug: resolvedParams.orgSlug },
-    select: { id: true }
+    select: { 
+      id: true,
+      slug: true
+    }
   });
   if (!organization) redirect("/unauthorized");
 
@@ -133,6 +136,7 @@ export default async function AnalyticsPage(props: {
           <p className="text-zinc-500 md:mt-1 mt-2">Breakdown of your revenue and costs</p>
         </div>
         <div className="flex items-center gap-2">
+          <GenerateReportModal orgSlug={organization.slug} />
           <DropFilter tags={tags} currentTagId={tagId} />
           <DateRangePicker />
         </div>

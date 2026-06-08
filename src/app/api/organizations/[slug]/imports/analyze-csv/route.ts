@@ -81,14 +81,14 @@ function buildFingerprint(
   // Convert rows to arrays of values for index-based access later, but
   // for the fingerprint we keep the key-value format the AI can read.
 
-  const first8 = rows.slice(0, 8);
-  const last3 = rows.length > 8 ? rows.slice(-3) : [];
+  const first20 = rows.slice(0, 20);
+  const last5 = rows.length > 20 ? rows.slice(-5) : [];
 
   // Detect "label rows" — rows where the first cell looks like a
   // non-data label (non-numeric, non-date, non-empty, short string).
   const labelRows: Record<string, any>[] = [];
   const firstKey = headers[0];
-  for (let i = 8; i < rows.length - 3; i++) {
+  for (let i = 20; i < rows.length - 5; i++) {
     const val = rows[i]?.[firstKey];
     if (!val) continue;
     const s = String(val).trim();
@@ -98,18 +98,18 @@ function buildFingerprint(
     if (/^\d{4}[/-]\d{2}[/-]\d{2}/.test(s)) continue;
     if (s.length < 50) {
       labelRows.push(rows[i]);
-      if (labelRows.length >= 5) break; // cap
+      if (labelRows.length >= 10) break; // cap
     }
   }
 
-  // Deduplicate: remove any last3 rows that are already in first8
-  const seen = new Set(first8.map((r) => JSON.stringify(r)));
-  const uniqueLast3 = last3.filter((r) => !seen.has(JSON.stringify(r)));
+  // Deduplicate: remove any last5 rows that are already in first20
+  const seen = new Set(first20.map((r) => JSON.stringify(r)));
+  const uniqueLast5 = last5.filter((r) => !seen.has(JSON.stringify(r)));
   const uniqueLabels = labelRows.filter((r) => !seen.has(JSON.stringify(r)));
 
   return {
     headers,
-    sample: [...first8, ...uniqueLabels, ...uniqueLast3],
+    sample: [...first20, ...uniqueLabels, ...uniqueLast5],
   };
 }
 
@@ -120,11 +120,11 @@ function buildStructurePrompt(fingerprint: {
   return `You are a spreadsheet structure analyzer. Given the column headers and a sample of rows from a financial spreadsheet, determine the sheet's structure and return a JSON ruleset.
 
 Column Headers: ${JSON.stringify(fingerprint.headers)}
-Sample Rows (first 8 rows, any detected label rows from the middle, last 3 rows):
+Sample Rows (first 20 rows, any detected label rows from the middle, last 5 rows):
 ${JSON.stringify(fingerprint.sample, null, 2)}
 
 IMPORTANT INSTRUCTIONS:
-- Analyze the sheet sample carefully before responding.
+- Analyze the sheet sample carefully before responding. PAY SPECIAL ATTENTION to the exact values in the rows, as column headers might be misleading, misaligned, or missing. Map columns based on the actual data they contain.
 - Detect the orientation of the sheet:
   - If it's a standard format where each row is a transaction, set "orientation": "vertical".
   - If it's transposed (each column is a transaction, e.g., row 1 = descriptions, row 2 = amounts), set "orientation": "horizontal".
@@ -136,7 +136,7 @@ IMPORTANT INSTRUCTIONS:
 - Identify and exclude summary/total rows at the bottom by setting "dataEndRow" to the correct 0-based row index (exclusive). Use "last" if data goes to the end.
 - Identify mid-sheet label rows (section headers like "May Expenses", "مصاريف مايو") and add their patterns to "skipRowWhere.valueMatchesAny".
 - Always include these in "skipRowWhere.valueMatchesAny": ["total", "إجمالي", "المجموع", "subtotal", "الإجمالي"]
-- Build "categoryMap" based on actual values found in the sample rows, mapping them to valid categories.
+- Build "categoryMap" based on actual values found in the sample rows, mapping them to valid categories. Ensure exact string matches to the values in the sample rows.
 - Build "directionMap" based on actual direction/type values found in the sample rows.
 - If there is no category column, build "descriptionToCategoryRules" based on the actual description values in the sample rows. It should map keywords found in the descriptions to valid categories. It should recognize Arabic keywords too.
 - Return ONLY a raw JSON object — no markdown fences, no prose, no explanation.
@@ -569,7 +569,7 @@ function extractTransactions(
 }
 
 // ────────────────────────────────────────────────────────────────────
-// Pass 1 Alternative — Direct One-Pass Extraction (for <= 200 rows)
+// Pass 1 Alternative — Direct One-Pass Extraction (for <= 1000 rows)
 // ────────────────────────────────────────────────────────────────────
 
 async function extractTransactionsDirect(groq: Groq, headers: string[], rows: Record<string, any>[]): Promise<any[]> {
@@ -729,9 +729,9 @@ export async function POST(
       }
       const groq = new Groq({ apiKey });
 
-      if (rows.length <= 200) {
+      if (rows.length <= 1000) {
         // ═══════════════════════════════════════════════════════════════
-        // Flexible path — Direct One-Pass Extraction (<= 200 rows)
+        // Flexible path — Direct One-Pass Extraction (<= 1000 rows)
         // ═══════════════════════════════════════════════════════════════
         console.log(`📋 [CSV Direct] Sending ${rows.length} rows directly to Groq for one-pass extraction.`);
         const directTransactions = await extractTransactionsDirect(groq, headers, rows);
@@ -739,7 +739,7 @@ export async function POST(
         console.log(`✅ [CSV Direct] Extracted ${directTransactions.length} transactions via one-pass`);
       } else {
         // ═══════════════════════════════════════════════════════════════
-        // Flexible path — Two-Pass Structure Detection (> 200 rows)
+        // Flexible path — Two-Pass Structure Detection (> 1000 rows)
         // ═══════════════════════════════════════════════════════════════
         console.log(`📋 [CSV Pass1] Fallback two-pass extraction for large sheet (${rows.length} rows)`);
         
