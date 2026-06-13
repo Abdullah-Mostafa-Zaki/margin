@@ -103,6 +103,7 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                 const limits = PLAN_LIMITS[org.plan];
                 const txLimitStr =
                   limits.maxAiTransactions >= 999999 ? '∞' : limits.maxAiTransactions;
+                const totalUsage = org.currentMonthVoice + org.currentMonthImage + org.currentMonthText;
 
                 return (
                   <TableRow key={org.id}>
@@ -141,7 +142,7 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">
                       <div>
-                        {org.currentMonthReceipts} / {txLimitStr}
+                        {totalUsage} / {txLimitStr}
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
                         ({org.currentMonthVoice} Voice | {org.currentMonthImage} Img | {org.currentMonthText} Txt)
