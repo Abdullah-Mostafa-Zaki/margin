@@ -6,6 +6,8 @@ import { EditOrgForm } from "@/components/settings/edit-org-form";
 import { ShopifyIntegration } from "@/components/settings/shopify-integration";
 import { BostaConnectForm } from "@/components/settings/bosta-connect-form";
 import { PageTracker } from "@/components/analytics/PageTracker";
+import { PLAN_LIMITS } from "@/lib/plans";
+import Link from "next/link";
 
 export default async function SettingsPage({
   params,
@@ -58,6 +60,11 @@ export default async function SettingsPage({
   // Derive a boolean — never send the raw secret to the client
   const hasSecret = Boolean(organization.shopifyWebhookSecret);
 
+  const limits = PLAN_LIMITS[organization.plan as keyof typeof PLAN_LIMITS];
+  const isShopifyLocked = !limits.shopifySync;
+  const isBostaLocked = !limits.bostaSync;
+  const isTeamFull = organization.memberships.length >= limits.maxTeamMembers;
+
   // Base URL for constructing the webhook endpoint
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
@@ -92,20 +99,37 @@ export default async function SettingsPage({
           orgSlug={orgSlug}
           baseUrl={baseUrl}
           hasSecret={hasSecret}
+          isLocked={isShopifyLocked}
         />
 
         {/* Bosta Integration */}
         <div className="rounded-lg border bg-white p-6 shadow-sm w-full max-w-full overflow-hidden">
-          <BostaConnectForm orgId={organization.id} isConnectedInitially={!!organization.bostaIntegration} />
+          <BostaConnectForm orgId={organization.id} isConnectedInitially={!!organization.bostaIntegration} isLocked={isBostaLocked} />
         </div>
 
         {/* Team Members */}
         <div className="rounded-lg border bg-white p-6 shadow-sm w-full max-w-full overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-            <h2 className="text-lg font-medium">Team Members</h2>
-            <button className="inline-flex h-9 items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-900/90">
-              Invite Member
-            </button>
+            <div>
+              <h2 className="text-lg font-medium">Team Members</h2>
+              <p className="text-xs text-zinc-500 mt-1">
+                {organization.memberships.length} of {limits.maxTeamMembers} seats used
+              </p>
+            </div>
+            {isTeamFull ? (
+              <div className="text-right">
+                <button disabled className="inline-flex h-9 items-center justify-center rounded-md bg-zinc-200 px-4 py-2 text-sm font-medium text-zinc-400 cursor-not-allowed">
+                  Invite Member
+                </button>
+                <p className="text-[11px] text-zinc-500 mt-1">
+                  Team limit reached. <Link href="/pricing" className="text-emerald-600 hover:underline">Upgrade</Link> to add more.
+                </p>
+              </div>
+            ) : (
+              <button className="inline-flex h-9 items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-900/90">
+                Invite Member
+              </button>
+            )}
           </div>
 
           {/* Desktop Table */}

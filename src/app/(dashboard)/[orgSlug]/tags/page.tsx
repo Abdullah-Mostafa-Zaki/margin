@@ -45,7 +45,7 @@ export default async function TagsPage({
           <h1 className="text-2xl font-bold tracking-tight">Drops</h1>
           <p className="text-zinc-500">Track ROI across different product drops and marketing campaigns.</p>
         </div>
-        <TagForm orgSlug={orgSlug} />
+        <TagForm orgSlug={orgSlug} currentDropCount={organization.tags.length} />
       </div>
 
       {organization.tags.length === 0 ? (
@@ -55,7 +55,7 @@ export default async function TagsPage({
             <p className="mb-8 mt-2 text-center text-sm font-normal leading-6 text-zinc-500">
               Create your first drop to start tracking ROI.
             </p>
-            <TagForm orgSlug={orgSlug} />
+            <TagForm orgSlug={orgSlug} currentDropCount={organization.tags.length} />
           </div>
         </div>
       ) : (

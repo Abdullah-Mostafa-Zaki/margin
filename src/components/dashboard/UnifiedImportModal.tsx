@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { usePostHog } from 'posthog-js/react';
+import { usePlan } from "@/lib/plan-context";
+import { PLAN_LIMITS } from "@/lib/plans";
 
 type ImportStep = "SPLIT" | "AI_SCANNER" | "SMART_SPREADSHEET" | "REVIEW" | "SAVING" | "DONE";
 
@@ -58,6 +60,10 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
   const [isUploading, setIsUploading] = useState(false);
   const [transactions, setTransactions] = useState<UnifiedTransaction[]>([]);
   const [importMethod, setImportMethod] = useState<"image" | "shopify" | "flexible">("flexible");
+
+  const plan = usePlan();
+  const hasImportAccess = PLAN_LIMITS[plan].fullExpenses;
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const posthog = usePostHog();
 
@@ -213,12 +219,21 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2 h-8 px-2.5 rounded-lg">
-          <Plus className="w-4 h-4" />
-          Import Data
-        </Button>
-      </DialogTrigger>
+      {hasImportAccess ? (
+        <DialogTrigger asChild>
+          <Button variant="outline" className="gap-2 h-8 px-2.5 rounded-lg">
+            <Plus className="w-4 h-4" />
+            Import Data
+          </Button>
+        </DialogTrigger>
+      ) : (
+        <div title="Upgrade to PLUS to import data">
+          <Button disabled variant="outline" className="gap-2 h-8 px-2.5 rounded-lg opacity-50 cursor-not-allowed">
+            <Plus className="w-4 h-4" />
+            Import Data
+          </Button>
+        </div>
+      )}
       <DialogContent className="!w-[95vw] !max-w-[95vw] xl:!max-w-[1200px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         
         {step === "SPLIT" && (

@@ -14,8 +14,12 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { Badge } from "@/components/ui/badge";
+import { Plan } from "@prisma/client";
+import { PLAN_LIMITS } from "@/lib/plans";
+import Link from "next/link";
+import { Lock } from "lucide-react";
 
-export function GenerateReportModal({ orgSlug }: { orgSlug: string }) {
+export function GenerateReportModal({ orgSlug, plan }: { orgSlug: string; plan: Plan }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedType, setSelectedType] = useState<"WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY">("WEEKLY");
@@ -108,7 +112,25 @@ export function GenerateReportModal({ orgSlug }: { orgSlug: string }) {
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[950px] max-h-[90vh] overflow-y-auto bg-slate-50">
-        {!generatedReport ? (
+        {!PLAN_LIMITS[plan].monthlyReports ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-4">
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-zinc-100 border border-zinc-200">
+              <Lock className="w-8 h-8 text-zinc-500" />
+            </div>
+            <DialogHeader>
+              <DialogTitle className="text-center">Upgrade to PLUS</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-zinc-600 text-center max-w-sm">
+              Generate AI-powered board reports to get automated insights into your financial health.
+            </p>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors mt-2"
+            >
+              Upgrade Plan
+            </Link>
+          </div>
+        ) : !generatedReport ? (
           <>
             <DialogHeader>
               <DialogTitle>Generate AI Report</DialogTitle>
@@ -122,10 +144,10 @@ export function GenerateReportModal({ orgSlug }: { orgSlug: string }) {
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="WEEKLY">Weekly Pulse</SelectItem>
-                      <SelectItem value="MONTHLY">Monthly Boardroom</SelectItem>
-                      <SelectItem value="QUARTERLY">Quarterly Pivot</SelectItem>
-                      <SelectItem value="YEARLY">Yearly Tax</SelectItem>
+                      {PLAN_LIMITS[plan].weeklyReports && <SelectItem value="WEEKLY">Weekly Pulse</SelectItem>}
+                      {PLAN_LIMITS[plan].monthlyReports && <SelectItem value="MONTHLY">Monthly Boardroom</SelectItem>}
+                      {PLAN_LIMITS[plan].quarterlyReports && <SelectItem value="QUARTERLY">Quarterly Pivot</SelectItem>}
+                      {PLAN_LIMITS[plan].yearlyReports && <SelectItem value="YEARLY">Yearly Tax</SelectItem>}
                     </SelectContent>
                   </Select>
                 </div>

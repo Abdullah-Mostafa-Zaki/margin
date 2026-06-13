@@ -10,7 +10,8 @@ export type PlanLimits = {
   shopifySync: boolean;
   bostaSync: boolean;
   basicAnalytics: boolean;
-  fullAnalytics: boolean;
+  shopifyAnalytics: boolean;
+  advancedAnalytics: boolean;
   weeklyReports: boolean;
   monthlyReports: boolean;
   quarterlyReports: boolean;
@@ -27,8 +28,9 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     fullExpenses: false,
     shopifySync: false,
     bostaSync: false,
-    basicAnalytics: false,
-    fullAnalytics: false,
+    basicAnalytics: true,
+    shopifyAnalytics: false,
+    advancedAnalytics: false,
     weeklyReports: false,
     monthlyReports: false,
     quarterlyReports: false,
@@ -44,7 +46,8 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     shopifySync: true,
     bostaSync: false,
     basicAnalytics: true,
-    fullAnalytics: false,
+    shopifyAnalytics: true,
+    advancedAnalytics: false,
     weeklyReports: false,
     monthlyReports: true,
     quarterlyReports: false,
@@ -60,7 +63,8 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     shopifySync: true,
     bostaSync: true,
     basicAnalytics: true,
-    fullAnalytics: true,
+    shopifyAnalytics: true,
+    advancedAnalytics: true,
     weeklyReports: false,
     monthlyReports: true,
     quarterlyReports: true,
@@ -76,7 +80,8 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     shopifySync: true,
     bostaSync: true,
     basicAnalytics: true,
-    fullAnalytics: true,
+    shopifyAnalytics: true,
+    advancedAnalytics: true,
     weeklyReports: true,
     monthlyReports: true,
     quarterlyReports: true,

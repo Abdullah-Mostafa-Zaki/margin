@@ -9,8 +9,22 @@ export default async function DashboardPage(props: {
 
   const org = await prisma.organization.findUnique({
     where: { slug: resolvedParams.orgSlug },
-    include: { tags: { orderBy: { createdAt: "desc" } } }
+    select: {
+      plan: true,
+      currentMonthVoice: true,
+      currentMonthImage: true,
+      currentMonthText: true,
+      tags: { orderBy: { createdAt: "desc" } },
+    },
   });
 
-  return <ChatHome orgSlug={resolvedParams.orgSlug} tags={org?.tags || []} />;
+  return (
+    <ChatHome
+      orgSlug={resolvedParams.orgSlug}
+      tags={org?.tags || []}
+      currentMonthVoice={org?.currentMonthVoice ?? 0}
+      currentMonthImage={org?.currentMonthImage ?? 0}
+      currentMonthText={org?.currentMonthText ?? 0}
+    />
+  );
 }

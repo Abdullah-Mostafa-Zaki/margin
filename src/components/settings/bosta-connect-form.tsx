@@ -7,15 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { CheckCircle2, Loader2, Truck } from "lucide-react";
+import { UpgradeOverlay } from "@/components/ui/upgrade-overlay";
 
 export function BostaConnectForm({ 
   orgId, 
   isConnectedInitially,
-  onCredentialsSubmit 
+  onCredentialsSubmit,
+  isLocked = false
 }: { 
   orgId?: string, 
   isConnectedInitially?: boolean,
-  onCredentialsSubmit?: (email: string, pass: string) => Promise<{success: boolean, error?: string}> 
+  onCredentialsSubmit?: (email: string, pass: string) => Promise<{success: boolean, error?: string}>,
+  isLocked?: boolean
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -81,8 +84,9 @@ export function BostaConnectForm({
 
   if (isConnected) {
     return (
-      <Card className="border-emerald-200 bg-emerald-50">
-        <CardContent className="pt-6 flex flex-col items-center justify-center text-center space-y-4">
+      <UpgradeOverlay locked={isLocked} message="Upgrade to PRO to unlock Bosta Sync">
+        <Card className="border-emerald-200 bg-emerald-50">
+          <CardContent className="pt-6 flex flex-col items-center justify-center text-center space-y-4">
           <CheckCircle2 className="w-12 h-12 text-emerald-500" />
           <div>
             <h3 className="font-semibold text-emerald-900 text-lg">Bosta Account Connected Successfully</h3>
@@ -104,12 +108,14 @@ export function BostaConnectForm({
           </Button>
         </CardContent>
       </Card>
+      </UpgradeOverlay>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <UpgradeOverlay locked={isLocked} message="Upgrade to PRO to unlock Bosta Sync">
+      <Card>
+        <CardHeader>
         <div className="flex items-center gap-2 mb-1">
           <Truck className="w-5 h-5 text-red-600" />
           <CardTitle>Connect Bosta</CardTitle>
@@ -155,5 +161,6 @@ export function BostaConnectForm({
         </CardFooter>
       </form>
     </Card>
+    </UpgradeOverlay>
   );
 }

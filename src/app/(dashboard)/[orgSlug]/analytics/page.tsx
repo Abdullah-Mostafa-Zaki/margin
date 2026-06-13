@@ -18,9 +18,11 @@ import { DropPerformanceTable } from "@/components/dashboard/drop-performance-ta
 import { OrderHealthFunnel } from "@/components/dashboard/order-health-funnel";
 import { ReturnsByCity } from "@/components/dashboard/returns-by-city";
 import { FadeIn } from "@/components/ui/fade-in";
+import { UpgradeOverlay } from "@/components/ui/upgrade-overlay";
 import { PageTracker } from "@/components/analytics/PageTracker";
 import { DropFilter } from "@/components/analytics/drop-filter";
 import { GenerateReportModal } from "@/components/analytics/generate-report-modal";
+import { PLAN_LIMITS } from "@/lib/plans";
 export default async function AnalyticsPage(props: {
   params: Promise<{ orgSlug: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -32,10 +34,15 @@ export default async function AnalyticsPage(props: {
     where: { slug: resolvedParams.orgSlug },
     select: { 
       id: true,
-      slug: true
+      slug: true,
+      plan: true,
     }
   });
   if (!organization) redirect("/unauthorized");
+
+  const limits = PLAN_LIMITS[organization.plan];
+  const hasShopifyAnalytics = limits.shopifyAnalytics;
+  const hasAdvancedAnalytics = limits.advancedAnalytics;
 
   const { startDate, endDate } = getDateRangeFromParams(resolvedSearchParams);
   const dateFilter = startDate && endDate ? { date: { gte: startDate, lte: endDate } } : {};
@@ -136,7 +143,7 @@ export default async function AnalyticsPage(props: {
           <p className="text-zinc-500 md:mt-1 mt-2">Breakdown of your revenue and costs</p>
         </div>
         <div className="flex items-center gap-2">
-          <GenerateReportModal orgSlug={organization.slug} />
+          <GenerateReportModal orgSlug={organization.slug} plan={organization.plan} />
           <DropFilter tags={tags} currentTagId={tagId} />
           <DateRangePicker />
         </div>
@@ -230,6 +237,7 @@ export default async function AnalyticsPage(props: {
 
         {/* ROAS Card */}
         <FadeIn delay={0.5}>
+          <UpgradeOverlay locked={!hasShopifyAnalytics} message="Upgrade to PLUS to unlock ROAS tracking">
           <Card className={`border h-full shadow-sm ${marketing.roas && marketing.roas > 3 ? 'border-emerald-200 bg-emerald-50/50' : marketing.roas && marketing.roas >= 1.5 ? 'border-amber-200 bg-amber-50/50' : 'border-red-200 bg-red-50/50'}`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className={`text-sm font-bold uppercase tracking-wider ${marketing.roas && marketing.roas > 3 ? 'text-emerald-900' : marketing.roas && marketing.roas >= 1.5 ? 'text-amber-900' : 'text-red-900'}`}>ROAS</CardTitle>
@@ -250,10 +258,12 @@ export default async function AnalyticsPage(props: {
               </p>
             </CardContent>
           </Card>
+          </UpgradeOverlay>
         </FadeIn>
 
         {/* CAC Card */}
         <FadeIn delay={0.6}>
+          <UpgradeOverlay locked={!hasShopifyAnalytics} message="Upgrade to PLUS to unlock CAC tracking">
           <Card className={`border h-full shadow-sm ${marketing.cac !== null && marketing.cac < 100 ? 'border-emerald-200 bg-emerald-50/50' : marketing.cac !== null && marketing.cac <= 300 ? 'border-amber-200 bg-amber-50/50' : 'border-red-200 bg-red-50/50'}`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className={`text-sm font-bold uppercase tracking-wider ${marketing.cac !== null && marketing.cac < 100 ? 'text-emerald-900' : marketing.cac !== null && marketing.cac <= 300 ? 'text-amber-900' : 'text-red-900'}`}>CAC</CardTitle>
@@ -275,37 +285,44 @@ export default async function AnalyticsPage(props: {
               </p>
             </CardContent>
           </Card>
+          </UpgradeOverlay>
         </FadeIn>
       </div>
 
       {/* Products Sales */}
       {productBreakdown.length > 0 && (
-        <div className="bg-white p-8 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100">
-          <h3 className="uppercase tracking-[0.2em] text-[11px] font-bold text-slate-400 mb-8">Products Sales</h3>
-          <div>
-            {productBreakdown.map((item, idx) => (
-              <div key={idx}>
-                <div className="flex flex-row justify-between text-sm font-medium text-slate-800">
-                  <span>{item.name}</span>
-                  <span>{item.revenue.toLocaleString("en-EG")} EGP ({item.percent}%)</span>
+        <UpgradeOverlay locked={!hasShopifyAnalytics} message="Upgrade to PLUS to unlock Product Sales insights">
+          <div className="bg-white p-8 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-slate-100">
+            <h3 className="uppercase tracking-[0.2em] text-[11px] font-bold text-slate-400 mb-8">Products Sales</h3>
+            <div>
+              {productBreakdown.map((item, idx) => (
+                <div key={idx}>
+                  <div className="flex flex-row justify-between text-sm font-medium text-slate-800">
+                    <span>{item.name}</span>
+                    <span>{item.revenue.toLocaleString("en-EG")} EGP ({item.percent}%)</span>
+                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full w-full overflow-hidden mt-2 mb-6">
+                    <div className="h-full bg-[#27A67A]" style={{ width: `${item.percent}%` }}></div>
+                  </div>
                 </div>
-                <div className="h-2 bg-slate-100 rounded-full w-full overflow-hidden mt-2 mb-6">
-                  <div className="h-full bg-[#27A67A]" style={{ width: `${item.percent}%` }}></div>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        </UpgradeOverlay>
       )}
 
       {/* Drop Performance Matrix */}
-      <DropPerformanceTable data={dropPerformance} />
+      <UpgradeOverlay locked={!hasAdvancedAnalytics} message="Upgrade to PRO to unlock Drop Performance analytics">
+        <DropPerformanceTable data={dropPerformance} />
+      </UpgradeOverlay>
 
       {/* Order Health Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <OrderHealthFunnel data={orderFunnel} />
-        <ReturnsByCity data={returnsByCity} />
-      </div>
+      <UpgradeOverlay locked={!hasAdvancedAnalytics} message="Upgrade to PRO to unlock Order Health & Returns analytics">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+          <OrderHealthFunnel data={orderFunnel} />
+          <ReturnsByCity data={returnsByCity} />
+        </div>
+      </UpgradeOverlay>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <FadeIn delay={0.4} duration={0.5}>

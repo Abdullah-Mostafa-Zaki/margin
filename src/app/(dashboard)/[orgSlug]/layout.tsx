@@ -10,6 +10,8 @@ import Sidebar from "@/components/shared/sidebar";
 import TopNav from "@/components/shared/top-nav";
 import { getDashboardInsights } from "@/app/actions/getDashboardInsights";
 import { PostHogProvider } from "@/components/providers/PostHogProvider";
+import { PlanProvider } from "@/lib/plan-context";
+import { Plan } from "@prisma/client";
 
 export default async function DashboardLayout({
   children,
@@ -35,14 +37,14 @@ export default async function DashboardLayout({
     session.user.email === process.env.SUPER_ADMIN_EMAIL;
   // ─────────────────────────────────────────────────────────────────────────────
 
-  let org: { id: string; name: string; slug: string };
+  let org: { id: string; name: string; slug: string; plan: Plan };
   let user: { id: string; name: string | null; email: string | null; image: string | null };
 
   if (isSuperAdmin) {
     // Ghost Mode: fetch org directly without membership check
     const organization = await prisma.organization.findUnique({
       where: { slug: resolvedParams.orgSlug },
-      select: { id: true, name: true, slug: true },
+      select: { id: true, name: true, slug: true, plan: true },
     });
 
     if (!organization) {
@@ -69,6 +71,7 @@ export default async function DashboardLayout({
             id: true,
             name: true,
             slug: true,
+            plan: true,
           },
         },
         user: {
@@ -129,7 +132,9 @@ export default async function DashboardLayout({
           {/* pb-20 ensures content clears the fixed mobile bottom tab bar */}
           <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-20 md:py-8 md:pb-8">
             <PostHogProvider session={session}>
-              {children}
+              <PlanProvider plan={org.plan}>
+                {children}
+              </PlanProvider>
             </PostHogProvider>
           </main>
         </div>

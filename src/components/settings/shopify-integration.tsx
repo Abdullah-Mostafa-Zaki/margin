@@ -3,17 +3,20 @@
 import { useState, useTransition } from "react";
 import { updateShopifySecret } from "@/actions/settings.actions";
 import { Loader2, Copy, Check, Zap } from "lucide-react";
+import { UpgradeOverlay } from "@/components/ui/upgrade-overlay";
 
 interface ShopifyIntegrationProps {
   orgSlug: string;
   baseUrl: string;
   hasSecret: boolean;
+  isLocked?: boolean;
 }
 
 export function ShopifyIntegration({
   orgSlug,
   baseUrl,
   hasSecret,
+  isLocked = false,
 }: ShopifyIntegrationProps) {
   const webhookUrl = `${baseUrl}/api/webhooks/shopify?orgSlug=${orgSlug}`;
 
@@ -50,8 +53,9 @@ export function ShopifyIntegration({
 
   return (
     <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden w-full max-w-full">
-      {/* Card Header */}
-      <div className="flex items-center gap-3 px-6 py-5 border-b border-zinc-100 bg-gradient-to-r from-zinc-50 to-white">
+      <UpgradeOverlay locked={isLocked} message="Upgrade to PLUS to unlock Shopify Sync">
+        {/* Card Header */}
+        <div className="flex items-center gap-3 px-6 py-5 border-b border-zinc-100 bg-gradient-to-r from-zinc-50 to-white">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#96bf48]/10 border border-[#96bf48]/20">
           <svg
             viewBox="0 0 24 24"
@@ -202,6 +206,7 @@ export function ShopifyIntegration({
           </button>
         </div>
       </div>
+      </UpgradeOverlay>
     </div>
   );
 }

@@ -6,12 +6,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { createTag } from "@/actions/tags.actions";
 import { Plus } from "lucide-react";
+import { usePlan } from "@/lib/plan-context";
+import { PLAN_LIMITS } from "@/lib/plans";
 
-export default function TagForm({ orgSlug }: { orgSlug: string }) {
+export default function TagForm({ orgSlug, currentDropCount = 0 }: { orgSlug: string; currentDropCount?: number }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const plan = usePlan();
+  const maxDrops = PLAN_LIMITS[plan].maxDrops;
+  const isLocked = currentDropCount >= maxDrops;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -40,12 +46,21 @@ export default function TagForm({ orgSlug }: { orgSlug: string }) {
       setIsOpen(open);
       if (!open) setError(null);
     }}>
-      <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Create Drop
-        </Button>
-      </DialogTrigger>
+      {isLocked ? (
+        <div title="You've reached your Drop limit. Upgrade for more.">
+          <Button disabled className="gap-2 opacity-50 cursor-not-allowed">
+            <Plus className="h-4 w-4" />
+            Create Drop
+          </Button>
+        </div>
+      ) : (
+        <DialogTrigger asChild>
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            Create Drop
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create Drop</DialogTitle>

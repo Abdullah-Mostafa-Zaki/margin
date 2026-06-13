@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Mic, Paperclip, Send } from "lucide-react";
+import { Mic, Paperclip, Send, Zap } from "lucide-react";
 import { ChatMessage } from "./types";
+import { usePlan } from "@/lib/plan-context";
+import { PLAN_LIMITS } from "@/lib/plans";
+import Link from "next/link";
 import {
   parseTextTransaction,
   parseVoiceTransaction,
@@ -78,7 +81,13 @@ function MessageBubble({ message }: { message: ChatMessage }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function ChatHome({ orgSlug, tags = [] }: { orgSlug: string, tags?: any[] }) {
+export function ChatHome({ orgSlug, tags = [], currentMonthVoice = 0, currentMonthImage = 0, currentMonthText = 0 }: { orgSlug: string, tags?: any[], currentMonthVoice?: number, currentMonthImage?: number, currentMonthText?: number }) {
+  const plan = usePlan();
+  const limits = PLAN_LIMITS[plan];
+  const totalUsage = currentMonthVoice + currentMonthImage + currentMonthText;
+  const aiLimit = limits.maxAiTransactions;
+  const isQuotaExhausted = totalUsage >= aiLimit;
+  const limitDisplay = aiLimit >= 999999 ? '∞' : aiLimit;
   const [messages, setMessages] = useState<ChatMessage[]>([welcomeMessage]);
   const [inputText, setInputText]     = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -265,8 +274,27 @@ export function ChatHome({ orgSlug, tags = [] }: { orgSlug: string, tags?: any[]
       <div className="fixed bottom-0 left-0 right-0 p-4 pb-6 md:pb-8 z-40 pointer-events-none">
         <div className="max-w-3xl mx-auto pointer-events-auto">
 
+          {/* AI Usage Indicator */}
+          {isQuotaExhausted ? (
+            <div className="flex items-center justify-center gap-2 bg-rose-50 border border-rose-200 rounded-2xl px-4 py-3 mb-2">
+              <Zap className="w-4 h-4 text-rose-500" />
+              <span className="text-sm text-rose-700 font-medium">
+                You&apos;ve used all {limitDisplay} AI transactions this month.
+              </span>
+              <Link href="/pricing" className="text-sm font-semibold text-rose-700 underline underline-offset-2 hover:text-rose-900 ml-1">
+                Upgrade →
+              </Link>
+            </div>
+          ) : (
+            <div className="flex items-center justify-end mb-1">
+              <span className="text-[11px] font-medium text-muted-foreground bg-muted/60 rounded-full px-2.5 py-0.5">
+                AI: {totalUsage} / {limitDisplay}
+              </span>
+            </div>
+          )}
+
           {/* The Unified Input Pill */}
-          <div className="flex items-center gap-2 bg-muted/40 border border-border/50 rounded-3xl px-2 py-1.5 shadow-sm focus-within:ring-1 focus-within:ring-ring transition-all">
+          <div className={`flex items-center gap-2 bg-muted/40 border border-border/50 rounded-3xl px-2 py-1.5 shadow-sm focus-within:ring-1 focus-within:ring-ring transition-all ${isQuotaExhausted ? 'opacity-50 pointer-events-none' : ''}`}>
 
             {/* 1. Attachment Button (Left) */}
             <button
