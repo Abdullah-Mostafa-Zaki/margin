@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Receipt, Tags, Settings } from "lucide-react";
+import { LayoutDashboard, Receipt, Tags, Settings, BarChart2, Zap, CreditCard } from "lucide-react";
 
 interface SidebarProps {
   orgSlug: string;
@@ -14,10 +14,13 @@ export default function Sidebar({ orgSlug, orgName }: SidebarProps) {
   const pathname = usePathname();
 
   const navigation = [
-    { name: "Dashboard", href: `/${orgSlug}`, icon: LayoutDashboard },
+    { name: "Home", href: `/${orgSlug}`, icon: LayoutDashboard },
     { name: "Transactions", href: `/${orgSlug}/transactions`, icon: Receipt },
+    { name: "Analytics", href: `/${orgSlug}/analytics`, icon: BarChart2 },
     { name: "Drops", href: `/${orgSlug}/tags`, icon: Tags },
+    { name: "Recommendations", href: `/${orgSlug}/recommendations`, icon: Zap },
     { name: "Settings", href: `/${orgSlug}/settings`, icon: Settings },
+    { name: "Pricing", href: `/${orgSlug}/pricing`, icon: CreditCard },
   ];
 
   return (

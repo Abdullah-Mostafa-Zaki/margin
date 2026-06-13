@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { User, LogOut, Menu, X, MessageSquare, BarChart2, Zap, Receipt, Settings, Tag } from "lucide-react";
+import { User, LogOut, Menu, X, MessageSquare, BarChart2, Zap, Receipt, Settings, Tag, CreditCard } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
 interface TopNavProps {
@@ -49,11 +49,12 @@ export default function TopNav({ orgSlug, userName, userImage, mood }: TopNavPro
 
   const navigation = [
     { name: "Home", href: `/${orgSlug}`, icon: MessageSquare },
-    { name: "Analytics", href: `/${orgSlug}/analytics`, icon: BarChart2 },
-    { name: "Recommendations", href: `/${orgSlug}/recommendations`, icon: Zap },
     { name: "Transactions", href: `/${orgSlug}/transactions`, icon: Receipt },
+    { name: "Analytics", href: `/${orgSlug}/analytics`, icon: BarChart2 },
     { name: "Drops", href: `/${orgSlug}/tags`, icon: Tag },
+    { name: "Recommendations", href: `/${orgSlug}/recommendations`, icon: Zap },
     { name: "Settings", href: `/${orgSlug}/settings`, icon: Settings },
+    { name: "Pricing", href: `/${orgSlug}/pricing`, icon: CreditCard },
   ];
 
   return (
