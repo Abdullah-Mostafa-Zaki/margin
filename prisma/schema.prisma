@@ -58,26 +58,26 @@ model VerificationToken {
 }
 
 model Organization {
-  id                   String        @id @default(cuid())
+  id                   String            @id @default(cuid())
   name                 String
-  slug                 String        @unique
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
-  courierFee           Float         @default(0)
+  slug                 String            @unique
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  courierFee           Float             @default(0)
   shopifyWebhookSecret String?
   shopifyWebhookUrl    String?
-  plan                 Plan          @default(FREE)
-  currentMonthReceipts Int           @default(0)
-  currentMonthVoice    Int           @default(0)
-  currentMonthText     Int           @default(0)
-  currentMonthImage    Int           @default(0)
-  usageResetDate       DateTime      @default(now())
+  plan                 Plan              @default(FREE)
+  currentMonthReceipts Int               @default(0)
+  currentMonthVoice    Int               @default(0)
+  currentMonthText     Int               @default(0)
+  currentMonthImage    Int               @default(0)
+  usageResetDate       DateTime          @default(now())
   memberships          Membership[]
   tags                 Tag[]
   transactions         Transaction[]
   subscription         Subscription?
   bostaIntegration     BostaIntegration?
-  onboardingCompleted  Boolean       @default(false)
+  onboardingCompleted  Boolean           @default(false)
   reports              Report[]
 
   @@index([slug])
@@ -127,22 +127,22 @@ model Tag {
 }
 
 model Transaction {
-  id             String            @id @default(cuid())
-  type           TransactionType
-  amount         Decimal           @db.Decimal(10, 2)
-  date           DateTime
-  category       String
-  status         TransactionStatus @default(PENDING)
-  paymentMethod  PaymentMethod
-  notes          String?
-  receiptUrl     String?
-  organizationId String
-  createdById    String
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  id                  String            @id @default(cuid())
+  type                TransactionType
+  amount              Decimal           @db.Decimal(10, 2)
+  date                DateTime
+  category            String
+  status              TransactionStatus @default(PENDING)
+  paymentMethod       PaymentMethod
+  notes               String?
+  receiptUrl          String?
+  organizationId      String
+  createdById         String
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
   shopifyOrderId      String?
   merchant            String?
-  bostaTrackingNumber String?  @unique
+  bostaTrackingNumber String?           @unique
   bostaState          String?
   shipmentFee         Float?
   bostaLastSyncedAt   DateTime?
@@ -164,13 +164,13 @@ model BostaIntegration {
   id             String       @id @default(cuid())
   organizationId String       @unique
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  bostaEmail     String
-  token          String       @db.Text
-  refreshToken   String       @db.Text
-  
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+
+  bostaEmail   String
+  token        String @db.Text
+  refreshToken String @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model TransactionTag {
@@ -221,7 +221,7 @@ enum Plan {
   FREE
   PLUS
   PRO
-  ENTERPRISE
+  BUSINESS
 }
 
 enum FulfillmentStatus {
@@ -253,38 +253,38 @@ enum ReportStatus {
 }
 
 model Report {
-  id               String       @id @default(cuid())
+  id String @id @default(cuid())
 
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  type             ReportType
-  status           ReportStatus @default(GENERATING)
-  version          Int          @default(1)
+  type    ReportType
+  status  ReportStatus @default(GENERATING)
+  version Int          @default(1)
 
-  startDate        DateTime
-  endDate          DateTime
+  startDate DateTime
+  endDate   DateTime
 
   // Hero content
-  oneParagraphStory String?     @db.Text
+  oneParagraphStory String? @db.Text
 
   // Frequently queried report snapshots
-  revenue          Decimal?
-  expenses         Decimal?
-  profit           Decimal?
-  marginPercent    Decimal?
+  revenue       Decimal?
+  expenses      Decimal?
+  profit        Decimal?
+  marginPercent Decimal?
 
   // Structured report sections
-  metrics          Json?
-  narrative        Json?
+  metrics   Json?
+  narrative Json?
 
   // Exact payload sent to the LLM
-  inputPayload     Json?
+  inputPayload Json?
 
-  error            String?
+  error String?
 
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([organizationId, type, startDate, endDate])
   @@index([organizationId, type])

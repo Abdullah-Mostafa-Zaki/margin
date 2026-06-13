@@ -3,8 +3,17 @@ import prisma from "@/lib/prisma";
 import { generateReport } from "@/actions/reports.actions";
 import { sendReportEmail } from "@/lib/mail";
 import { ReportType } from "@prisma/client";
+import { PLAN_LIMITS, PlanLimits } from "@/lib/plans";
 
 export const maxDuration = 300; // Allow execution to run longer for vercel pro
+
+// Map each ReportType enum to the corresponding boolean key in PlanLimits
+const REPORT_TYPE_TO_PLAN_KEY: Record<ReportType, keyof PlanLimits> = {
+  WEEKLY: "weeklyReports",
+  MONTHLY: "monthlyReports",
+  QUARTERLY: "quarterlyReports",
+  YEARLY: "yearlyReports",
+};
 
 function getDatesForReport(type: ReportType, now: Date) {
   const end = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Midnight today
@@ -37,7 +46,7 @@ export async function GET(request: Request) {
     }
 
     const organizations = await prisma.organization.findMany({
-      select: { slug: true, id: true, name: true },
+      select: { slug: true, id: true, name: true, plan: true },
     });
 
     if (organizations.length === 0) {
@@ -86,8 +95,21 @@ export async function GET(request: Request) {
 
     for (const reportType of reportsToRun) {
       const { startDateStr, endDateStr } = getDatesForReport(reportType, now);
+      const planKey = REPORT_TYPE_TO_PLAN_KEY[reportType];
 
       for (const org of organizations) {
+        // Check if the organization's plan allows this report type
+        if (!PLAN_LIMITS[org.plan][planKey]) {
+          console.log(`[CRON] Skipping ${reportType} report for ${org.name} (${org.slug}) — plan ${org.plan} does not include ${reportType} reports`);
+          results.push({
+            orgSlug: org.slug,
+            type: reportType,
+            success: true,
+            message: `Skipped — ${org.plan} plan does not include ${reportType} reports`,
+          });
+          continue;
+        }
+
         try {
           console.log(`[CRON] Generating ${reportType} report for ${org.name} (${org.slug})`);
           
@@ -142,3 +164,4 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+

@@ -27,7 +27,7 @@ const planColors: Record<string, string> = {
   FREE: 'bg-zinc-100 text-zinc-800',
   PLUS: 'bg-blue-100 text-blue-800',
   PRO: 'bg-purple-100 text-purple-800',
-  ENTERPRISE: 'bg-amber-100 text-amber-800',
+  BUSINESS: 'bg-amber-100 text-amber-800',
 };
 
 type OrgType = {
@@ -91,8 +91,7 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                 <TableHead>Organization</TableHead>
                 <TableHead>Slug</TableHead>
                 <TableHead>Plan</TableHead>
-                <TableHead className="text-right">Receipt Usage</TableHead>
-                <TableHead className="text-right">Voice Usage</TableHead>
+                <TableHead className="text-right">AI Usage</TableHead>
                 <TableHead className="text-right">Last Active</TableHead>
                 <TableHead></TableHead>
               </TableRow>
@@ -100,10 +99,8 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
             <TableBody>
               {filteredOrgs.map((org) => {
                 const limits = PLAN_LIMITS[org.plan];
-                const receiptLimitStr =
-                  limits.maxAiReceipts === Infinity ? '∞' : limits.maxAiReceipts;
-                const voiceLimitStr =
-                  limits.maxAiVoice === Infinity ? '∞' : limits.maxAiVoice;
+                const txLimitStr =
+                  limits.maxAiTransactions >= 999999 ? '∞' : limits.maxAiTransactions;
 
                 return (
                   <TableRow key={org.id}>
@@ -136,15 +133,12 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                           <SelectItem value="FREE">FREE</SelectItem>
                           <SelectItem value="PLUS">PLUS</SelectItem>
                           <SelectItem value="PRO">PRO</SelectItem>
-                          <SelectItem value="ENTERPRISE">ENTERPRISE</SelectItem>
+                          <SelectItem value="BUSINESS">BUSINESS</SelectItem>
                         </SelectContent>
                       </Select>
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">
-                      {org.currentMonthReceipts} / {receiptLimitStr}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm">
-                      {org.currentMonthVoice} / {voiceLimitStr}
+                      {org.currentMonthReceipts} / {txLimitStr}
                     </TableCell>
                     <TableCell className="text-right text-zinc-500 text-sm">
                       {org.updatedAt.toLocaleDateString()}

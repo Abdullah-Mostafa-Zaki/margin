@@ -145,7 +145,7 @@ export default async function SuperAdminPage({
       FREE: 0,
       PLUS: 0,
       PRO: 0,
-      ENTERPRISE: 0,
+      BUSINESS: 0,
     };
     
     const totalMRR = recentOrgs.reduce((acc, org) => {
