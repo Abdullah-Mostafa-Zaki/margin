@@ -38,16 +38,16 @@ Output Schema:
   switch (reportType) {
     case "WEEKLY":
       return `${basePrompt}\n\nGOAL: "The Tactical Pulse" - A 30-second read on cash flow health and immediate leaks.\nNARRATIVE FOCUS: Drop ROI Performance (best vs worst tags), Return Rate Alert, Ad Efficiency, and Pending COD Warning.`;
-    
+
     case "MONTHLY":
       return `${basePrompt}\n\nGOAL: "The P&L Boardroom" - A deep dive into profitability and operational efficiency.\nNARRATIVE FOCUS: Month-over-Month Comparisons, Expense Breakdown, and Fulfillment Efficiency (average delivery times from unfulfilled to delivered).`;
-    
+
     case "QUARTERLY":
       return `${basePrompt}\n\nGOAL: "The Strategic Pivot" - Identifying 90-day trends for macro-level decisions.\nNARRATIVE FOCUS: Product Pareto Analysis (top 20% product concentration), Fixed vs Variable Cost Shifts (Salaries/Rent vs Ads/Logistics), and the Risk Board (dependence on a single product, margin compression).`;
 
     case "YEARLY":
       return `${basePrompt}\n\nGOAL: "The Tax & Bookkeeping Handoff" - A wrap-up for the Egyptian tax authority.\nNARRATIVE FOCUS: Total Year Summary, Expense Hall of Fame (where the money went), and Taxes & Legal Summary.`;
-      
+
     default:
       return basePrompt;
   }
@@ -243,7 +243,7 @@ export async function getTransactionsForExport(
 
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) throw new Error("Unauthorized");
-    
+
     const membership = await prisma.membership.findUnique({
       where: {
         userId_organizationId: {
@@ -271,7 +271,7 @@ export async function getTransactionsForExport(
       Type: t.type,
       Category: t.category,
       Amount: t.amount.toString(),
-      Currency: t.currency,
+      Currency: "EGP",
       Status: t.status,
       Notes: t.notes || "",
     }));
