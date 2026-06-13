@@ -95,7 +95,6 @@ export default async function TransactionsPage(props: {
         orgId={organization.id}
         tags={tags}
         activeTagLabel={activeTag?.name}
-        plan={organization.plan}
       />
     </div>
   );
