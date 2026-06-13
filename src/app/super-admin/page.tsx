@@ -97,6 +97,8 @@ export default async function SuperAdminPage({
           plan: true,
           currentMonthReceipts: true,
           currentMonthVoice: true,
+          currentMonthImage: true,
+          currentMonthText: true,
         },
       }),
 

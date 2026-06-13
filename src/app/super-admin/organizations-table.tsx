@@ -39,6 +39,8 @@ type OrgType = {
   plan: Plan;
   currentMonthReceipts: number;
   currentMonthVoice: number;
+  currentMonthImage: number;
+  currentMonthText: number;
 };
 
 export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
@@ -138,7 +140,12 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                       </Select>
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">
-                      {org.currentMonthReceipts} / {txLimitStr}
+                      <div>
+                        {org.currentMonthReceipts} / {txLimitStr}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        ({org.currentMonthVoice} Voice | {org.currentMonthImage} Img | {org.currentMonthText} Txt)
+                      </div>
                     </TableCell>
                     <TableCell className="text-right text-zinc-500 text-sm">
                       {org.updatedAt.toLocaleDateString()}
