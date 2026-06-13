@@ -84,12 +84,12 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   },
 };
 
-export function hasRemainingQuota(
-  plan: Plan,
-  type: 'receipts' | 'voice' | 'text',
-  currentUsage: number
-): boolean {
-  // All AI input types now share the same maxAiTransactions limit
-  const limit = PLAN_LIMITS[plan].maxAiTransactions;
-  return currentUsage < limit;
+export function hasRemainingQuota(org: {
+  plan: Plan;
+  currentMonthVoice: number;
+  currentMonthImage: number;
+  currentMonthText: number;
+}): boolean {
+  const totalUsage = org.currentMonthVoice + org.currentMonthImage + org.currentMonthText;
+  return totalUsage < PLAN_LIMITS[org.plan].maxAiTransactions;
 }

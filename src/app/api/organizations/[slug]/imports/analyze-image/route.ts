@@ -39,7 +39,7 @@ export async function POST(
     }
 
     // Check quota
-    if (!hasRemainingQuota(org.plan, "receipts", org.currentMonthReceipts)) {
+    if (!hasRemainingQuota(org)) {
       return NextResponse.json({ error: "You've reached your monthly receipt scan limit. Please upgrade your plan." }, { status: 403 });
     }
 

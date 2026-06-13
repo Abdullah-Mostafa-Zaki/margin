@@ -252,12 +252,12 @@ export async function parseTextTransaction(text: string): Promise<ActionResult> 
     const organizationId = await getOrgFromSession();
     const org = await prisma.organization.findUnique({
       where: { id: organizationId },
-      select: { id: true, plan: true, currentMonthText: true },
+      select: { id: true, plan: true, currentMonthVoice: true, currentMonthImage: true, currentMonthText: true },
     });
 
     if (!org) throw new Error("Organization not found");
 
-    if (!hasRemainingQuota(org.plan, "text", org.currentMonthText)) {
+    if (!hasRemainingQuota(org)) {
       return {
         success: false,
         error: "You've reached your monthly text parsing limit. Please upgrade your plan.",
@@ -313,12 +313,12 @@ export async function parseVoiceTransaction(
     const organizationId = await getOrgFromSession();
     const org = await prisma.organization.findUnique({
       where: { id: organizationId },
-      select: { id: true, plan: true, currentMonthVoice: true },
+      select: { id: true, plan: true, currentMonthVoice: true, currentMonthImage: true, currentMonthText: true },
     });
 
     if (!org) throw new Error("Organization not found");
 
-    if (!hasRemainingQuota(org.plan, "voice", org.currentMonthVoice)) {
+    if (!hasRemainingQuota(org)) {
       return {
         success: false,
         error: "You've reached your monthly voice note limit. Please upgrade your plan.",
@@ -437,12 +437,12 @@ export async function parseReceiptFromImage(imageUrl: string): Promise<ParsedRec
     const organizationId = await getOrgFromSession();
     const org = await prisma.organization.findUnique({
       where: { id: organizationId },
-      select: { id: true, plan: true, currentMonthReceipts: true },
+      select: { id: true, plan: true, currentMonthVoice: true, currentMonthImage: true, currentMonthText: true },
     });
 
     if (!org) throw new Error("Organization not found");
 
-    if (!hasRemainingQuota(org.plan, "receipts", org.currentMonthReceipts)) {
+    if (!hasRemainingQuota(org)) {
       throw new Error("QUOTA_EXCEEDED");
     }
 
