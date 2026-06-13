@@ -37,6 +37,9 @@ export async function resetUsage(organizationId: string) {
     data: { 
       currentMonthReceipts: 0,
       currentMonthVoice: 0,
+      currentMonthImage: 0,
+      currentMonthText: 0,
+      usageResetDate: new Date(),
     },
   });
 
