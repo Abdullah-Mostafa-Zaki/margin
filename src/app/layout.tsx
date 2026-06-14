@@ -11,7 +11,17 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Margin",
   description: "Financial dashboard for clothing brands and local e-commerce",
-  icons: { icon: '/logo.svg' },
+  icons: {
+    icon: [
+      { url: '/logo.svg', type: 'image/svg+xml' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' }
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }
+    ]
+  },
+  manifest: '/site.webmanifest'
 };
 
 export const viewport = {
