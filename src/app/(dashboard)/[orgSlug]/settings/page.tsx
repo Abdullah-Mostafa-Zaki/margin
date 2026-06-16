@@ -122,7 +122,7 @@ export default async function SettingsPage({
                   Invite Member
                 </button>
                 <p className="text-[11px] text-zinc-500 mt-1">
-                  Team limit reached. <Link href="/pricing" className="text-emerald-600 hover:underline">Upgrade</Link> to add more.
+                  Team limit reached. <Link href={`/${orgSlug}/pricing`} className="text-emerald-600 hover:underline">Upgrade</Link> to add more.
                 </p>
               </div>
             ) : (

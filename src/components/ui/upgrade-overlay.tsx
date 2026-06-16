@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { Lock } from "lucide-react";
+import { useParams } from "next/navigation";
 
 interface UpgradeOverlayProps {
   children: React.ReactNode;
@@ -13,6 +16,10 @@ export function UpgradeOverlay({
   message = "Upgrade your plan to unlock this feature",
   locked,
 }: UpgradeOverlayProps) {
+  const params = useParams();
+  const orgSlug = params?.orgSlug as string | undefined;
+  const pricingHref = orgSlug ? `/${orgSlug}/pricing` : "/pricing";
+
   if (!locked) return <>{children}</>;
 
   return (
@@ -35,7 +42,7 @@ export function UpgradeOverlay({
           {message}
         </p>
         <Link
-          href="/pricing"
+          href={pricingHref}
           className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 transition-colors"
         >
           Upgrade Plan

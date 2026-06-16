@@ -124,7 +124,7 @@ export function GenerateReportModal({ orgSlug, plan }: { orgSlug: string; plan: 
               Generate AI-powered board reports to get automated insights into your financial health.
             </p>
             <Link
-              href="/pricing"
+              href={`/${orgSlug}/pricing`}
               className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors mt-2"
             >
               Upgrade Plan

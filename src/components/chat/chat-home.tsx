@@ -281,7 +281,7 @@ export function ChatHome({ orgSlug, tags = [], currentMonthVoice = 0, currentMon
               <span className="text-sm text-rose-700 font-medium">
                 You&apos;ve used all {limitDisplay} AI transactions this month.
               </span>
-              <Link href="/pricing" className="text-sm font-semibold text-rose-700 underline underline-offset-2 hover:text-rose-900 ml-1">
+              <Link href={`/${orgSlug}/pricing`} className="text-sm font-semibold text-rose-700 underline underline-offset-2 hover:text-rose-900 ml-1">
                 Upgrade →
               </Link>
             </div>
