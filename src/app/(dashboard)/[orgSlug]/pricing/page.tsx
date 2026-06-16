@@ -108,7 +108,21 @@ export default async function PricingPage({
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch w-full max-w-full">
         {tiers.map((tier) => {
+          const planOrder = ["FREE", "PLUS", "PRO", "BUSINESS"];
+          const currentPlanIndex = currentPlan ? planOrder.indexOf(currentPlan) : 0;
+          const tierIndex = planOrder.indexOf(tier.name.toUpperCase());
+          
           const isCurrentPlan = currentPlan === tier.name.toUpperCase();
+          const isDowngrade = tierIndex < currentPlanIndex;
+          
+          let buttonText = 'Upgrade to ' + tier.name;
+          if (isCurrentPlan) {
+            buttonText = 'Current Plan';
+          } else if (isDowngrade) {
+            buttonText = 'Downgrade to ' + tier.name;
+          } else if (tier.price === "0" && !currentPlan) {
+            buttonText = 'Get started';
+          }
           
           return (
           <div 
@@ -165,7 +179,7 @@ export default async function PricingPage({
                 <div className="pt-2 space-y-4">
                   {tier.notIncluded.map((feature, i) => (
                     <div key={`not-${i}`} className="flex gap-3 opacity-60">
-                      <div className="mt-0.5 shrink-0">{feature.icon}</div>
+                       <div className="mt-0.5 shrink-0">{feature.icon}</div>
                       <div className="text-sm">
                         <span className="text-zinc-500">{feature.name}</span>
                       </div>
@@ -186,7 +200,7 @@ export default async function PricingPage({
                       : 'bg-white text-zinc-900 border border-zinc-200 hover:bg-zinc-50'
                 }`}
               >
-                {isCurrentPlan ? 'Current Plan' : tier.price === "0" ? 'Get started' : 'Upgrade to ' + tier.name}
+                {buttonText}
               </Link>
             </div>
           </div>
