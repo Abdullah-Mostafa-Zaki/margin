@@ -177,7 +177,7 @@ export default async function PricingPage({
 
             <div className="mt-8 pt-4">
               <Link
-                href={isCurrentPlan ? "#" : `/${resolvedParams.orgSlug}/settings`}
+                href={isCurrentPlan ? "#" : `/${resolvedParams.orgSlug}/payments`}
                 className={`block w-full py-2.5 px-4 rounded-lg text-center text-sm font-semibold transition-colors ${
                   isCurrentPlan
                     ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200'
