@@ -54,7 +54,7 @@ export function ExpenseDonutChart({ data, subtitle }: Props) {
         <h3 className="font-semibold tracking-tight">Expense Breakdown</h3>
         <p className="text-sm text-muted-foreground mb-4">By category</p>
       </div>
-      <div className="h-[380px] md:h-[450px] w-full">
+      <div className="h-[380px] md:h-[450px] w-full min-h-[380px]">
         <ResponsiveContainer width="100%" height="100%" minHeight={380}>
           <PieChart>
             <Pie

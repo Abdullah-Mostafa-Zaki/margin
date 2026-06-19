@@ -37,7 +37,7 @@ export function IncomeExpenseChart({ data }: Props) {
           {showAdSpend ? "Hide Ad Spend Overlay" : "Show Ad Spend Overlay"}
         </Button>
       </div>
-      <div className="h-[300px] md:h-[400px] w-full">
+      <div className="h-[300px] md:h-[400px] w-full min-h-[300px]">
         <ResponsiveContainer width="100%" height="100%" minHeight={300}>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
