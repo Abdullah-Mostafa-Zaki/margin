@@ -11,26 +11,14 @@ export interface VelocityDeltas {
   pendingEscrow: number | null;
 }
 
-export async function getAnalyticsVelocity(
+import { unstable_cache } from 'next/cache';
+
+async function fetchAnalyticsVelocity(
   organizationId: string,
   startDate: Date | null,
   endDate: Date | null,
   tagId?: string
 ): Promise<VelocityDeltas> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) throw new Error("Unauthorized: No session");
-
-  const org = await prisma.organization.findUnique({
-    where: { id: organizationId },
-    include: { memberships: { include: { user: true } } },
-  });
-
-  if (!org) throw new Error("Organization not found");
-
-  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
-  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
-  if (!membership && !isSuperAdmin) throw new Error("Forbidden: User does not belong to this organization");
-
   let currentStart: Date | null = startDate;
   let currentEnd: Date | null = endDate;
   let prevStart: Date | null = null;
@@ -113,4 +101,42 @@ export async function getAnalyticsVelocity(
     totalExpenses: calculateDelta(currentMetrics.totalExpenses, prevMetrics.totalExpenses),
     pendingEscrow: calculateDelta(currentMetrics.pendingEscrow, prevMetrics.pendingEscrow),
   };
+}
+
+export async function getAnalyticsVelocity(
+  organizationId: string,
+  startDate: Date | null,
+  endDate: Date | null,
+  tagId?: string
+): Promise<VelocityDeltas> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized: No session");
+
+  const org = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden: User does not belong to this organization");
+
+  const getCached = unstable_cache(
+    async () => fetchAnalyticsVelocity(organizationId, startDate, endDate, tagId),
+    [
+      'analytics-velocity',
+      organizationId,
+      startDate?.toISOString() || 'all',
+      endDate?.toISOString() || 'all',
+      tagId || 'none'
+    ],
+    {
+      tags: [`org-${organizationId}-transactions`],
+      revalidate: 3600
+    }
+  );
+
+  return getCached();
 }

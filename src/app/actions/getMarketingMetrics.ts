@@ -9,22 +9,14 @@ export interface MarketingMetrics {
   adSpendByDate: { date: Date; amount: number }[];
 }
 
-export async function getMarketingMetrics(
+import { unstable_cache } from 'next/cache';
+
+async function fetchMarketingMetrics(
   organizationId: string,
   startDate?: Date,
   endDate?: Date,
   tagId?: string
 ): Promise<MarketingMetrics> {
-  // 1. Verify organization and membership
-  const org = await prisma.organization.findUnique({
-    where: { id: organizationId },
-    select: { id: true },
-  });
-
-  if (!org) {
-    throw new Error("Organization not found");
-  }
-
   const dateFilter: Prisma.TransactionWhereInput = startDate && endDate ? { date: { gte: startDate, lte: endDate } } : {};
   const isAllTime = !startDate && !endDate;
 
@@ -146,4 +138,37 @@ export async function getMarketingMetrics(
       amount: Number(tx.amount),
     })),
   };
+}
+
+export async function getMarketingMetrics(
+  organizationId: string,
+  startDate?: Date,
+  endDate?: Date,
+  tagId?: string
+): Promise<MarketingMetrics> {
+  const org = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    select: { id: true },
+  });
+
+  if (!org) {
+    throw new Error("Organization not found");
+  }
+
+  const getCached = unstable_cache(
+    async () => fetchMarketingMetrics(organizationId, startDate, endDate, tagId),
+    [
+      'marketing-metrics',
+      organizationId,
+      startDate?.toISOString() || 'all',
+      endDate?.toISOString() || 'all',
+      tagId || 'none'
+    ],
+    {
+      tags: [`org-${organizationId}-transactions`],
+      revalidate: 3600
+    }
+  );
+
+  return getCached();
 }

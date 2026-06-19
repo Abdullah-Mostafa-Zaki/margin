@@ -3,7 +3,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag as invalidateCacheTag } from "next/cache";
 
 export async function createTag(orgSlug: string, name: string, description?: string) {
   const session = await getServerSession(authOptions);
@@ -36,6 +36,7 @@ export async function createTag(orgSlug: string, name: string, description?: str
   }
 
   revalidatePath(`/${orgSlug}/tags`);
+  invalidateCacheTag(`org-${org.id}-transactions`);
 }
 
 export async function deleteTag(id: string, orgSlug: string) {
@@ -63,6 +64,7 @@ export async function deleteTag(id: string, orgSlug: string) {
   });
 
   revalidatePath(`/${orgSlug}/tags`);
+  invalidateCacheTag(`org-${org.id}-transactions`);
 }
 
 export async function getTagROI(tagId: string, orgSlug: string) {
@@ -144,4 +146,5 @@ export async function updateTag(id: string, orgSlug: string, name: string, descr
   });
 
   revalidatePath(`/${orgSlug}/tags`);
+  invalidateCacheTag(`org-${org.id}-transactions`);
 }

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { csvOrderSchema } from "@/lib/validations/csv";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 
 export async function bulkImportTransactions(organizationId: string, data: unknown[]) {
   const parsed = z.array(csvOrderSchema).safeParse(data);
@@ -91,6 +91,7 @@ export async function bulkImportTransactions(organizationId: string, data: unkno
   }
 
   revalidatePath(`/${org.slug}/transactions`);
+  updateTag(`org-${org.id}-transactions`);
 
   return { success: true, created, skipped, failed };
 }
@@ -149,6 +150,7 @@ export async function bulkSaveReceipts(organizationId: string, receipts: ParsedR
   }
 
   revalidatePath(`/${org.slug}/transactions`);
+  updateTag(`org-${org.id}-transactions`);
 
   return { success: true, saved, failed };
 }

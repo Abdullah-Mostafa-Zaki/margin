@@ -37,13 +37,14 @@ function formatPercent(value: number): string {
 
 // ─── Main Action ──────────────────────────────────────────────────────────────
 
-export async function getDashboardInsights(
+import { unstable_cache } from 'next/cache';
+
+async function fetchDashboardInsights(
   organizationId: string,
   startDate: Date | null,
   endDate: Date | null,
   tagId?: string
 ): Promise<DashboardInsights> {
-
   const dateFilter = startDate && endDate ? {
     date: {
       gte: startDate,
@@ -250,4 +251,27 @@ export async function getDashboardInsights(
     rawPercent,
     ordersToBreakeven,
   };
+}
+
+export async function getDashboardInsights(
+  organizationId: string,
+  startDate: Date | null,
+  endDate: Date | null,
+  tagId?: string
+): Promise<DashboardInsights> {
+  const getCached = unstable_cache(
+    async () => fetchDashboardInsights(organizationId, startDate, endDate, tagId),
+    [
+      'dashboard-insights',
+      organizationId,
+      startDate?.toISOString() || 'all',
+      endDate?.toISOString() || 'all',
+      tagId || 'none'
+    ],
+    {
+      tags: [`org-${organizationId}-transactions`],
+      revalidate: 3600
+    }
+  );
+  return getCached();
 }

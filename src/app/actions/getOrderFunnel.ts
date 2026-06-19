@@ -12,26 +12,14 @@ export interface OrderFunnelData {
   returnRate: number;
 }
 
-export async function getOrderFunnel(
+import { unstable_cache } from 'next/cache';
+
+async function fetchOrderFunnel(
   organizationId: string,
   startDate: Date | null,
   endDate: Date | null,
   tagId?: string
 ): Promise<OrderFunnelData> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) throw new Error("Unauthorized: No session");
-
-  const org = await prisma.organization.findUnique({
-    where: { id: organizationId },
-    include: { memberships: { include: { user: true } } },
-  });
-
-  if (!org) throw new Error("Organization not found");
-
-  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
-  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
-  if (!membership && !isSuperAdmin) throw new Error("Forbidden: User does not belong to this organization");
-
   const dateFilter = startDate && endDate ? {
     date: {
       gte: startDate,
@@ -83,4 +71,42 @@ export async function getOrderFunnel(
     returned,
     returnRate,
   };
+}
+
+export async function getOrderFunnel(
+  organizationId: string,
+  startDate: Date | null,
+  endDate: Date | null,
+  tagId?: string
+): Promise<OrderFunnelData> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized: No session");
+
+  const org = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden: User does not belong to this organization");
+
+  const getCached = unstable_cache(
+    async () => fetchOrderFunnel(organizationId, startDate, endDate, tagId),
+    [
+      'order-funnel',
+      organizationId,
+      startDate?.toISOString() || 'all',
+      endDate?.toISOString() || 'all',
+      tagId || 'none'
+    ],
+    {
+      tags: [`org-${organizationId}-transactions`],
+      revalidate: 3600
+    }
+  );
+
+  return getCached();
 }

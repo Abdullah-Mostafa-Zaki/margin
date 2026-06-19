@@ -158,6 +158,8 @@ model Transaction {
   @@unique([shopifyOrderId, organizationId])
   @@index([organizationId, date])
   @@index([organizationId, status])
+  @@index([organizationId, date, type])
+  @@index([organizationId, category])
 }
 
 model BostaIntegration {
@@ -180,6 +182,7 @@ model TransactionTag {
   transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
   @@id([transactionId, tagId])
+  @@index([tagId])
 }
 
 model LineItem {

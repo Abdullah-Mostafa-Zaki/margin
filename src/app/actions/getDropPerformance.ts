@@ -13,26 +13,14 @@ export interface DropPerformance {
   netMarginPercent: number;
 }
 
-export async function getDropPerformance(
+import { unstable_cache } from 'next/cache';
+
+async function fetchDropPerformance(
   organizationId: string,
   startDate: Date | null,
   endDate: Date | null,
   tagId?: string
 ): Promise<DropPerformance[]> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) throw new Error("Unauthorized: No session");
-
-  const org = await prisma.organization.findUnique({
-    where: { id: organizationId },
-    include: { memberships: { include: { user: true } } },
-  });
-
-  if (!org) throw new Error("Organization not found");
-
-  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
-  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
-  if (!membership && !isSuperAdmin) throw new Error("Forbidden: User does not belong to this organization");
-
   const dateFilter = startDate && endDate ? {
     date: {
       gte: startDate,
@@ -101,4 +89,42 @@ export async function getDropPerformance(
   performances.sort((a, b) => b.revenue - a.revenue);
 
   return performances;
+}
+
+export async function getDropPerformance(
+  organizationId: string,
+  startDate: Date | null,
+  endDate: Date | null,
+  tagId?: string
+): Promise<DropPerformance[]> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized: No session");
+
+  const org = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden: User does not belong to this organization");
+
+  const getCached = unstable_cache(
+    async () => fetchDropPerformance(organizationId, startDate, endDate, tagId),
+    [
+      'drop-performance',
+      organizationId,
+      startDate?.toISOString() || 'all',
+      endDate?.toISOString() || 'all',
+      tagId || 'none'
+    ],
+    {
+      tags: [`org-${organizationId}-transactions`],
+      revalidate: 3600
+    }
+  );
+
+  return getCached();
 }

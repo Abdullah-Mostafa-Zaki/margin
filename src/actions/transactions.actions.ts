@@ -3,7 +3,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { posthog } from "@/lib/posthog";
 import { FulfillmentStatus } from "@prisma/client";
 
@@ -99,6 +99,7 @@ export async function createTransaction(orgSlug: string, formData: FormData) {
   });
 
   revalidatePath(`/${orgSlug}/transactions`);
+  updateTag(`org-${org.id}-transactions`);
 }
 
 export async function updateTransaction(id: string, orgSlug: string, formData: FormData) {
@@ -194,6 +195,7 @@ export async function updateTransaction(id: string, orgSlug: string, formData: F
   }
 
   revalidatePath(`/${orgSlug}/transactions`);
+  updateTag(`org-${org.id}-transactions`);
 }
 
 export async function deleteTransaction(id: string, orgSlug: string) {
@@ -221,6 +223,7 @@ export async function deleteTransaction(id: string, orgSlug: string) {
   });
 
   revalidatePath(`/${orgSlug}/transactions`);
+  updateTag(`org-${org.id}-transactions`);
 }
 
 export async function updateTransactionStatus(id: string, status: "PENDING" | "RECEIVED", orgSlug: string) {
@@ -249,6 +252,7 @@ export async function updateTransactionStatus(id: string, status: "PENDING" | "R
   });
 
   revalidatePath(`/${orgSlug}/transactions`);
+  updateTag(`org-${org.id}-transactions`);
 }
 
 export async function markAllPendingAsReceived(orgSlug: string) {
@@ -278,6 +282,7 @@ export async function markAllPendingAsReceived(orgSlug: string) {
   });
 
   revalidatePath(`/${orgSlug}/transactions`);
+  updateTag(`org-${org.id}-transactions`);
 }
 
 export async function bulkDeleteTransactions(ids: string[], orgSlug: string) {
@@ -303,6 +308,7 @@ export async function bulkDeleteTransactions(ids: string[], orgSlug: string) {
   });
 
   revalidatePath(`/${orgSlug}/transactions`);
+  updateTag(`org-${org.id}-transactions`);
 }
 
 export async function bulkUpdateStatus(ids: string[], status: "PENDING" | "RECEIVED", orgSlug: string) {
@@ -329,6 +335,7 @@ export async function bulkUpdateStatus(ids: string[], status: "PENDING" | "RECEI
   });
 
   revalidatePath(`/${orgSlug}/transactions`);
+  updateTag(`org-${org.id}-transactions`);
 }
 
 export async function bulkAssignDrop(ids: string[], tagId: string, orgSlug: string) {
@@ -363,6 +370,7 @@ export async function bulkAssignDrop(ids: string[], tagId: string, orgSlug: stri
   });
 
   revalidatePath(`/${orgSlug}/transactions`);
+  updateTag(`org-${org.id}-transactions`);
 }
 
 export async function bulkUpdateFulfillmentStatus(ids: string[], status: FulfillmentStatus, orgSlug: string) {
@@ -389,4 +397,5 @@ export async function bulkUpdateFulfillmentStatus(ids: string[], status: Fulfill
   });
 
   revalidatePath(`/${orgSlug}/transactions`);
+  updateTag(`org-${org.id}-transactions`);
 }
