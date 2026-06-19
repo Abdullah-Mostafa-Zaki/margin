@@ -53,82 +53,71 @@ export async function getDashboardInsights(
 
   const tagFilter = tagId ? { tags: { some: { tagId } } } : {};
 
-  // Fetch all transactions for this org in the filtered date range
-  const transactions = await prisma.transaction.findMany({
+  // Fetch grouped transactions to leverage SQL aggregation and save memory
+  const groupedTransactions = await prisma.transaction.groupBy({
+    by: ['type', 'status', 'category', 'fulfillmentStatus'],
     where: {
       organizationId,
       ...dateFilter,
       ...tagFilter,
     },
-    select: {
-      type: true,
+    _sum: {
       amount: true,
-      status: true,
-      category: true,
       shipmentFee: true,
-      bostaState: true,
-      fulfillmentStatus: true,
+    },
+    _count: {
+      id: true,
     },
   });
 
   // ─── Calculations ──────────────────────────────────────────────────────────
 
-  // 1. Realized Revenue: INCOME where status === RECEIVED
-  const realizedRevenue = transactions
-    .filter((t) => t.type === "INCOME" && t.status === "RECEIVED")
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+  let realizedRevenue = 0;
+  let pendingEscrow = 0;
+  let ghostRevenue = 0;
+  let manualExpenses = 0;
+  let shippingCosts = 0;
+  let adSpend = 0;
+  let totalOrders = 0;
+  const expenseByCategory: Record<string, number> = {};
 
-  // 2. Pending Escrow: INCOME where status === PENDING
-  const pendingEscrow = transactions
-    .filter((t) => t.type === "INCOME" && t.status === "PENDING")
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+  groupedTransactions.forEach((group) => {
+    const sumAmount = Number(group._sum.amount || 0);
+    const sumShipment = Number(group._sum.shipmentFee || 0);
 
-  // 3. Ghost Revenue: INCOME where fulfillmentStatus is RETURNED
-  const ghostRevenue = transactions
-    .filter(
-      (t) =>
-        t.type === "INCOME" &&
-        (t as any).fulfillmentStatus === "RETURNED"
-    )
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+    if (group.type === "INCOME") {
+      if (group.status === "RECEIVED") {
+        realizedRevenue += sumAmount;
+      }
+      if (group.status === "PENDING") {
+        pendingEscrow += sumAmount;
+      }
+      if (group.fulfillmentStatus === "RETURNED") {
+        ghostRevenue += sumAmount;
+      }
+      if (sumShipment > 0) {
+        shippingCosts += sumShipment;
+      }
+      
+      // God Metric Denominator
+      if (group.status === "RECEIVED" && group.category.toLowerCase() === "sales revenue") {
+        totalOrders += group._count.id;
+      }
+    } else if (group.type === "EXPENSE") {
+      manualExpenses += sumAmount;
 
-  // 4. Total Expenses: all EXPENSE transactions + shipmentFees from INCOME transactions
-  const manualExpenses = transactions
-    .filter((t) => t.type === "EXPENSE")
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+      // Ad Spend
+      const catLower = group.category.toLowerCase();
+      if (catLower === "ads" || catLower === "marketing" || catLower === "ad spend") {
+        adSpend += sumAmount;
+      }
 
-  const shippingCosts = transactions
-    .filter((t) => t.type === "INCOME" && t.shipmentFee)
-    .reduce((sum, t) => sum + Number(t.shipmentFee), 0);
+      // Expense Breakdown
+      expenseByCategory[group.category] = (expenseByCategory[group.category] || 0) + sumAmount;
+    }
+  });
 
   const totalExpenses = manualExpenses + shippingCosts;
-
-  // 5. Ad Spend: EXPENSE where category is "ads" or "marketing"
-  const adSpend = transactions
-    .filter(
-      (t) =>
-        t.type === "EXPENSE" &&
-        (t.category.toLowerCase() === "ads" ||
-          t.category.toLowerCase() === "marketing" ||
-          t.category.toLowerCase() === "ad spend")
-    )
-    .reduce((sum, t) => sum + Number(t.amount), 0);
-
-  // 6. Total Orders (God Metric Denominator)
-  const totalOrders = transactions.filter(
-    (t) => 
-      t.type === "INCOME" && 
-      t.status === "RECEIVED" && 
-      t.category.toLowerCase() === "sales revenue"
-  ).length;
-
-  // 7. Expense Breakdown & Top Category
-  const expenseByCategory = transactions
-    .filter((t) => t.type === "EXPENSE")
-    .reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + Number(t.amount);
-      return acc;
-    }, {} as Record<string, number>);
 
   if (shippingCosts > 0) {
     expenseByCategory["Shipping"] = (expenseByCategory["Shipping"] || 0) + shippingCosts;

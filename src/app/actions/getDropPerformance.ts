@@ -42,60 +42,60 @@ export async function getDropPerformance(
 
   // Fetch all tags (drops) for the org, filtered by tagId if provided
   const tags = await prisma.tag.findMany({
-    where: { organizationId, ...(tagId ? { id: tagId } : {}) },
-    include: {
-      transactions: {
-        where: {
-          transaction: {
-            ...dateFilter
-          }
-        },
-        include: {
-          transaction: true
-        }
-      }
-    }
+    where: { organizationId, ...(tagId ? { id: tagId } : {}) }
   });
 
-  const performances: DropPerformance[] = [];
+  const performances: DropPerformance[] = await Promise.all(
+    tags.map(async (tag) => {
+      const grouped = await prisma.transaction.groupBy({
+        by: ['type', 'status', 'category'],
+        where: {
+          organizationId,
+          tags: { some: { tagId: tag.id } },
+          ...dateFilter
+        },
+        _sum: { amount: true, shipmentFee: true }
+      });
 
-  for (const tag of tags) {
-    let revenue = 0;
-    let adSpend = 0;
-    let productionCost = 0;
-    let shippingCost = 0;
+      let revenue = 0;
+      let adSpend = 0;
+      let productionCost = 0;
+      let shippingCost = 0;
 
-    for (const tt of tag.transactions) {
-      const t = tt.transaction;
-      if (t.type === "INCOME") {
-        if (t.status === "RECEIVED") {
-          revenue += Number(t.amount);
+      grouped.forEach((g) => {
+        const amt = Number(g._sum.amount || 0);
+        const ship = Number(g._sum.shipmentFee || 0);
+
+        if (g.type === "INCOME") {
+          if (g.status === "RECEIVED") {
+            revenue += amt;
+          }
+          if (ship > 0) {
+            shippingCost += ship;
+          }
+        } else if (g.type === "EXPENSE") {
+          const cat = g.category?.toLowerCase() || "";
+          if (cat === "ads" || cat === "marketing" || cat === "ad spend") {
+            adSpend += amt;
+          } else if (cat === "raw materials" || cat === "packaging") {
+            productionCost += amt;
+          }
         }
-        if (t.shipmentFee) {
-          shippingCost += Number(t.shipmentFee);
-        }
-      } else if (t.type === "EXPENSE") {
-        const cat = t.category?.toLowerCase() || "";
-        if (cat === "ads" || cat === "marketing" || cat === "ad spend") {
-          adSpend += Number(t.amount);
-        } else if (cat === "raw materials" || cat === "packaging") {
-          productionCost += Number(t.amount);
-        }
-      }
-    }
+      });
 
-    const netMargin = revenue - adSpend - productionCost - shippingCost;
-    const netMarginPercent = revenue > 0 ? (netMargin / revenue) * 100 : 0;
+      const netMargin = revenue - adSpend - productionCost - shippingCost;
+      const netMarginPercent = revenue > 0 ? (netMargin / revenue) * 100 : 0;
 
-    performances.push({
-      dropName: tag.name,
-      revenue,
-      adSpend,
-      productionCost,
-      netMargin,
-      netMarginPercent: Number(netMarginPercent.toFixed(1))
-    });
-  }
+      return {
+        dropName: tag.name,
+        revenue,
+        adSpend,
+        productionCost,
+        netMargin,
+        netMarginPercent: Number(netMarginPercent.toFixed(1))
+      };
+    })
+  );
 
   // Sort by revenue descending
   performances.sort((a, b) => b.revenue - a.revenue);

@@ -59,27 +59,55 @@ export default async function AnalyticsPage(props: {
   });
 
   // Insights is now the SINGLE SOURCE OF TRUTH for top-level KPIs
-  const insights = await getDashboardInsights(organization.id, startDate, endDate, tagId);
-  const velocity = await getAnalyticsVelocity(organization.id, startDate, endDate, tagId);
-  const dropPerformance = await getDropPerformance(organization.id, startDate, endDate, tagId);
-  const orderFunnel = await getOrderFunnel(organization.id, startDate, endDate, tagId);
-  const returnsByCity = await getReturnsByCity(organization.id, startDate, endDate, tagId);
-  const marketing = await getMarketingMetrics(organization.id, startDate || undefined, endDate || undefined, tagId);
+  const [
+    insights,
+    velocity,
+    dropPerformance,
+    orderFunnel,
+    returnsByCity,
+    marketing,
+    dailyTransactions,
+    expenseByCategory,
+    lineItems
+  ] = await Promise.all([
+    getDashboardInsights(organization.id, startDate, endDate, tagId),
+    getAnalyticsVelocity(organization.id, startDate, endDate, tagId),
+    getDropPerformance(organization.id, startDate, endDate, tagId),
+    getOrderFunnel(organization.id, startDate, endDate, tagId),
+    getReturnsByCity(organization.id, startDate, endDate, tagId),
+    getMarketingMetrics(organization.id, startDate || undefined, endDate || undefined, tagId),
+    prisma.transaction.findMany({
+      where: { organizationId: organization.id, status: 'RECEIVED', ...dateFilter, ...tagFilter },
+      select: { date: true, type: true, amount: true },
+      orderBy: { date: 'asc' }
+    }),
+    prisma.transaction.groupBy({
+      by: ['category'],
+      where: { organizationId: organization.id, type: 'EXPENSE', status: 'RECEIVED', ...dateFilter, ...tagFilter },
+      _sum: { amount: true },
+      orderBy: { _sum: { amount: 'desc' } }
+    }),
+    prisma.lineItem.findMany({
+      where: {
+        transaction: {
+          organizationId: organization.id,
+          type: 'INCOME',
+          status: 'RECEIVED',
+          ...dateFilter,
+          ...tagFilter
+        }
+      }
+    })
+  ]);
 
-  const dailyTransactions = await prisma.transaction.findMany({
-    where: { organizationId: organization.id, status: 'RECEIVED', ...dateFilter, ...tagFilter },
-    select: { date: true, type: true, amount: true },
-    orderBy: { date: 'asc' }
-  });
-  
   const baseChartData = groupTransactionsByDate(dailyTransactions);
   const chartDataMap: Record<string, any> = {};
   
-  baseChartData.forEach(d => {
+  baseChartData.forEach((d: any) => {
     chartDataMap[d.date] = { ...d, adSpend: 0 };
   });
 
-  marketing.adSpendByDate.forEach(tx => {
+  marketing.adSpendByDate.forEach((tx: any) => {
     const dateKey = new Date(tx.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     if (chartDataMap[dateKey]) {
       chartDataMap[dateKey].adSpend += tx.amount;
@@ -90,29 +118,10 @@ export default async function AnalyticsPage(props: {
 
   const chartData = Object.values(chartDataMap);
 
-  const expenseByCategory = await prisma.transaction.groupBy({
-    by: ['category'],
-    where: { organizationId: organization.id, type: 'EXPENSE', status: 'RECEIVED', ...dateFilter, ...tagFilter },
-    _sum: { amount: true },
-    orderBy: { _sum: { amount: 'desc' } }
-  });
   const donutData = expenseByCategory.map((e: any) => ({
     category: e.category,
     amount: Number(e._sum.amount || 0)
   }));
-
-  // Pareto Engine for Products Sales
-  const lineItems = await prisma.lineItem.findMany({
-    where: {
-      transaction: {
-        organizationId: organization.id,
-        type: 'INCOME',
-        status: 'RECEIVED',
-        ...dateFilter,
-        ...tagFilter
-      }
-    }
-  });
 
   const productRevenue: Record<string, number> = {};
   let totalLineItemRevenue = 0;

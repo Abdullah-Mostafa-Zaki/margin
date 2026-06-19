@@ -11,7 +11,7 @@ import RealtimeListener from "@/components/dashboard/realtime-listener";
 import { getDateRangeFromParams } from "@/lib/date-utils";
 export default async function TransactionsPage(props: {
   params: Promise<{ orgSlug: string }>;
-  searchParams: Promise<{ tag?: string; range?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ tag?: string; range?: string; from?: string; to?: string; page?: string }>;
 }) {
   const resolvedParams = await props.params;
   const resolvedSearchParams = await props.searchParams;
@@ -27,20 +27,35 @@ export default async function TransactionsPage(props: {
     lte: endDate,
   } : undefined;
 
+  const page = Number(resolvedSearchParams.page) || 1;
+  const take = 50;
+  const skip = (page - 1) * take;
+
   const organization = await prisma.organization.findUnique({
     where: { slug: resolvedParams.orgSlug },
-    include: {
-      transactions: {
-        where: {
-          ...(tagFilter ? { tags: { some: { tagId: tagFilter } } } : {}),
-          ...(dateFilter ? { date: dateFilter } : {})
-        },
-        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-      },
-    },
   });
 
   if (!organization) redirect("/unauthorized");
+
+  const [transactions, totalTransactionsCount] = await Promise.all([
+    prisma.transaction.findMany({
+      where: {
+        organizationId: organization.id,
+        ...(tagFilter ? { tags: { some: { tagId: tagFilter } } } : {}),
+        ...(dateFilter ? { date: dateFilter } : {})
+      },
+      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+      take,
+      skip,
+    }),
+    prisma.transaction.count({
+      where: {
+        organizationId: organization.id,
+        ...(tagFilter ? { tags: { some: { tagId: tagFilter } } } : {}),
+        ...(dateFilter ? { date: dateFilter } : {})
+      }
+    })
+  ]);
 
   const tags = await prisma.tag.findMany({
     where: { organizationId: organization.id },
@@ -87,7 +102,7 @@ export default async function TransactionsPage(props: {
         }))}
         totalPendingCod={totalPendingCod}
         showCodCard={!activeTag && pendingCODTransactions.length > 0}
-        transactions={organization.transactions.map((t: any) => ({
+        transactions={transactions.map((t: any) => ({
           ...t,
           amount: Number(t.amount)
         }))}
@@ -95,6 +110,8 @@ export default async function TransactionsPage(props: {
         orgId={organization.id}
         tags={tags}
         activeTagLabel={activeTag?.name}
+        currentPage={page}
+        totalPages={Math.ceil(totalTransactionsCount / take)}
       />
     </div>
   );

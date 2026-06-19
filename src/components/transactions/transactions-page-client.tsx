@@ -20,6 +20,8 @@ interface TransactionsPageClientProps {
   orgId: string;
   tags: { id: string; name: string }[];
   activeTagLabel?: string;
+  currentPage?: number;
+  totalPages?: number;
 }
 
 export function TransactionsPageClient({
@@ -31,6 +33,8 @@ export function TransactionsPageClient({
   orgId,
   tags,
   activeTagLabel,
+  currentPage = 1,
+  totalPages = 1,
 }: TransactionsPageClientProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -70,6 +74,8 @@ export function TransactionsPageClient({
         selectedIds={selectedIds}
         onToggle={toggleId}
         onSelectAll={selectMany}
+        currentPage={currentPage}
+        totalPages={totalPages}
       />
       <BulkActionBar
         selectedCount={selectedIds.size}

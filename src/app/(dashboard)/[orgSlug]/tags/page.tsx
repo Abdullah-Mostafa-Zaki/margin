@@ -20,15 +20,9 @@ export default async function TagsPage({
 
   const organization = await prisma.organization.findUnique({
     where: { slug: orgSlug },
-    include: {
+    select: {
+      id: true,
       tags: {
-        include: {
-          transactions: {
-            include: {
-              transaction: true,
-            },
-          },
-        },
         orderBy: { createdAt: "desc" },
       },
     },
@@ -37,6 +31,49 @@ export default async function TagsPage({
   if (!organization) {
     redirect("/unauthorized");
   }
+
+  const tagsWithStats = await Promise.all(
+    organization.tags.map(async (tag) => {
+      const grouped = await prisma.transaction.groupBy({
+        by: ['type'],
+        where: {
+          organizationId: organization.id,
+          tags: { some: { tagId: tag.id } }
+        },
+        _sum: { amount: true },
+        _count: { id: true },
+        _min: { date: true },
+        _max: { date: true }
+      });
+
+      let totalIncome = 0;
+      let totalExpenses = 0;
+      let transactionCount = 0;
+      let minDate: Date | null = null;
+      let maxDate: Date | null = null;
+
+      grouped.forEach((g) => {
+        const amt = Number(g._sum.amount || 0);
+        transactionCount += g._count.id;
+
+        if (g.type === "INCOME") totalIncome += amt;
+        else if (g.type === "EXPENSE") totalExpenses += amt;
+
+        if (g._min.date && (!minDate || g._min.date < minDate)) minDate = g._min.date;
+        if (g._max.date && (!maxDate || g._max.date > maxDate)) maxDate = g._max.date;
+      });
+
+      return {
+        ...tag,
+        totalIncome,
+        totalExpenses,
+        netROI: totalIncome - totalExpenses,
+        transactionCount,
+        startDate: minDate,
+        endDate: maxDate,
+      };
+    })
+  );
 
   return (
     <div className="space-y-8">
@@ -60,41 +97,21 @@ export default async function TagsPage({
         </div>
       ) : (
         <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {organization.tags.map((tag) => {
-            let totalIncome = 0;
-            let totalExpenses = 0;
-
-            tag.transactions.forEach((tt) => {
-              const t = tt.transaction;
-              if (t.type === "INCOME") {
-                totalIncome += Number(t.amount);
-              } else if (t.type === "EXPENSE") {
-                totalExpenses += Number(t.amount);
-              }
-            });
-
-            const netROI = totalIncome - totalExpenses;
-            
-            const dates = tag.transactions.map((tt) => tt.transaction.date);
-            const startDate = dates.length ? new Date(Math.min(...dates.map((d) => d.getTime()))) : null;
-            const endDate = dates.length ? new Date(Math.max(...dates.map((d) => d.getTime()))) : null;
-
-            return (
-              <DropCard
-                key={tag.id}
-                id={tag.id}
-                orgSlug={orgSlug}
-                name={tag.name}
-                description={tag.description}
-                startDate={startDate}
-                endDate={endDate}
-                totalIncome={totalIncome}
-                totalExpenses={totalExpenses}
-                netROI={netROI}
-                transactionCount={tag.transactions.length}
-              />
-            );
-          })}
+          {tagsWithStats.map((tag) => (
+            <DropCard
+              key={tag.id}
+              id={tag.id}
+              orgSlug={orgSlug}
+              name={tag.name}
+              description={tag.description}
+              startDate={tag.startDate}
+              endDate={tag.endDate}
+              totalIncome={tag.totalIncome}
+              totalExpenses={tag.totalExpenses}
+              netROI={tag.netROI}
+              transactionCount={tag.transactionCount}
+            />
+          ))}
         </div>
       )}
     </div>

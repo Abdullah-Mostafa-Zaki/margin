@@ -35,6 +35,8 @@ interface TransactionsShellProps {
   selectedIds: Set<string>;
   onToggle: (id: string) => void;
   onSelectAll: (ids: string[], selected: boolean) => void;
+  currentPage?: number;
+  totalPages?: number;
 }
 
 export function TransactionsShell({
@@ -46,6 +48,8 @@ export function TransactionsShell({
   selectedIds,
   onToggle,
   onSelectAll,
+  currentPage = 1,
+  totalPages = 1,
 }: TransactionsShellProps) {
   const [activeTab, setActiveTab] = useState<"INCOME" | "EXPENSE">("INCOME");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
@@ -456,6 +460,39 @@ export function TransactionsShell({
           ))
         )}
       </div>
+
+      {/* ── Pagination Controls ── */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-2 py-4 border-t border-zinc-200 mt-4">
+          <div className="text-sm text-zinc-500">
+            Page {currentPage} of {totalPages}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                const params = new URLSearchParams(searchParams.toString());
+                params.set("page", String(Math.max(1, currentPage - 1)));
+                window.location.search = params.toString();
+              }}
+              disabled={currentPage <= 1}
+              className="px-4 py-2 text-sm font-medium bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => {
+                const params = new URLSearchParams(searchParams.toString());
+                params.set("page", String(Math.min(totalPages, currentPage + 1)));
+                window.location.search = params.toString();
+              }}
+              disabled={currentPage >= totalPages}
+              className="px-4 py-2 text-sm font-medium bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );
