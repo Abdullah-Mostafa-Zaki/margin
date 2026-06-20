@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { EditOrgForm } from "@/components/settings/edit-org-form";
 import { ShopifyIntegration } from "@/components/settings/shopify-integration";
 import { BostaConnectForm } from "@/components/settings/bosta-connect-form";
@@ -37,7 +38,10 @@ export default async function SettingsPage({
   });
 
   if (!organization) {
-    redirect("/unauthorized");
+    const headersList = await headers();
+    const referer = headersList.get("referer");
+    const fromPath = referer ? new URL(referer).pathname : "/";
+    redirect(`/unauthorized?from=${encodeURIComponent(fromPath)}`);
   }
 
   // ── GHOST MODE: Super Admin bypass ─────────────────────────────────────────
@@ -52,7 +56,10 @@ export default async function SettingsPage({
     );
 
     if (!currentUserMembership) {
-      redirect("/unauthorized");
+      const headersList = await headers();
+      const referer = headersList.get("referer");
+      const fromPath = referer ? new URL(referer).pathname : "/";
+      redirect(`/unauthorized?from=${encodeURIComponent(fromPath)}`);
     }
   }
   // ─────────────────────────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import Link from "next/link";
 import type { Transaction } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +36,12 @@ export default async function TransactionsPage(props: {
     where: { slug: resolvedParams.orgSlug },
   });
 
-  if (!organization) redirect("/unauthorized");
+  if (!organization) {
+    const headersList = await headers();
+    const referer = headersList.get("referer");
+    const fromPath = referer ? new URL(referer).pathname : "/";
+    redirect(`/unauthorized?from=${encodeURIComponent(fromPath)}`);
+  }
 
   const [transactions, totalTransactionsCount] = await Promise.all([
     prisma.transaction.findMany({

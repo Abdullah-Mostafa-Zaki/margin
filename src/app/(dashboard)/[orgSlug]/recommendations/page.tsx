@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { GodMetric } from "@/components/dashboard/GodMetric";
 import { Insights } from "@/components/dashboard/Insights";
 import { getDateRangeFromParams } from "@/lib/date-utils";
@@ -17,7 +18,12 @@ export default async function RecommendationsPage(props: {
     where: { slug: resolvedParams.orgSlug },
     select: { id: true }
   });
-  if (!organization) redirect("/unauthorized");
+  if (!organization) {
+    const headersList = await headers();
+    const referer = headersList.get("referer");
+    const fromPath = referer ? new URL(referer).pathname : "/";
+    redirect(`/unauthorized?from=${encodeURIComponent(fromPath)}`);
+  }
 
   const { startDate, endDate } = getDateRangeFromParams(resolvedSearchParams);
   const dateFilter = startDate && endDate ? { date: { gte: startDate, lte: endDate } } : {};

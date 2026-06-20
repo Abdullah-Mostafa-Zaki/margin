@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowUpRight, ArrowDownRight, Clock, Activity } from "lucide-react";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
@@ -38,7 +39,12 @@ export default async function AnalyticsPage(props: {
       plan: true,
     }
   });
-  if (!organization) redirect("/unauthorized");
+  if (!organization) {
+    const headersList = await headers();
+    const referer = headersList.get("referer");
+    const fromPath = referer ? new URL(referer).pathname : "/";
+    redirect(`/unauthorized?from=${encodeURIComponent(fromPath)}`);
+  }
 
   const limits = PLAN_LIMITS[organization.plan];
   const hasShopifyAnalytics = limits.shopifyAnalytics;

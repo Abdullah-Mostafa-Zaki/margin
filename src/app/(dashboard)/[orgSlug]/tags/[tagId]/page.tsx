@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { ArrowLeft, ArrowDownRight, ArrowUpRight, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +35,10 @@ export default async function TagDetailPage({
   });
 
   if (!tag || tag.organization.slug !== orgSlug) {
-    redirect("/unauthorized");
+    const headersList = await headers();
+    const referer = headersList.get("referer");
+    const fromPath = referer ? new URL(referer).pathname : "/";
+    redirect(`/unauthorized?from=${encodeURIComponent(fromPath)}`);
   }
 
   const transactions = tag.transactions.map((tt) => tt.transaction).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

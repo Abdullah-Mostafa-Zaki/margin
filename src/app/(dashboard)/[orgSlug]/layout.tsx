@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { unstable_noStore as noStore } from 'next/cache';
+import { headers } from 'next/headers';
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
@@ -86,7 +87,10 @@ export default async function DashboardLayout({
     });
 
     if (!membership) {
-      redirect("/unauthorized");
+      const headersList = await headers();
+      const referer = headersList.get("referer");
+      const fromPath = referer ? new URL(referer).pathname : "/";
+      redirect(`/unauthorized?from=${encodeURIComponent(fromPath)}`);
     }
 
     org = membership.organization;

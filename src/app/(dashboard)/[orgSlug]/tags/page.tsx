@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import Link from "next/link";
 import TagForm from "@/components/tags/tag-form";
 import { DropCard } from "@/components/tags/drop-card";
@@ -29,7 +30,10 @@ export default async function TagsPage({
   });
 
   if (!organization) {
-    redirect("/unauthorized");
+    const headersList = await headers();
+    const referer = headersList.get("referer");
+    const fromPath = referer ? new URL(referer).pathname : "/";
+    redirect(`/unauthorized?from=${encodeURIComponent(fromPath)}`);
   }
 
   const tagsWithStats = await Promise.all(
