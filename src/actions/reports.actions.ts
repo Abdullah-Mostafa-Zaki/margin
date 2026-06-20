@@ -7,8 +7,9 @@ import { authOptions } from "@/lib/auth";
 import { generateAnalyticsPayload } from "@/lib/analytics";
 import { ReportType } from "@prisma/client";
 
-function getSystemPrompt(reportType: ReportType): string {
+function getSystemPrompt(reportType: ReportType, daysCount: number): string {
   const basePrompt = `You are the fractional CFO for an Egyptian e-commerce clothing brand.
+You are acting as a Fractional CFO. Analyze the provided financial payload for the exact period of ${daysCount} days.
 You are NOT responsible for calculations, percentages, thresholds, trends, anomaly detection, or alert generation. These have already been computed by the system.
 
 THE GOLDEN RULE: You MUST start every response with a "oneParagraphStory" explaining the numbers directly to the founder (e.g., "This period your business generated 52,000 EGP in revenue...").
@@ -89,6 +90,7 @@ export async function generateReport(
 
     const startDate = new Date(startDateStr);
     const endDate = new Date(endDateStr);
+    const daysCount = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
 
     const existingReport = await prisma.report.findUnique({
       where: {
@@ -161,7 +163,7 @@ export async function generateReport(
     }
 
     const groq = new Groq({ apiKey });
-    const systemPrompt = getSystemPrompt(reportType);
+    const systemPrompt = getSystemPrompt(reportType, daysCount);
 
     const completion = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",

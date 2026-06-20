@@ -22,7 +22,6 @@ import { Lock } from "lucide-react";
 export function GenerateReportModal({ orgSlug, plan }: { orgSlug: string; plan: Plan }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [selectedType, setSelectedType] = useState<"WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY">("WEEKLY");
   
   const [date, setDate] = useState<DateRange | undefined>({
     from: new Date(new Date().setDate(new Date().getDate() - 7)),
@@ -30,6 +29,21 @@ export function GenerateReportModal({ orgSlug, plan }: { orgSlug: string; plan: 
   });
   
   const [generatedReport, setGeneratedReport] = useState<any>(null);
+
+  const daysCount = date?.from && date?.to ? Math.max(1, Math.round((date.to.getTime() - date.from.getTime()) / (1000 * 60 * 60 * 24))) : 0;
+  
+  let dynamicType: "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY" = "WEEKLY";
+  let badgeLabel = "Tactical Pulse (Weekly)";
+  if (daysCount >= 181) {
+    dynamicType = "YEARLY";
+    badgeLabel = "Executive Summary (Yearly)";
+  } else if (daysCount >= 90) {
+    dynamicType = "QUARTERLY";
+    badgeLabel = "Strategic Pivot (Quarterly)";
+  } else if (daysCount >= 15) {
+    dynamicType = "MONTHLY";
+    badgeLabel = "Boardroom Report (Monthly)";
+  }
 
   const handleGenerate = async () => {
     if (!date?.from || !date?.to) {
@@ -41,7 +55,7 @@ export function GenerateReportModal({ orgSlug, plan }: { orgSlug: string; plan: 
     try {
       const result = await generateReport(
         orgSlug,
-        selectedType,
+        dynamicType,
         date.from.toISOString(),
         date.to.toISOString(),
         true
@@ -136,20 +150,17 @@ export function GenerateReportModal({ orgSlug, plan }: { orgSlug: string; plan: 
               <DialogTitle>Generate AI Report</DialogTitle>
             </DialogHeader>
             <div className="space-y-6 pt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Report Type</label>
-                  <Select value={selectedType} onValueChange={(v: any) => setSelectedType(v)}>
-                    <SelectTrigger className="bg-white">
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PLAN_LIMITS[plan].weeklyReports && <SelectItem value="WEEKLY">Weekly Pulse</SelectItem>}
-                      {PLAN_LIMITS[plan].monthlyReports && <SelectItem value="MONTHLY">Monthly Boardroom</SelectItem>}
-                      {PLAN_LIMITS[plan].quarterlyReports && <SelectItem value="QUARTERLY">Quarterly Pivot</SelectItem>}
-                      {PLAN_LIMITS[plan].yearlyReports && <SelectItem value="YEARLY">Yearly Tax</SelectItem>}
-                    </SelectContent>
-                  </Select>
+              <div className="grid grid-cols-1 gap-4 mb-2">
+                <div className="space-y-2 flex flex-col items-center justify-center bg-emerald-50/50 border border-emerald-100 p-4 rounded-lg">
+                  <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Analysis Style</span>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="bg-white text-emerald-700 border-emerald-200 px-3 py-1 text-sm font-medium">
+                      Dynamic Lens: {badgeLabel}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-emerald-600/70 text-center max-w-xs mt-1">
+                    Auto-detected based on your {daysCount}-day selection.
+                  </p>
                 </div>
               </div>
               
