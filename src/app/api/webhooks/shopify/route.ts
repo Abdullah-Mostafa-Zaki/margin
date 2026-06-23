@@ -161,14 +161,19 @@ export async function POST(req: Request) {
 
       if (existingTx) {
         // Handle Updates / Partial Refunds
+        const updateData: any = {
+          amount: Number(price),
+          status: txStatus !== existingTx.status && txStatus === "RETURNED" ? "RETURNED" : undefined,
+          fulfillmentStatus: fulfillmentStatus !== "UNFULFILLED" ? fulfillmentStatus : undefined,
+        };
+
+        if (!existingTx.dropId && activeDrop) {
+          updateData.drop = { connect: { id: activeDrop.id } };
+        }
+
         await prisma.transaction.update({
           where: { id: existingTx.id },
-          data: {
-            amount: Number(price),
-            status: txStatus !== existingTx.status && txStatus === "RETURNED" ? "RETURNED" : undefined,
-            fulfillmentStatus: fulfillmentStatus !== "UNFULFILLED" ? fulfillmentStatus : undefined,
-            dropId: !existingTx.dropId && activeDrop ? activeDrop.id : undefined,
-          }
+          data: updateData
         });
         return new NextResponse("OK", { status: 200 });
       }
@@ -187,7 +192,7 @@ export async function POST(req: Request) {
         organizationId: organization.id,
         createdById: ownerId,
         shopifyOrderId: normalizedOrderId,
-        dropId: activeDrop ? activeDrop.id : undefined,
+        ...(activeDrop ? { drop: { connect: { id: activeDrop.id } } } : {}),
         customerCity: order.shipping_address?.city ?? null,
         customerId: order.customer?.id ? String(order.customer.id) : null,
         notes: `Shopify Order ${order.name || "\x23" + order.order_number}`,
