@@ -44,6 +44,8 @@ export function DropCard({
   const [isSaving, setIsSaving] = useState(false);
   const [editName, setEditName] = useState(name);
   const [editDesc, setEditDesc] = useState(description || "");
+  const [editStartDate, setEditStartDate] = useState(startDate ? format(startDate, "yyyy-MM-dd") : "");
+  const [editEndDate, setEditEndDate] = useState(endDate ? format(endDate, "yyyy-MM-dd") : "");
   const [errorMsg, setErrorMsg] = useState("");
 
   const marginPct = totalIncome > 0 ? ((netROI / totalIncome) * 100).toFixed(1) + "%" : "N/A";
@@ -63,12 +65,19 @@ export function DropCard({
       setErrorMsg("Name is required");
       return;
     }
+
+    if (editStartDate && editEndDate) {
+      if (new Date(editEndDate) < new Date(editStartDate)) {
+        setErrorMsg("End Date cannot be before Start Date");
+        return;
+      }
+    }
     
     setErrorMsg("");
     setIsSaving(true);
     
     try {
-      await updateTag(id, orgSlug, editName.trim(), editDesc.trim() || undefined);
+      await updateTag(id, orgSlug, editName.trim(), editDesc.trim() || undefined, editStartDate || undefined, editEndDate || undefined);
       toast.success("Drop updated successfully");
       setIsOpen(false);
     } catch (error) {
@@ -87,6 +96,8 @@ export function DropCard({
     if (open) {
       setEditName(name);
       setEditDesc(description || "");
+      setEditStartDate(startDate ? format(startDate, "yyyy-MM-dd") : "");
+      setEditEndDate(endDate ? format(endDate, "yyyy-MM-dd") : "");
       setErrorMsg("");
     }
   };
@@ -186,6 +197,26 @@ export function DropCard({
                 onChange={(e) => setEditDesc(e.target.value)}
                 placeholder="Short description..."
               />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  value={editStartDate}
+                  onChange={(e) => setEditStartDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End Date</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={editEndDate}
+                  onChange={(e) => setEditEndDate(e.target.value)}
+                />
+              </div>
             </div>
           </div>
           <div className="flex justify-end gap-2">

@@ -24,11 +24,20 @@ export default function TagForm({ orgSlug, currentDropCount = 0 }: { orgSlug: st
     const formData = new FormData(e.currentTarget);
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
+    const startDate = formData.get("startDate") as string;
+    const endDate = formData.get("endDate") as string;
+
+    if (startDate && endDate) {
+      if (new Date(endDate) < new Date(startDate)) {
+        setError("End Date cannot be before Start Date");
+        return;
+      }
+    }
 
     setError(null);
     startTransition(async () => {
       try {
-        const res = await createTag(orgSlug, name, description);
+        const res = await createTag(orgSlug, name, description, startDate || undefined, endDate || undefined);
         if (res?.error) {
           setError(res.error);
           return;
@@ -76,8 +85,28 @@ export default function TagForm({ orgSlug, currentDropCount = 0 }: { orgSlug: st
               placeholder="e.g. Summer Drop 2024"
               onChange={() => setError(null)}
             />
-            {error && <p className="text-sm font-medium text-red-500">{error}</p>}
           </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Start Date</label>
+              <input
+                type="date"
+                name="startDate"
+                className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">End Date</label>
+              <input
+                type="date"
+                name="endDate"
+                className="flex h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+          {error && <p className="text-sm font-medium text-red-500">{error}</p>}
+
           <div className="space-y-2">
             <label className="text-sm font-medium">Description (Optional)</label>
             <textarea
