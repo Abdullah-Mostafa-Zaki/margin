@@ -10,7 +10,6 @@ export function AlertsBanner({ alerts }: { alerts: Alert[] }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Load dismissed alerts from localStorage on mount
     const saved = localStorage.getItem("dismissedAlerts");
     if (saved) {
       try {
@@ -24,9 +23,12 @@ export function AlertsBanner({ alerts }: { alerts: Alert[] }) {
 
   if (!mounted || alerts.length === 0) return null;
 
-  const visibleAlerts = alerts.filter(a => !dismissedIds.has(a.id));
+  const severityOrder = { critical: 0, warning: 1, info: 2 };
+  const sortedAlerts = [...alerts].sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+  const visibleAlerts = sortedAlerts.filter(a => !dismissedIds.has(a.id));
 
-  if (visibleAlerts.length === 0) return null;
+  const topAlert = visibleAlerts[0];
+  if (!topAlert) return null;
 
   const handleDismiss = (id: string) => {
     const newDismissed = new Set(dismissedIds);
@@ -35,64 +37,66 @@ export function AlertsBanner({ alerts }: { alerts: Alert[] }) {
     localStorage.setItem("dismissedAlerts", JSON.stringify(Array.from(newDismissed)));
   };
 
+  const isCritical = topAlert.severity === "critical";
+  const isWarning = topAlert.severity === "warning";
+
   return (
-    <div className="space-y-3 mb-6">
-      {visibleAlerts.map((alert, i) => {
-        const isCritical = alert.severity === "critical";
-        const isWarning = alert.severity === "warning";
-        
-        return (
-          <FadeIn key={alert.id} delay={i * 0.1}>
-            <div className={`relative flex items-start gap-3 p-4 rounded-xl border shadow-sm transition-all duration-300 ${
-              isCritical ? 'bg-rose-50 border-rose-200' :
-              isWarning ? 'bg-amber-50 border-amber-200' :
-              'bg-blue-50 border-blue-200'
-            }`}>
-              <div className="mt-0.5 shrink-0">
-                {isCritical ? <AlertCircle className="w-5 h-5 text-rose-600" /> :
-                 isWarning ? <AlertTriangle className="w-5 h-5 text-amber-600" /> :
-                 <Info className="w-5 h-5 text-blue-600" />}
-              </div>
-              <div className="flex-1">
-                <h4 className={`text-sm font-semibold flex items-center gap-2 ${
-                  isCritical ? 'text-rose-900' :
-                  isWarning ? 'text-amber-900' :
-                  'text-blue-900'
-                }`}>
-                  {alert.title}
-                  {alert.metric && (
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold ${
-                      isCritical ? 'bg-rose-200 text-rose-800' :
-                      isWarning ? 'bg-amber-200 text-amber-800' :
-                      'bg-blue-200 text-blue-800'
-                    }`}>
-                      {alert.metric}
-                    </span>
-                  )}
-                </h4>
-                <p className={`text-sm mt-1 leading-relaxed ${
-                  isCritical ? 'text-rose-700' :
-                  isWarning ? 'text-amber-700' :
-                  'text-blue-700'
-                }`}>
-                  {alert.message}
-                </p>
-              </div>
-              <button 
-                onClick={() => handleDismiss(alert.id)}
-                className={`p-1.5 rounded-md opacity-70 hover:opacity-100 transition-all shrink-0 ${
-                  isCritical ? 'hover:bg-rose-200 text-rose-900' :
-                  isWarning ? 'hover:bg-amber-200 text-amber-900' :
-                  'hover:bg-blue-200 text-blue-900'
-                }`}
-                aria-label="Dismiss alert"
-              >
-                <X className="w-4 h-4" />
-              </button>
+    <div className="mb-4 sm:mb-6">
+      <FadeIn delay={0.1}>
+        <div className={`flex items-center justify-between gap-2 p-2 sm:px-3 rounded-lg border shadow-sm transition-all duration-300 ${
+          isCritical ? 'bg-rose-50 border-rose-200' :
+          isWarning ? 'bg-amber-50 border-amber-200' :
+          'bg-blue-50 border-blue-200'
+        }`}>
+          <div className="flex items-center gap-2 overflow-hidden flex-1">
+            <div className="shrink-0">
+              {isCritical ? <AlertCircle className="w-4 h-4 text-rose-600" /> :
+               isWarning ? <AlertTriangle className="w-4 h-4 text-amber-600" /> :
+               <Info className="w-4 h-4 text-blue-600" />}
             </div>
-          </FadeIn>
-        );
-      })}
+            
+            <div className="flex items-center gap-2 truncate">
+              <span className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider whitespace-nowrap ${
+                isCritical ? 'text-rose-900' :
+                isWarning ? 'text-amber-900' :
+                'text-blue-900'
+              }`}>
+                {topAlert.title}
+              </span>
+              
+              {topAlert.metric && (
+                <span className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] uppercase tracking-wider font-bold ${
+                  isCritical ? 'bg-rose-200 text-rose-800' :
+                  isWarning ? 'bg-amber-200 text-amber-800' :
+                  'bg-blue-200 text-blue-800'
+                }`}>
+                  {topAlert.metric}
+                </span>
+              )}
+              
+              <span className={`hidden sm:inline text-xs truncate ml-1 ${
+                isCritical ? 'text-rose-700' :
+                isWarning ? 'text-amber-700' :
+                'text-blue-700'
+              }`}>
+                — {topAlert.message}
+              </span>
+            </div>
+          </div>
+
+          <button 
+            onClick={() => handleDismiss(topAlert.id)}
+            className={`p-1 rounded-md opacity-70 hover:opacity-100 transition-all shrink-0 ${
+              isCritical ? 'hover:bg-rose-200 text-rose-900' :
+              isWarning ? 'hover:bg-amber-200 text-amber-900' :
+              'hover:bg-blue-200 text-blue-900'
+            }`}
+            aria-label="Dismiss alert"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </FadeIn>
     </div>
   );
 }
