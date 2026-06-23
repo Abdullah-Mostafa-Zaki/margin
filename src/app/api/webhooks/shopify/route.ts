@@ -196,7 +196,6 @@ export async function POST(req: Request) {
         organizationId: organization.id,
         startDate: { lte: orderDate },
         endDate: { gte: orderDate },
-        status: "LIVE",
       },
     });
 

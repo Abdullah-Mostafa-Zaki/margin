@@ -170,7 +170,12 @@ export async function updateTag(id: string, orgSlug: string, name: string, descr
 
 function computeDropStatus(startDate: Date, endDate: Date): "UPCOMING" | "LIVE" | "ENDED" {
   const now = new Date();
+  
+  // Make sure the end date covers the full final day (23:59:59)
+  const endOfDay = new Date(endDate);
+  endOfDay.setUTCHours(23, 59, 59, 999);
+
   if (now < startDate) return "UPCOMING";
-  if (now > endDate) return "ENDED";
+  if (now > endOfDay) return "ENDED";
   return "LIVE";
 }
