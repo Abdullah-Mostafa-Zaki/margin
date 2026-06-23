@@ -26,7 +26,7 @@ async function fetchReturnsByCity(
     }
   } : {};
 
-  const tagFilter = tagId ? { tags: { some: { tagId } } } : {};
+  const tagFilter = tagId ? { drops: { some: { dropId: tagId } } } : {};
 
   // Fetch COD INCOME transactions with a city
   const transactions = await prisma.transaction.findMany({

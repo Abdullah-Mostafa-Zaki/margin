@@ -3,7 +3,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { posthog } from "@/lib/posthog";
 import { FulfillmentStatus } from "@prisma/client";
 
@@ -56,14 +56,14 @@ export async function createTransaction(orgSlug: string, formData: FormData) {
   const tagIds = formData.getAll("tagIds") as string[];
 
   if (tagIds.length > 0) {
-    const validTags = await prisma.tag.count({
+    const validDrops = await prisma.drop.count({
       where: {
         id: { in: tagIds },
         organizationId: org.id,
       },
     });
-    if (validTags !== tagIds.length) {
-      throw new Error("One or more tags not found in this organization");
+    if (validDrops !== tagIds.length) {
+      throw new Error("One or more drops not found in this organization");
     }
   }
 
@@ -81,8 +81,8 @@ export async function createTransaction(orgSlug: string, formData: FormData) {
       organizationId: org.id,
       createdById: membership?.userId || (session.user as any).id,
       source: sourceEnum as any,
-      tags: {
-        create: tagIds.map(tagId => ({ tagId })),
+      drops: {
+        create: tagIds.map(dropId => ({ dropId })),
       },
     },
   });
@@ -99,7 +99,7 @@ export async function createTransaction(orgSlug: string, formData: FormData) {
   });
 
   revalidatePath(`/${orgSlug}/transactions`);
-  updateTag(`org-${org.id}-transactions`);
+  revalidateTag(`org-${org.id}-transactions`, 'default');
 }
 
 export async function updateTransaction(id: string, orgSlug: string, formData: FormData) {
@@ -154,14 +154,14 @@ export async function updateTransaction(id: string, orgSlug: string, formData: F
   const tagIds = formData.getAll("tagIds") as string[];
 
   if (tagIds.length > 0) {
-    const validTags = await prisma.tag.count({
+    const validDrops = await prisma.drop.count({
       where: {
         id: { in: tagIds },
         organizationId: org.id,
       },
     });
-    if (validTags !== tagIds.length) {
-      throw new Error("One or more tags not found in this organization");
+    if (validDrops !== tagIds.length) {
+      throw new Error("One or more drops not found in this organization");
     }
   }
 
@@ -180,22 +180,22 @@ export async function updateTransaction(id: string, orgSlug: string, formData: F
     },
   });
 
-  // Disconnect old tags and connect new ones
-  await prisma.transactionTag.deleteMany({
+  // Disconnect old drop assignments and connect new ones
+  await prisma.transactionDrop.deleteMany({
     where: { transactionId: id },
   });
 
   if (tagIds.length > 0) {
-    await prisma.transactionTag.createMany({
-      data: tagIds.map(tagId => ({
+    await prisma.transactionDrop.createMany({
+      data: tagIds.map(dropId => ({
         transactionId: id,
-        tagId,
+        dropId,
       })),
     });
   }
 
   revalidatePath(`/${orgSlug}/transactions`);
-  updateTag(`org-${org.id}-transactions`);
+  revalidateTag(`org-${org.id}-transactions`, 'default');
 }
 
 export async function deleteTransaction(id: string, orgSlug: string) {
@@ -223,7 +223,7 @@ export async function deleteTransaction(id: string, orgSlug: string) {
   });
 
   revalidatePath(`/${orgSlug}/transactions`);
-  updateTag(`org-${org.id}-transactions`);
+  revalidateTag(`org-${org.id}-transactions`, 'default');
 }
 
 export async function updateTransactionStatus(id: string, status: "PENDING" | "RECEIVED", orgSlug: string) {
@@ -252,7 +252,7 @@ export async function updateTransactionStatus(id: string, status: "PENDING" | "R
   });
 
   revalidatePath(`/${orgSlug}/transactions`);
-  updateTag(`org-${org.id}-transactions`);
+  revalidateTag(`org-${org.id}-transactions`, 'default');
 }
 
 export async function markAllPendingAsReceived(orgSlug: string) {
@@ -282,7 +282,7 @@ export async function markAllPendingAsReceived(orgSlug: string) {
   });
 
   revalidatePath(`/${orgSlug}/transactions`);
-  updateTag(`org-${org.id}-transactions`);
+  revalidateTag(`org-${org.id}-transactions`, 'default');
 }
 
 export async function bulkDeleteTransactions(ids: string[], orgSlug: string) {
@@ -308,7 +308,7 @@ export async function bulkDeleteTransactions(ids: string[], orgSlug: string) {
   });
 
   revalidatePath(`/${orgSlug}/transactions`);
-  updateTag(`org-${org.id}-transactions`);
+  revalidateTag(`org-${org.id}-transactions`, 'default');
 }
 
 export async function bulkUpdateStatus(ids: string[], status: "PENDING" | "RECEIVED", orgSlug: string) {
@@ -335,10 +335,10 @@ export async function bulkUpdateStatus(ids: string[], status: "PENDING" | "RECEI
   });
 
   revalidatePath(`/${orgSlug}/transactions`);
-  updateTag(`org-${org.id}-transactions`);
+  revalidateTag(`org-${org.id}-transactions`, 'default');
 }
 
-export async function bulkAssignDrop(ids: string[], tagId: string, orgSlug: string) {
+export async function bulkAssignDrop(ids: string[], dropId: string, orgSlug: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
@@ -353,24 +353,50 @@ export async function bulkAssignDrop(ids: string[], tagId: string, orgSlug: stri
   const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
   if (!membership && !isSuperAdmin) throw new Error("Forbidden");
 
-  // Verify the tag belongs to the org
-  const tag = await prisma.tag.findFirst({
-    where: { id: tagId, organizationId: org.id }
+  // Verify the drop belongs to the org
+  const drop = await prisma.drop.findFirst({
+    where: { id: dropId, organizationId: org.id }
   });
-  
-  if (!tag) throw new Error("Tag not found or does not belong to this organization");
 
-  // Create assignments, skip duplicates if a transaction already has this tag
-  await prisma.transactionTag.createMany({
-    data: ids.map((id) => ({
-      transactionId: id,
-      tagId: tagId,
-    })),
-    skipDuplicates: true,
+  if (!drop) throw new Error("Drop not found or does not belong to this organization");
+
+  // ── Double-counting prevention ────────────────────────────────────────────
+  // For INCOME transactions, we update the exclusive dropId FK so that revenue
+  // can only be counted toward ONE drop. EXPENSE transactions use the many-to-many
+  // TransactionDrop join table (they can be shared across drops).
+  const transactions = await prisma.transaction.findMany({
+    where: { id: { in: ids }, organizationId: org.id },
+    select: { id: true, type: true, dropId: true },
   });
+
+  const incomeIds = transactions
+    .filter((t) => t.type === "INCOME")
+    .map((t) => t.id);
+  const expenseIds = transactions
+    .filter((t) => t.type === "EXPENSE")
+    .map((t) => t.id);
+
+  // Update INCOME transactions: set the exclusive dropId FK
+  if (incomeIds.length > 0) {
+    await prisma.transaction.updateMany({
+      where: { id: { in: incomeIds }, organizationId: org.id },
+      data: { dropId },
+    });
+  }
+
+  // Update EXPENSE transactions: upsert into the join table (many-to-many)
+  if (expenseIds.length > 0) {
+    await prisma.transactionDrop.createMany({
+      data: expenseIds.map((id) => ({
+        transactionId: id,
+        dropId,
+      })),
+      skipDuplicates: true,
+    });
+  }
 
   revalidatePath(`/${orgSlug}/transactions`);
-  updateTag(`org-${org.id}-transactions`);
+  revalidateTag(`org-${org.id}-transactions`, 'default');
 }
 
 export async function bulkUpdateFulfillmentStatus(ids: string[], status: FulfillmentStatus, orgSlug: string) {
@@ -397,5 +423,5 @@ export async function bulkUpdateFulfillmentStatus(ids: string[], status: Fulfill
   });
 
   revalidatePath(`/${orgSlug}/transactions`);
-  updateTag(`org-${org.id}-transactions`);
+  revalidateTag(`org-${org.id}-transactions`, 'default');
 }

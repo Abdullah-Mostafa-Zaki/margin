@@ -56,9 +56,9 @@ export default async function AnalyticsPage(props: {
   const subtitleText = isAllTime ? "vs last month" : "vs prev period";
 
   const tagId = typeof resolvedSearchParams.tagId === "string" ? resolvedSearchParams.tagId : undefined;
-  const tagFilter = tagId ? { tags: { some: { tagId } } } : {};
+  const tagFilter = tagId ? { drops: { some: { dropId: tagId } } } : {};
 
-  const tags = await prisma.tag.findMany({
+  const tags = await prisma.drop.findMany({
     where: { organizationId: organization.id },
     select: { id: true, name: true },
     orderBy: { createdAt: "desc" },

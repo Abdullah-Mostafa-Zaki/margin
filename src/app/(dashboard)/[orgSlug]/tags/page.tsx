@@ -23,7 +23,7 @@ export default async function TagsPage({
     where: { slug: orgSlug },
     select: {
       id: true,
-      tags: {
+      drops: {
         orderBy: { createdAt: "desc" },
       },
     },
@@ -36,13 +36,13 @@ export default async function TagsPage({
     redirect(`/unauthorized?from=${encodeURIComponent(fromPath)}`);
   }
 
-  const tagsWithStats = await Promise.all(
-    organization.tags.map(async (tag) => {
+  const dropsWithStats = await Promise.all(
+    organization.drops.map(async (drop) => {
       const grouped = await prisma.transaction.groupBy({
         by: ['type'],
         where: {
           organizationId: organization.id,
-          tags: { some: { tagId: tag.id } }
+          drops: { some: { dropId: drop.id } }
         },
         _sum: { amount: true },
         _count: { id: true },
@@ -68,13 +68,15 @@ export default async function TagsPage({
       });
 
       return {
-        ...tag,
+        ...drop,
         totalIncome,
         totalExpenses,
         netROI: totalIncome - totalExpenses,
         transactionCount,
-        startDate: minDate,
-        endDate: maxDate,
+        // Prefer the explicit startDate/endDate from the Drop model;
+        // fall back to the min/max transaction date for legacy drops
+        startDate: drop.startDate ?? minDate,
+        endDate: drop.endDate ?? maxDate,
       };
     })
   );
@@ -86,34 +88,35 @@ export default async function TagsPage({
           <h1 className="text-2xl font-bold tracking-tight">Drops</h1>
           <p className="text-zinc-500">Track ROI across different product drops and marketing campaigns.</p>
         </div>
-        <TagForm orgSlug={orgSlug} currentDropCount={organization.tags.length} />
+        <TagForm orgSlug={orgSlug} currentDropCount={organization.drops.length} />
       </div>
 
-      {organization.tags.length === 0 ? (
+      {organization.drops.length === 0 ? (
         <div className="flex min-h-[400px] flex-col items-center justify-center rounded-lg border border-dashed bg-white text-center">
           <div className="mx-auto flex max-w-[420px] flex-col items-center justify-center text-center">
             <h2 className="mt-6 text-xl font-semibold">No drops yet</h2>
             <p className="mb-8 mt-2 text-center text-sm font-normal leading-6 text-zinc-500">
               Create your first drop to start tracking ROI.
             </p>
-            <TagForm orgSlug={orgSlug} currentDropCount={organization.tags.length} />
+            <TagForm orgSlug={orgSlug} currentDropCount={organization.drops.length} />
           </div>
         </div>
       ) : (
         <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {tagsWithStats.map((tag) => (
+          {dropsWithStats.map((drop) => (
             <DropCard
-              key={tag.id}
-              id={tag.id}
+              key={drop.id}
+              id={drop.id}
               orgSlug={orgSlug}
-              name={tag.name}
-              description={tag.description}
-              startDate={tag.startDate}
-              endDate={tag.endDate}
-              totalIncome={tag.totalIncome}
-              totalExpenses={tag.totalExpenses}
-              netROI={tag.netROI}
-              transactionCount={tag.transactionCount}
+              name={drop.name}
+              description={drop.description}
+              startDate={drop.startDate}
+              endDate={drop.endDate}
+              totalIncome={drop.totalIncome}
+              totalExpenses={drop.totalExpenses}
+              netROI={drop.netROI}
+              transactionCount={drop.transactionCount}
+              status={drop.status}
             />
           ))}
         </div>

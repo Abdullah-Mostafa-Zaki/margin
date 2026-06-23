@@ -14,14 +14,14 @@ export default async function DashboardPage(props: {
       currentMonthVoice: true,
       currentMonthImage: true,
       currentMonthText: true,
-      tags: { orderBy: { createdAt: "desc" } },
+      drops: { orderBy: { createdAt: "desc" } },
     },
   });
 
   return (
     <ChatHome
       orgSlug={resolvedParams.orgSlug}
-      tags={org?.tags || []}
+      tags={org?.drops || []}
       currentMonthVoice={org?.currentMonthVoice ?? 0}
       currentMonthImage={org?.currentMonthImage ?? 0}
       currentMonthText={org?.currentMonthText ?? 0}

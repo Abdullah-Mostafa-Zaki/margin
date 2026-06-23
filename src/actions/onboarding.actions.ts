@@ -44,7 +44,7 @@ export async function completeOnboarding(data: {
 
   // 2. Create First Drop (Tag) if provided
   if (data.firstDropName) {
-    await prisma.tag.create({
+    await prisma.drop.create({
       data: {
         name: data.firstDropName,
         organizationId: newOrg.id,

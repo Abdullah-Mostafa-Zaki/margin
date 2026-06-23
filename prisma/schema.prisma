@@ -73,7 +73,8 @@ model Organization {
   currentMonthImage    Int               @default(0)
   usageResetDate       DateTime          @default(now())
   memberships          Membership[]
-  tags                 Tag[]
+  // "tags" relation renamed to "drops" — the Tag model is now Drop
+  drops                Drop[]
   transactions         Transaction[]
   subscription         Subscription?
   bostaIntegration     BostaIntegration?
@@ -112,18 +113,38 @@ model Membership {
   @@index([userId])
 }
 
-model Tag {
+// ─── Drop (formerly Tag) ─────────────────────────────────────────────────────
+// Renamed from Tag → Drop. The underlying PostgreSQL table stays as "Tag"
+// during migration so no data is lost. A follow-up migration can rename the
+// table once stable.
+//
+// New fields:
+//   startDate  — when the drop campaign begins (optional for legacy drops)
+//   endDate    — when the drop campaign ends (optional for legacy drops)
+//   status     — computed lifecycle: UPCOMING | LIVE | ENDED. Updated by the
+//                /api/cron/sync-drop-status hourly cron job.
+// ─────────────────────────────────────────────────────────────────────────────
+model Drop {
   id             String           @id @default(cuid())
   name           String
   description    String?
   organizationId String
+  startDate      DateTime?
+  endDate        DateTime?
+  status         DropStatus       @default(UPCOMING)
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  transactions   TransactionTag[]
+  // Many-to-many: expenses and manually tagged transactions
+  transactions   TransactionDrop[]
+  // One-to-many: INCOME transactions exclusively attributed to this drop (double-counting prevention)
+  primaryTransactions Transaction[] @relation("PrimaryDrop")
 
   @@unique([name, organizationId])
   @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, startDate, endDate])
+  @@map("Tag")
 }
 
 model Transaction {
@@ -152,14 +173,23 @@ model Transaction {
   lineItems           LineItem[]
   createdBy           User              @relation(fields: [createdById], references: [id])
   organization        Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  tags                TransactionTag[]
+  // Many-to-many join with Drop (for manual multi-drop assignment / expense tagging)
+  drops               TransactionDrop[]
   source              TransactionSource @default(MANUAL)
+
+  // ── Revenue double-counting prevention ────────────────────────────────────
+  // A transaction can belong to AT MOST ONE drop for revenue purposes.
+  // This is the single source of truth for Shopify auto-assignment.
+  // The @unique constraint is enforced at the database level.
+  dropId              String?           @unique
+  drop                Drop?             @relation("PrimaryDrop", fields: [dropId], references: [id])
 
   @@unique([shopifyOrderId, organizationId])
   @@index([organizationId, date])
   @@index([organizationId, status])
   @@index([organizationId, date, type])
   @@index([organizationId, category])
+  @@index([organizationId, dropId])
 }
 
 model BostaIntegration {
@@ -175,14 +205,21 @@ model BostaIntegration {
   updatedAt DateTime @updatedAt
 }
 
-model TransactionTag {
+// ─── TransactionDrop (formerly TransactionTag) ───────────────────────────────
+// Renamed from TransactionTag → TransactionDrop.
+// Underlying table stays as "TransactionTag" via @@map for zero-data-loss migration.
+// This join table supports many-to-many tagging of expenses to drops.
+// Revenue transactions use the dropId FK on Transaction for strict exclusivity.
+// ─────────────────────────────────────────────────────────────────────────────
+model TransactionDrop {
   transactionId String
-  tagId         String
-  tag           Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  dropId        String
+  drop          Drop        @relation(fields: [dropId], references: [id], onDelete: Cascade)
   transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
-  @@id([transactionId, tagId])
-  @@index([tagId])
+  @@id([transactionId, dropId])
+  @@index([dropId])
+  @@map("TransactionTag")
 }
 
 model LineItem {
@@ -239,6 +276,18 @@ enum TransactionSource {
   IMPORT_IMAGE
   IMPORT_CSV
   VOICE
+}
+
+// ─── DropStatus ──────────────────────────────────────────────────────────────
+// Computed lifecycle state for a Drop campaign.
+// UPCOMING — startDate is in the future (or not set)
+// LIVE     — today is between startDate and endDate (inclusive)
+// ENDED    — endDate is in the past
+// ─────────────────────────────────────────────────────────────────────────────
+enum DropStatus {
+  UPCOMING
+  LIVE
+  ENDED
 }
 
 enum ReportType {

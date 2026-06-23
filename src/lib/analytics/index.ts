@@ -186,14 +186,14 @@ export async function calculateDropRoi(orgId: string, startDate: Date, endDate: 
       organizationId: orgId,
       date: { gte: startDate, lte: endDate },
     },
-    include: { tags: { include: { tag: true } } }
+    include: { drops: { include: { drop: true } } }
   });
 
   const tagStats: Record<string, { revenue: number, profit: number }> = {};
 
   for (const tx of transactions) {
-    for (const t of tx.tags) {
-      const tagName = t.tag.name;
+    for (const t of tx.drops) {
+      const tagName = t.drop.name;
       if (!tagStats[tagName]) tagStats[tagName] = { revenue: 0, profit: 0 };
       
       const amt = toNumber(tx.amount);

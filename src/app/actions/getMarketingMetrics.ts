@@ -22,7 +22,7 @@ async function fetchMarketingMetrics(
 
   // Helper to fetch metrics for a given period
   const fetchPeriodMetrics = async (filter: Prisma.TransactionWhereInput, pStart?: Date) => {
-    const localTagFilter = tagId ? { tags: { some: { tagId } } } : {};
+    const localTagFilter = tagId ? { drops: { some: { dropId: tagId } } } : {};
 
     // A. Ad Spend
     const adSpendTxs = await prisma.transaction.findMany({

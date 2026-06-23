@@ -24,6 +24,7 @@ interface DropCardProps {
   totalExpenses: number;
   netROI: number;
   transactionCount: number;
+  status?: string;
 }
 
 export function DropCard({
@@ -37,6 +38,7 @@ export function DropCard({
   totalExpenses,
   netROI,
   transactionCount,
+  status,
 }: DropCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -94,7 +96,18 @@ export function DropCard({
       <Card className="flex flex-col relative group">
         <CardHeader className="flex flex-row items-start justify-between pb-2">
           <div className="space-y-1 pr-12">
-            <CardTitle className="text-lg leading-tight">{name}</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg leading-tight">{name}</CardTitle>
+              {status && (
+                <span className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${
+                  status === 'LIVE' ? 'bg-emerald-100 text-emerald-700' :
+                  status === 'ENDED' ? 'bg-zinc-100 text-zinc-500' :
+                  'bg-amber-100 text-amber-700'
+                }`}>
+                  {status === 'LIVE' ? '● LIVE' : status === 'UPCOMING' ? '◷ UPCOMING' : '✓ ENDED'}
+                </span>
+              )}
+            </div>
             <p className="text-xs text-zinc-500 font-medium">{dateString}</p>
             {description && (
               <p className="text-sm text-zinc-500 line-clamp-2 mt-1">{description}</p>

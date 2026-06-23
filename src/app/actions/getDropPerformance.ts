@@ -5,7 +5,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 export interface DropPerformance {
+  dropId: string;
   dropName: string;
+  status: string;
+  startDate: Date | null;
+  endDate: Date | null;
   revenue: number;
   adSpend: number;
   productionCost: number;
@@ -28,46 +32,60 @@ async function fetchDropPerformance(
     }
   } : {};
 
-  // Fetch all tags (drops) for the org, filtered by tagId if provided
-  const tags = await prisma.tag.findMany({
+  // Fetch all drops for the org, filtered by tagId/dropId if provided
+  const drops = await prisma.drop.findMany({
     where: { organizationId, ...(tagId ? { id: tagId } : {}) }
   });
 
   const performances: DropPerformance[] = await Promise.all(
-    tags.map(async (tag) => {
-      const grouped = await prisma.transaction.groupBy({
-        by: ['type', 'status', 'category'],
+    drops.map(async (drop) => {
+      // INCOME transactions: use the exclusive dropId FK (prevents double-counting)
+      const incomeGrouped = await prisma.transaction.groupBy({
+        by: ['status'],
         where: {
           organizationId,
-          tags: { some: { tagId: tag.id } },
+          dropId: drop.id,
+          type: "INCOME",
           ...dateFilter
         },
         _sum: { amount: true, shipmentFee: true }
       });
 
+      // EXPENSE transactions: use the many-to-many join (expenses can be shared)
+      const expenseGrouped = await prisma.transaction.groupBy({
+        by: ['category'],
+        where: {
+          organizationId,
+          drops: { some: { dropId: drop.id } },
+          type: "EXPENSE",
+          ...dateFilter
+        },
+        _sum: { amount: true }
+      });
+
       let revenue = 0;
+      let shippingCost = 0;
       let adSpend = 0;
       let productionCost = 0;
-      let shippingCost = 0;
 
-      grouped.forEach((g) => {
+      incomeGrouped.forEach((g) => {
         const amt = Number(g._sum.amount || 0);
         const ship = Number(g._sum.shipmentFee || 0);
+        if (g.status === "RECEIVED") {
+          revenue += amt;
+        }
+        if (ship > 0) {
+          shippingCost += ship;
+        }
+      });
 
-        if (g.type === "INCOME") {
-          if (g.status === "RECEIVED") {
-            revenue += amt;
-          }
-          if (ship > 0) {
-            shippingCost += ship;
-          }
-        } else if (g.type === "EXPENSE") {
-          const cat = g.category?.toLowerCase() || "";
-          if (cat === "ads" || cat === "marketing" || cat === "ad spend") {
-            adSpend += amt;
-          } else if (cat === "raw materials" || cat === "packaging") {
-            productionCost += amt;
-          }
+      expenseGrouped.forEach((g) => {
+        const amt = Number(g._sum.amount || 0);
+        const cat = g.category?.toLowerCase() || "";
+        if (cat === "ads" || cat === "marketing" || cat === "ad spend") {
+          adSpend += amt;
+        } else if (cat === "raw materials" || cat === "packaging") {
+          productionCost += amt;
         }
       });
 
@@ -75,7 +93,11 @@ async function fetchDropPerformance(
       const netMarginPercent = revenue > 0 ? (netMargin / revenue) * 100 : 0;
 
       return {
-        dropName: tag.name,
+        dropId: drop.id,
+        dropName: drop.name,
+        status: drop.status,
+        startDate: drop.startDate,
+        endDate: drop.endDate,
         revenue,
         adSpend,
         productionCost,

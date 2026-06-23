@@ -52,7 +52,7 @@ async function fetchDashboardInsights(
     }
   } : {};
 
-  const tagFilter = tagId ? { tags: { some: { tagId } } } : {};
+  const tagFilter = tagId ? { drops: { some: { dropId: tagId } } } : {};
 
   // Fetch grouped transactions to leverage SQL aggregation and save memory
   const groupedTransactions = await prisma.transaction.groupBy({

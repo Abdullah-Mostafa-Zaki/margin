@@ -22,7 +22,7 @@ export default async function TagDetailPage({
     redirect("/login");
   }
 
-  const tag = await prisma.tag.findUnique({
+  const tag = await prisma.drop.findUnique({
     where: { id: tagId },
     include: {
       organization: true,
@@ -64,7 +64,7 @@ export default async function TagDetailPage({
           className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-200 bg-white px-3 text-sm font-medium hover:bg-zinc-100 hover:text-zinc-900"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Tags
+          Back to Drops
         </Link>
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{tag.name}</h1>
@@ -139,7 +139,7 @@ export default async function TagDetailPage({
             {transactions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center text-zinc-500">
-                  No transactions linked to this tag yet.
+                  No transactions linked to this drop yet.
                 </TableCell>
               </TableRow>
             ) : (

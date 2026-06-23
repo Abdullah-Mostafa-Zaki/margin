@@ -165,7 +165,8 @@ export async function POST(req: Request) {
       data: {
         type: "INCOME",
         amount: Number(price),
-        date: new Date(),
+        // Use the Shopify order creation timestamp, not server ingestion time
+        date: order.created_at ? new Date(order.created_at) : new Date(),
         category: "Shopify Sale",
         status: txStatus,
         fulfillmentStatus,
@@ -186,7 +187,31 @@ export async function POST(req: Request) {
       },
     });
 
-    // ── 9. Respond 200 OK so Shopify knows we successfully received it ─────
+    // ── 9. Auto-assign to an active Drop by date range ───────────────────────
+    // Find a LIVE drop whose [startDate, endDate] window covers the order date.
+    // We update the exclusive dropId FK — this prevents double-counting revenue.
+    const orderDate = order.created_at ? new Date(order.created_at) : new Date();
+    const activeDrop = await prisma.drop.findFirst({
+      where: {
+        organizationId: organization.id,
+        startDate: { lte: orderDate },
+        endDate: { gte: orderDate },
+        status: "LIVE",
+      },
+    });
+
+    if (activeDrop && normalizedOrderId) {
+      await prisma.transaction.updateMany({
+        where: {
+          shopifyOrderId: normalizedOrderId,
+          organizationId: organization.id,
+          dropId: null, // Only auto-assign if not already assigned
+        },
+        data: { dropId: activeDrop.id },
+      });
+    }
+
+    // ── 10. Respond 200 OK so Shopify knows we successfully received it ────
     return new NextResponse("OK", { status: 200 });
 
   } catch (error) {

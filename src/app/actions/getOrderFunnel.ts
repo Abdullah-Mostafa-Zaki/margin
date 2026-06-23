@@ -27,7 +27,7 @@ async function fetchOrderFunnel(
     }
   } : {};
 
-  const tagFilter = tagId ? { tags: { some: { tagId } } } : {};
+  const tagFilter = tagId ? { drops: { some: { dropId: tagId } } } : {};
 
   // Base query: All INCOME transactions
   const baseWhere = {
