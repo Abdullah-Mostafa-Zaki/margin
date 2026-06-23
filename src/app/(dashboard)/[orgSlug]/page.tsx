@@ -1,11 +1,9 @@
 import { ChatHome } from "@/components/chat/chat-home";
 import prisma from "@/lib/prisma";
-import { getDashboardInsights } from "@/app/actions/getDashboardInsights";
+import { getTodayMetrics } from "@/app/actions/getTodayMetrics";
 import { getAlerts } from "@/app/actions/getAlerts";
-import { getDrops } from "@/app/actions/getDrops";
 import { AlertsBanner } from "@/components/dashboard/alerts-banner";
 import { KpiBar } from "@/components/dashboard/kpi-bar";
-import { ActiveDropsStrip } from "@/components/dashboard/active-drops-strip";
 
 export default async function DashboardPage(props: {
   params: Promise<{ orgSlug: string }>;
@@ -27,10 +25,9 @@ export default async function DashboardPage(props: {
 
   if (!org) return null;
 
-  const [insights, alerts, drops] = await Promise.all([
-    getDashboardInsights(org.id, null, null),
+  const [todayMetrics, alerts] = await Promise.all([
+    getTodayMetrics(org.id),
     getAlerts(org.id),
-    getDrops(org.id),
   ]);
 
   return (
@@ -38,12 +35,10 @@ export default async function DashboardPage(props: {
       <div className="flex-none max-w-5xl mx-auto w-full">
         <AlertsBanner alerts={alerts} />
         <KpiBar
-          netProfit={insights.netProfit}
-          revenue={insights.realizedRevenue}
-          pendingEscrow={insights.pendingEscrow}
-          ghostRevenue={insights.ghostRevenue}
+          todayNetProfit={todayMetrics.todayNetProfit}
+          todayRevenue={todayMetrics.todayRevenue}
+          todayExpenses={todayMetrics.todayExpenses}
         />
-        <ActiveDropsStrip drops={drops} orgSlug={resolvedParams.orgSlug} />
       </div>
 
       <div className="flex-1 flex flex-col w-full max-w-5xl mx-auto">
