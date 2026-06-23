@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/sync-drop-status",
-      "schedule": "0 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
