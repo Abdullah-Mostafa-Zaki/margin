@@ -180,8 +180,7 @@ model Transaction {
   // ── Revenue double-counting prevention ────────────────────────────────────
   // A transaction can belong to AT MOST ONE drop for revenue purposes.
   // This is the single source of truth for Shopify auto-assignment.
-  // The @unique constraint is enforced at the database level.
-  dropId              String?           @unique
+  dropId              String?
   drop                Drop?             @relation("PrimaryDrop", fields: [dropId], references: [id])
 
   @@unique([shopifyOrderId, organizationId])
