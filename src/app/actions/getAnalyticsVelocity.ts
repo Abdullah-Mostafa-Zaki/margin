@@ -38,7 +38,12 @@ async function fetchAnalyticsVelocity(
     prevEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
   }
 
-  const tagFilter = tagId ? { drops: { some: { dropId: tagId } } } : {};
+  const tagFilter = tagId ? { 
+    OR: [
+      { dropId: tagId },
+      { drops: { some: { dropId: tagId } } }
+    ]
+  } : {};
 
   // Fetch current period transactions
   const currentTransactions = await prisma.transaction.findMany({

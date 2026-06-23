@@ -42,7 +42,10 @@ export default async function TagsPage({
         by: ['type'],
         where: {
           organizationId: organization.id,
-          drops: { some: { dropId: drop.id } }
+          OR: [
+            { dropId: drop.id },
+            { drops: { some: { dropId: drop.id } } }
+          ]
         },
         _sum: { amount: true },
         _count: { id: true },

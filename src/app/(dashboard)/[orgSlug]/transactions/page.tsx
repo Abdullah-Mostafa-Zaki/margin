@@ -47,7 +47,12 @@ export default async function TransactionsPage(props: {
     prisma.transaction.findMany({
       where: {
         organizationId: organization.id,
-        ...(tagFilter ? { drops: { some: { dropId: tagFilter } } } : {}),
+        ...(tagFilter ? { 
+          OR: [
+            { dropId: tagFilter },
+            { drops: { some: { dropId: tagFilter } } }
+          ]
+        } : {}),
         ...(dateFilter ? { date: dateFilter } : {})
       },
       orderBy: [{ date: "desc" }, { createdAt: "desc" }],
@@ -57,7 +62,12 @@ export default async function TransactionsPage(props: {
     prisma.transaction.count({
       where: {
         organizationId: organization.id,
-        ...(tagFilter ? { drops: { some: { dropId: tagFilter } } } : {}),
+        ...(tagFilter ? { 
+          OR: [
+            { dropId: tagFilter },
+            { drops: { some: { dropId: tagFilter } } }
+          ]
+        } : {}),
         ...(dateFilter ? { date: dateFilter } : {})
       }
     })
