@@ -168,7 +168,7 @@ export async function POST(req: Request) {
         };
 
         if (!existingTx.dropId && activeDrop) {
-          updateData.drop = { connect: { id: activeDrop.id } };
+          updateData.dropId = activeDrop.id;
         }
 
         await prisma.transaction.update({
@@ -192,7 +192,7 @@ export async function POST(req: Request) {
         organizationId: organization.id,
         createdById: ownerId,
         shopifyOrderId: normalizedOrderId,
-        ...(activeDrop ? { drop: { connect: { id: activeDrop.id } } } : {}),
+        dropId: activeDrop ? activeDrop.id : undefined,
         customerCity: order.shipping_address?.city ?? null,
         customerId: order.customer?.id ? String(order.customer.id) : null,
         notes: `Shopify Order ${order.name || "\x23" + order.order_number}`,
