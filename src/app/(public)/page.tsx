@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Playfair_Display, DM_Sans } from 'next/font/google'
+import { Playfair_Display } from 'next/font/google'
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import prisma from "@/lib/prisma"
@@ -10,11 +10,6 @@ const playfair = Playfair_Display({
   subsets: ['latin'],
   weight: ['400', '500', '700'],
   style: ['normal', 'italic'],
-})
-
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
 })
 
 const features = [
@@ -58,60 +53,7 @@ export default async function LandingPage() {
   }
 
   return (
-    <div
-      className={`${dmSans.className} min-h-screen flex flex-col bg-zinc-50 text-zinc-900 relative overflow-hidden`}
-      style={{ fontFeatureSettings: '"ss01"' }}
-    >
-      {/* Subtle grid background */}
-      <div
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage:
-            'linear-gradient(#10B981 1px, transparent 1px), linear-gradient(90deg, #10B981 1px, transparent 1px)',
-          backgroundSize: '48px 48px',
-        }}
-      />
-
-      {/* Radial glow */}
-      <div
-        className="absolute top-[-20%] left-[50%] translate-x-[-50%] w-[800px] h-[800px] rounded-full opacity-[0.08] pointer-events-none"
-        style={{
-          background: 'radial-gradient(circle, #10B981 0%, transparent 70%)',
-        }}
-      />
-
-      {/* ─── Navigation ─── */}
-      <nav className="relative z-10 border-b border-zinc-200 bg-white/50 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {/* White app-icon wrapper for your specific logo */}
-            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)] overflow-hidden p-1.5">
-              <Image
-                src="/logo.svg"
-                alt="Margin Logo"
-                width={32}
-                height={32}
-                className="w-full h-full object-contain"
-              />
-            </div>
-            <span className="text-[20px] font-semibold tracking-tight text-zinc-900">Margin.</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/login"
-              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors hidden sm:block"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/login"
-              className="text-sm font-medium bg-[#10B981] text-white px-5 py-2.5 rounded-lg hover:bg-[#0EA5E9] hover:text-white transition-all duration-200"
-            >
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </nav>
+    <>
 
       {/* ─── Main Hero Content ─── */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-20 text-center">
@@ -168,22 +110,6 @@ export default async function LandingPage() {
         </div>
       </main>
 
-      {/* ─── Footer Stats ─── */}
-      <footer className="relative z-10 border-t border-zinc-200 bg-white">
-        <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-10">
-            {stats.map((s, i) => (
-              <div key={i}>
-                <p className="text-[20px] font-bold text-[#10B981] tracking-tight">{s.value}</p>
-                <p className="text-[12px] text-zinc-500 mt-1">{s.label}</p>
-              </div>
-            ))}
-          </div>
-          <div className="text-[13px] text-zinc-400">
-            Margin © {new Date().getFullYear()} — Engineered in Egypt.
-          </div>
-        </div>
-      </footer>
-    </div>
+    </>
   )
 }

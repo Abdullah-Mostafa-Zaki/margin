@@ -28,7 +28,13 @@ export default withAuth(
           path.startsWith("/signup") ||
           path.startsWith("/reset-password") ||
           path.startsWith("/unauthorized") ||
-          path.startsWith("/api"); // API routes manage their own security
+          path.startsWith("/api") ||
+          path.startsWith("/privacy") ||
+          path.startsWith("/terms") ||
+          path.startsWith("/refund-policy") ||
+          path.startsWith("/shipping-policy") ||
+          path.startsWith("/about") ||
+          path.startsWith("/contact");
 
         if (isPublicPath) {
           return true; // Let them through
