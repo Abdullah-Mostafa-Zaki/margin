@@ -29,6 +29,7 @@ export default withAuth(
           path.startsWith("/reset-password") ||
           path.startsWith("/unauthorized") ||
           path.startsWith("/api") ||
+          path.startsWith("/pricing") ||
           path.startsWith("/privacy") ||
           path.startsWith("/terms") ||
           path.startsWith("/refund-policy") ||
