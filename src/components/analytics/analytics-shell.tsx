@@ -9,6 +9,10 @@ import { ExpenseDonutChart } from "@/components/dashboard/expense-donut-chart";
 import { DropPerformanceTable } from "@/components/dashboard/drop-performance-table";
 import { OrderHealthFunnel } from "@/components/dashboard/order-health-funnel";
 import { ReturnsByCity } from "@/components/dashboard/returns-by-city";
+import { ReturnTrendsChart } from "@/components/dashboard/return-trends-chart";
+import { ReturnedProductsTable } from "@/components/dashboard/returned-products-table";
+import { ReturnedDropsTable } from "@/components/dashboard/returned-drops-table";
+import { AdvancedReturnMetrics } from "@/app/actions/getAdvancedReturnMetrics";
 import { FadeIn } from "@/components/ui/fade-in";
 import { UpgradeOverlay } from "@/components/ui/upgrade-overlay";
 import { cn } from "@/lib/utils";
@@ -20,6 +24,7 @@ interface AnalyticsShellProps {
   orderFunnel: any;
   returnsByCity: any;
   marketing: any;
+  advancedReturns: AdvancedReturnMetrics;
   chartData: any;
   donutData: any;
   productBreakdown: any;
@@ -37,6 +42,7 @@ export function AnalyticsShell({
   orderFunnel,
   returnsByCity,
   marketing,
+  advancedReturns,
   chartData,
   donutData,
   productBreakdown,
@@ -236,6 +242,17 @@ export function AnalyticsShell({
         {/* ORDERS TAB */}
         {activeTab === "cod_returns" && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <UpgradeOverlay locked={!hasAdvancedAnalytics} message="Upgrade to PRO to unlock Advanced Return Analytics">
+              <ReturnTrendsChart data={advancedReturns.trends} />
+            </UpgradeOverlay>
+
+            <UpgradeOverlay locked={!hasAdvancedAnalytics} message="Upgrade to PRO to unlock Advanced Return Analytics">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <ReturnedProductsTable data={advancedReturns.products} />
+                <ReturnedDropsTable data={advancedReturns.drops} />
+              </div>
+            </UpgradeOverlay>
+
             {/* Products Sales */}
             {productBreakdown.length > 0 && (
               <UpgradeOverlay locked={!hasShopifyAnalytics} message="Upgrade to PLUS to unlock Product Sales insights">

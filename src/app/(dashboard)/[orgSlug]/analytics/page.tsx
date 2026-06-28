@@ -15,6 +15,7 @@ import { getDropPerformance } from "@/app/actions/getDropPerformance";
 import { getOrderFunnel } from "@/app/actions/getOrderFunnel";
 import { getReturnsByCity } from "@/app/actions/getReturnsByCity";
 import { getMarketingMetrics } from "@/app/actions/getMarketingMetrics";
+import { getAdvancedReturnMetrics } from "@/app/actions/getAdvancedReturnMetrics";
 export default async function AnalyticsPage(props: {
   params: Promise<{ orgSlug: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -68,6 +69,7 @@ export default async function AnalyticsPage(props: {
     orderFunnel,
     returnsByCity,
     marketing,
+    advancedReturns,
     dailyTransactions,
     expenseByCategory,
     lineItems
@@ -78,6 +80,7 @@ export default async function AnalyticsPage(props: {
     getOrderFunnel(organization.id, startDate, endDate, tagId),
     getReturnsByCity(organization.id, startDate, endDate, tagId),
     getMarketingMetrics(organization.id, startDate || undefined, endDate || undefined, tagId),
+    getAdvancedReturnMetrics(organization.id, startDate, endDate, tagId),
     prisma.transaction.findMany({
       where: { organizationId: organization.id, status: 'RECEIVED', ...dateFilter, ...tagFilter },
       select: { date: true, type: true, amount: true },
@@ -175,6 +178,7 @@ export default async function AnalyticsPage(props: {
         chartData={chartData}
         donutData={donutData}
         productBreakdown={productBreakdown}
+        advancedReturns={advancedReturns}
         subtitleText={subtitleText}
         hasShopifyAnalytics={hasShopifyAnalytics}
         hasAdvancedAnalytics={hasAdvancedAnalytics}
