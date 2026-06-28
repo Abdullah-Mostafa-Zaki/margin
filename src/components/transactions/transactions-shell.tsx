@@ -13,13 +13,16 @@ import {
 } from "@/components/ui/table";
 import { DeleteTransactionButton } from "@/components/transactions/action-buttons";
 import { MobileTransactionCard } from "@/components/transactions/mobile-transaction-card";
-import { TrendingUp, TrendingDown, Filter, X } from "lucide-react";
+import { TrendingUp, TrendingDown, Filter, X, Repeat } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { TransactionActions } from "@/components/transactions/transaction-actions";
 import type { TransactionFormHandle, TransactionToEdit } from "@/components/transactions/transaction-form";
 import { DateRangePicker } from "@/components/dashboard/date-range-picker";
 import { TagFilter } from "@/components/transactions/tag-filter";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RecurringList } from "@/components/transactions/recurring-list";
+import { RecurringModal, RecurringToEdit } from "@/components/transactions/recurring-modal";
+import { deleteRecurringExpense } from "@/app/actions/recurring.actions";
 
 interface TagProp {
   id: string;
@@ -28,6 +31,7 @@ interface TagProp {
 
 interface TransactionsShellProps {
   transactions: Transaction[];
+  recurringExpenses?: any[]; // Passed in from page.tsx
   orgSlug: string;
   orgId: string;
   tags: TagProp[];
@@ -37,10 +41,13 @@ interface TransactionsShellProps {
   onSelectAll: (ids: string[], selected: boolean) => void;
   currentPage?: number;
   totalPages?: number;
+  activeTab: "INCOME" | "EXPENSE" | "RECURRING";
+  onTabChange: (tab: "INCOME" | "EXPENSE" | "RECURRING") => void;
 }
 
 export function TransactionsShell({
   transactions,
+  recurringExpenses = [],
   orgSlug,
   orgId,
   tags,
@@ -50,11 +57,14 @@ export function TransactionsShell({
   onSelectAll,
   currentPage = 1,
   totalPages = 1,
+  activeTab,
+  onTabChange,
 }: TransactionsShellProps) {
-  const [activeTab, setActiveTab] = useState<"INCOME" | "EXPENSE">("INCOME");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "highest" | "lowest">("newest");
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
+  const [recurringToEdit, setRecurringToEdit] = useState<RecurringToEdit | null>(null);
   const searchParams = useSearchParams();
   const formHandleRef = useRef<TransactionFormHandle | null>(null);
 
@@ -160,7 +170,7 @@ export function TransactionsShell({
       >
         {/* Revenue */}
         <button
-          onClick={(e) => { e.stopPropagation(); setActiveTab("INCOME"); setSelectedCategory("All"); }}
+          onClick={(e) => { e.stopPropagation(); onTabChange("INCOME"); setSelectedCategory("All"); }}
           className={`
             relative flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold
             transition-all duration-200 ease-in-out select-none
@@ -182,7 +192,7 @@ export function TransactionsShell({
 
         {/* Expenses */}
         <button
-          onClick={(e) => { e.stopPropagation(); setActiveTab("EXPENSE"); setSelectedCategory("All"); }}
+          onClick={(e) => { e.stopPropagation(); onTabChange("EXPENSE"); setSelectedCategory("All"); }}
           className={`
             relative flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold
             transition-all duration-200 ease-in-out select-none
@@ -195,11 +205,27 @@ export function TransactionsShell({
           <TrendingDown className="w-4 h-4 shrink-0" />
           Expenses
           {expenseCount > 0 && (
-            <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-medium ${activeTab === "EXPENSE" ? "bg-red-400/40 text-white" : "bg-zinc-200 text-zinc-600"
+            <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-medium ${activeTab === "EXPENSE" ? "bg-red-400 text-white" : "bg-zinc-200 text-zinc-600"
               }`}>
               {expenseCount}
             </span>
           )}
+        </button>
+
+        {/* Recurring */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onTabChange("RECURRING"); setSelectedCategory("All"); }}
+          className={`
+            relative flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold
+            transition-all duration-200 ease-in-out select-none
+            ${activeTab === "RECURRING"
+              ? "bg-blue-500 text-white shadow-sm"
+              : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/60"
+            }
+          `}
+        >
+          <Repeat className="w-4 h-4 shrink-0" />
+          Recurring
         </button>
       </div>
 
@@ -314,63 +340,89 @@ export function TransactionsShell({
         </div>
       )}
 
-      {/* ── Desktop Table ── */}
-      <div className="hidden md:block overflow-x-auto rounded-md border bg-white">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12 px-4">
-                <Checkbox
-                  checked={
-                    displayedTransactions.length > 0 && displayedTransactions.every((t) => selectedIds.has(t.id))
-                      ? true
-                      : displayedTransactions.some((t) => selectedIds.has(t.id))
-                      ? "indeterminate"
-                      : false
-                  }
-                  onCheckedChange={() => {
-                    const allSelected = displayedTransactions.length > 0 && displayedTransactions.every((t) => selectedIds.has(t.id));
-                    onSelectAll(displayedTransactions.map((t) => t.id), !allSelected);
-                  }}
-                  aria-label="Select all"
-                />
-              </TableHead>
-              <TableHead className="whitespace-nowrap">Date</TableHead>
-              <TableHead className="whitespace-nowrap">Category</TableHead>
-              {activeTab === "EXPENSE" && <TableHead className="whitespace-nowrap">Merchant</TableHead>}
-              <TableHead className="whitespace-nowrap">Payment</TableHead>
-              <TableHead className="whitespace-nowrap">Status</TableHead>
-              <TableHead className="whitespace-nowrap">Fulfillment</TableHead>
-              <TableHead className="text-right whitespace-nowrap">
-                Amount (EGP)
-              </TableHead>
-              <TableHead className="text-right whitespace-nowrap">
-                Actions
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {displayedTransactions.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="h-32 text-center text-zinc-400">
-                  <div className="flex flex-col items-center gap-2">
-                    {activeTab === "INCOME" ? (
-                      <TrendingUp className="w-7 h-7 text-zinc-300" />
-                    ) : (
-                      <TrendingDown className="w-7 h-7 text-zinc-300" />
-                    )}
-                    <span className="text-sm font-medium">{emptyMessage}</span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              displayedTransactions.map((t) => (
+      {activeTab === "RECURRING" ? (
+        <div className="mt-6 space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-semibold text-zinc-900">Recurring Expenses</h2>
+              <p className="text-sm text-zinc-500">Manage fixed costs that automatically log over time.</p>
+            </div>
+            <button
+              onClick={() => {
+                setRecurringToEdit(null);
+                setIsRecurringModalOpen(true);
+              }}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-blue-500 text-white shadow hover:bg-blue-600 h-9 px-4 py-2"
+            >
+              Add Recurring
+            </button>
+          </div>
+          <RecurringList 
+            expenses={recurringExpenses} 
+            selectedIds={selectedIds}
+            onToggle={onToggle}
+            onSelectAll={onSelectAll}
+            onEdit={(exp) => {
+              setRecurringToEdit(exp);
+              setIsRecurringModalOpen(true);
+            }}
+            orgSlug={orgSlug}
+          />
+        </div>
+      ) : (
+        <>
+          {/* ── Desktop Table ── */}
+          <div className="hidden md:block overflow-x-auto rounded-md border bg-white">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12 px-4">
+                    <Checkbox
+                      checked={
+                        displayedTransactions.length > 0 && displayedTransactions.every((t) => selectedIds.has(t.id))
+                          ? true
+                          : displayedTransactions.some((t) => selectedIds.has(t.id))
+                          ? "indeterminate"
+                          : false
+                      }
+                      onCheckedChange={() => {
+                        const allSelected = displayedTransactions.length > 0 && displayedTransactions.every((t) => selectedIds.has(t.id));
+                        onSelectAll(displayedTransactions.map((t) => t.id), !allSelected);
+                      }}
+                      aria-label="Select all"
+                    />
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap">Date</TableHead>
+                  <TableHead className="whitespace-nowrap">Category</TableHead>
+                  {activeTab === "EXPENSE" && <TableHead className="whitespace-nowrap">Merchant</TableHead>}
+                  <TableHead className="whitespace-nowrap">Payment</TableHead>
+                  <TableHead className="whitespace-nowrap">Status</TableHead>
+                  <TableHead className="whitespace-nowrap">Fulfillment</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">
+                    Amount (EGP)
+                  </TableHead>
+                  <TableHead className="text-right whitespace-nowrap">
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {displayedTransactions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={activeTab === "EXPENSE" ? 9 : 8} className="h-32 text-center text-zinc-400">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <p className="text-zinc-500 font-medium">No transactions found.</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  displayedTransactions.map((t: any) => (
                 <TableRow
                   key={t.id}
-                  className="cursor-pointer hover:bg-zinc-50 transition-colors"
+                  className="group cursor-pointer hover:bg-zinc-50 transition-colors"
                   onClick={() => openEdit(t)}
                 >
-                  <TableCell className="px-4" onClick={(e) => e.stopPropagation()}>
+                  <TableCell className="w-12 px-4" onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={selectedIds.has(t.id)}
                       onCheckedChange={() => onToggle(t.id)}
@@ -438,9 +490,8 @@ export function TransactionsShell({
               ))
             )}
           </TableBody>
-        </Table>
-      </div>
-
+          </Table>
+        </div>
       {/* ── Mobile Cards ── */}
       <div className="md:hidden space-y-3">
         {displayedTransactions.length === 0 ? (
@@ -463,6 +514,8 @@ export function TransactionsShell({
           ))
         )}
       </div>
+      </>
+      )}
 
       {/* ── Pagination Controls ── */}
       {totalPages > 1 && (
@@ -497,6 +550,16 @@ export function TransactionsShell({
         </div>
       )}
 
+      <RecurringModal 
+        orgSlug={orgSlug}
+        tags={tags}
+        open={isRecurringModalOpen}
+        onOpenChange={setIsRecurringModalOpen}
+        editData={recurringToEdit}
+        onSuccess={() => {
+          setIsRecurringModalOpen(false);
+        }}
+      />
     </div>
   );
 }

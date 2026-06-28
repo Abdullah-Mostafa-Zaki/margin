@@ -143,3 +143,47 @@ export async function sendReportEmail(
     html,
   });
 }
+
+export async function sendRecurringExpenseLoggedEmail(to: string, name: string, amount: number) {
+  await transporter.sendMail({
+    from: `"Margin" <${process.env.EMAIL_SERVER_USER}>`,
+    to,
+    subject: `Recurring Expense Logged: ${name}`,
+    html: `
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Recurring Expense Logged</title>
+        </head>
+        <body style="margin:0;padding:0;background:#f9fafb;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;padding:48px 16px;">
+            <tr>
+              <td align="center">
+                <table width="100%" style="max-width:520px;background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;padding:40px;">
+                  <tr>
+                    <td>
+                      <p style="margin:0 0 8px;font-size:13px;font-weight:600;letter-spacing:0.08em;color:#71717a;text-transform:uppercase;">Margin</p>
+                      <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#09090b;">Recurring Expense Logged</h1>
+                      <p style="margin:0 0 16px;font-size:15px;color:#52525b;line-height:1.6;">
+                        Your recurring expense <strong>${name}</strong> for <strong>${amount} EGP</strong> was automatically logged.
+                      </p>
+                      <p style="margin:0 0 32px;font-size:15px;color:#52525b;line-height:1.6;">
+                        You can view and manage your expenses from your dashboard.
+                      </p>
+                      <a href="${process.env.NEXTAUTH_URL}"
+                         style="display:inline-block;background:#09090b;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;letter-spacing:0.02em;">
+                        View Dashboard
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `,
+  });
+}

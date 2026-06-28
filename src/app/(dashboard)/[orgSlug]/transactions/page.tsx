@@ -10,6 +10,8 @@ import { TransactionsPageClient } from "@/components/transactions/transactions-p
 import { X } from "lucide-react";
 import RealtimeListener from "@/components/dashboard/realtime-listener";
 import { getDateRangeFromParams } from "@/lib/date-utils";
+import { getRecurringExpenses } from "@/app/actions/recurring.actions";
+
 export default async function TransactionsPage(props: {
   params: Promise<{ orgSlug: string }>;
   searchParams: Promise<{ tag?: string; range?: string; from?: string; to?: string; page?: string }>;
@@ -95,6 +97,8 @@ export default async function TransactionsPage(props: {
 
   const totalPendingCod = pendingCODTransactions.reduce((sum: number, t: Transaction) => sum + Number(t.amount), 0);
 
+  const recurringExpenses = await getRecurringExpenses(resolvedParams.orgSlug);
+
   return (
     <div className="space-y-8">
       <RealtimeListener orgSlug={resolvedParams.orgSlug} organizationId={organization.id} />
@@ -122,6 +126,7 @@ export default async function TransactionsPage(props: {
           ...t,
           amount: Number(t.amount)
         }))}
+        recurringExpenses={recurringExpenses}
         orgSlug={resolvedParams.orgSlug}
         orgId={organization.id}
         tags={tags}

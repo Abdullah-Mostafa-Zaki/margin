@@ -5,6 +5,7 @@ import type { Transaction } from "@prisma/client";
 import { CodEscrowCard } from "@/components/transactions/cod-escrow-card";
 import { TransactionsShell } from "@/components/transactions/transactions-shell";
 import { BulkActionBar } from "@/components/transactions/bulk-action-bar";
+import { RecurringBulkActionBar } from "@/components/transactions/recurring-bulk-action-bar";
 
 interface TransactionsPageClientProps {
   codTransactions: {
@@ -16,6 +17,7 @@ interface TransactionsPageClientProps {
   totalPendingCod: number;
   showCodCard: boolean;
   transactions: Transaction[];
+  recurringExpenses?: any[];
   orgSlug: string;
   orgId: string;
   tags: { id: string; name: string }[];
@@ -29,6 +31,7 @@ export function TransactionsPageClient({
   totalPendingCod,
   showCodCard,
   transactions,
+  recurringExpenses = [],
   orgSlug,
   orgId,
   tags,
@@ -36,7 +39,13 @@ export function TransactionsPageClient({
   currentPage = 1,
   totalPages = 1,
 }: TransactionsPageClientProps) {
+  const [activeTab, setActiveTab] = useState<"INCOME" | "EXPENSE" | "RECURRING">("INCOME");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const handleTabChange = (tab: "INCOME" | "EXPENSE" | "RECURRING") => {
+    setActiveTab(tab);
+    setSelectedIds(new Set()); // Clear selection when switching tabs
+  };
 
   const toggleId = (id: string) =>
     setSelectedIds((prev) => {
@@ -67,6 +76,7 @@ export function TransactionsPageClient({
       )}
       <TransactionsShell
         transactions={transactions}
+        recurringExpenses={recurringExpenses}
         orgSlug={orgSlug}
         orgId={orgId}
         tags={tags}
@@ -76,14 +86,25 @@ export function TransactionsPageClient({
         onSelectAll={selectMany}
         currentPage={currentPage}
         totalPages={totalPages}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
       />
-      <BulkActionBar
-        selectedCount={selectedIds.size}
-        selectedIds={[...selectedIds]}
-        tags={tags}
-        orgSlug={orgSlug}
-        onDismiss={() => setSelectedIds(new Set())}
-      />
+      {activeTab === "RECURRING" ? (
+        <RecurringBulkActionBar
+          selectedCount={selectedIds.size}
+          selectedIds={[...selectedIds]}
+          orgSlug={orgSlug}
+          onDismiss={() => setSelectedIds(new Set())}
+        />
+      ) : (
+        <BulkActionBar
+          selectedCount={selectedIds.size}
+          selectedIds={[...selectedIds]}
+          tags={tags}
+          orgSlug={orgSlug}
+          onDismiss={() => setSelectedIds(new Set())}
+        />
+      )}
     </>
   );
 }

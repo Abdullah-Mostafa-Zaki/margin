@@ -80,6 +80,7 @@ model Organization {
   bostaIntegration     BostaIntegration?
   onboardingCompleted  Boolean           @default(false)
   reports              Report[]
+  recurringExpenses    RecurringExpense[]
 
   @@index([slug])
 }
@@ -139,6 +140,7 @@ model Drop {
   transactions   TransactionDrop[]
   // One-to-many: INCOME transactions exclusively attributed to this drop (double-counting prevention)
   primaryTransactions Transaction[] @relation("PrimaryDrop")
+  recurringExpenses    RecurringExpense[]
 
   @@unique([name, organizationId])
   @@index([organizationId])
@@ -341,4 +343,29 @@ model Report {
 
   @@unique([organizationId, type, startDate, endDate])
   @@index([organizationId, type])
+}
+
+enum RecurringFrequency {
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+model RecurringExpense {
+  id             String             @id @default(cuid())
+  organizationId String
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  amount         Decimal            @db.Decimal(10, 2)
+  category       String
+  frequency      RecurringFrequency
+  startDate      DateTime
+  nextDueDate    DateTime
+  dropId         String?
+  drop           Drop?              @relation(fields: [dropId], references: [id])
+  isActive       Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+
+  @@index([organizationId])
+  @@index([organizationId, isActive, nextDueDate])
 }
