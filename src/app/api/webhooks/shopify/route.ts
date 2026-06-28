@@ -197,11 +197,22 @@ export async function POST(req: Request) {
         customerId: order.customer?.id ? String(order.customer.id) : null,
         notes: `Shopify Order ${order.name || "\x23" + order.order_number}`,
         lineItems: {
-          create: (order.line_items || []).map((item: any) => ({
-            name: item.title || item.name || "Unknown Product",
-            quantity: item.quantity || 1,
-            price: Number(item.price || 0)
-          }))
+          create: (order.line_items || []).map((item: any) => {
+            const originalPrice = Number(item.price || 0);
+            const totalDiscount = Number(item.total_discount || 0);
+            const quantity = item.quantity || 1;
+            const effectiveUnitPrice = quantity > 0 
+                ? ((originalPrice * quantity) - totalDiscount) / quantity 
+                : originalPrice;
+
+            return {
+              name: item.title || item.name || "Unknown Product",
+              sku: item.sku ? String(item.sku) : null,
+              variantId: item.variant_id ? String(item.variant_id) : null,
+              quantity,
+              price: effectiveUnitPrice
+            };
+          })
         }
       },
     });

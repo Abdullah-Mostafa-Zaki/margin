@@ -125,23 +125,28 @@ export default async function AnalyticsPage(props: {
     amount: Number(e._sum.amount || 0)
   }));
 
-  const productRevenue: Record<string, number> = {};
+  const productData: Record<string, { name: string, revenue: number }> = {};
   let totalLineItemRevenue = 0;
 
   lineItems.forEach((item: any) => {
     const rev = item.quantity * Number(item.price);
-    productRevenue[item.name] = (productRevenue[item.name] || 0) + rev;
+    const key = item.sku || item.name;
+    
+    if (!productData[key]) {
+      productData[key] = { name: item.name, revenue: 0 };
+    }
+    productData[key].revenue += rev;
     totalLineItemRevenue += rev;
   });
 
   let productBreakdown: { name: string; revenue: number; percent: number }[] = [];
 
   if (totalLineItemRevenue > 0) {
-    const sortedProducts = Object.entries(productRevenue).sort((a, b) => b[1] - a[1]);
-    productBreakdown = sortedProducts.slice(0, 4).map(([name, rev]) => ({
-      name,
-      revenue: rev,
-      percent: Math.round((rev / totalLineItemRevenue) * 100)
+    const sortedProducts = Object.values(productData).sort((a, b) => b.revenue - a.revenue);
+    productBreakdown = sortedProducts.slice(0, 4).map((p) => ({
+      name: p.name,
+      revenue: p.revenue,
+      percent: Math.round((p.revenue / totalLineItemRevenue) * 100)
     }));
   }
 
