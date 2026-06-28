@@ -68,6 +68,7 @@ export interface TransactionDefaultValues {
   date?: string;
   notes?: string;
   source?: string;
+  merchant?: string;
 }
 
 export interface TransactionToEdit {
@@ -80,6 +81,7 @@ export interface TransactionToEdit {
   notes?: string | null;
   status?: "PENDING" | "RECEIVED";
   fulfillmentStatus?: "UNFULFILLED" | "SHIPPED" | "DELIVERED" | "RETURNED";
+  merchant?: string | null;
 }
 
 export interface TransactionFormHandle {
@@ -108,6 +110,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
   const [showStatusOverride, setShowStatusOverride] = useState(false);
   const [fulfillmentStatus, setFulfillmentStatus] = useState("UNFULFILLED");
   const [source, setSource] = useState("MANUAL");
+  const [merchant, setMerchant] = useState("");
 
   const [showTags, setShowTags] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -156,6 +159,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
       setShowStatusOverride(false);
       setFulfillmentStatus("UNFULFILLED");
       setSource(defaults.source || "MANUAL");
+      setMerchant(defaults.merchant || "");
       setError(null);
       setIsOpen(true);
       fillRefs(defaults.amount, defaults.date, defaults.notes);
@@ -179,6 +183,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
       setReceiptUrl(null); // receipt editing not supported in edit mode
       setSelectedTags([]);
       setShowTags(false);
+      setMerchant(t.merchant || "");
       setError(null);
       setIsOpen(true);
       const dateStr = typeof t.date === 'string'
@@ -212,6 +217,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
       setShowStatusOverride(false);
       setFulfillmentStatus("UNFULFILLED");
       setSource(prefillData.source || "MANUAL");
+      setMerchant(prefillData.merchant || "");
       setError(null);
       setIsOpen(true);
       fillRefs(prefillData.amount, prefillData.date, prefillData.notes);
@@ -257,6 +263,10 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
     formData.set("fulfillmentStatus", fulfillmentStatus);
     formData.set("source", source);
 
+    if (category === "Ads" && merchant) {
+      formData.set("merchant", merchant);
+    }
+
     if (receiptUrl) {
       formData.append("receiptUrl", receiptUrl);
     }
@@ -291,6 +301,7 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
         setShowStatusOverride(false);
         setFulfillmentStatus("UNFULFILLED");
         setSource("MANUAL");
+        setMerchant("");
         setSelectedTags([]);
         setShowTags(false);
 
@@ -515,6 +526,28 @@ const TransactionForm = forwardRef<TransactionFormHandle, {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {/* Merchant / Platform (Only for Ads) */}
+                    {category === "Ads" && (
+                      <div className="col-span-1 md:col-span-1 space-y-2">
+                        <label className="text-sm font-semibold text-muted-foreground">Platform *</label>
+                        <Select
+                          name="merchant"
+                          value={merchant}
+                          onValueChange={(val) => { if (val) setMerchant(val); }}
+                          required
+                        >
+                          <SelectTrigger className="flex h-10 w-full rounded-md border bg-background px-3 py-2 text-sm font-medium focus-visible:ring-2 focus-visible:ring-neutral-900 transition-shadow border-neutral-300">
+                            <SelectValue placeholder="Select platform" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {["Meta", "TikTok", "Google", "Snapchat", "Other"].map((p) => (
+                              <SelectItem key={p} value={p}>{p}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
                     {/* Row 3 col 1 — Date */}
                     <div className="col-span-1 md:col-span-1 space-y-2">

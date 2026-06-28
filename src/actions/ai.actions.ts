@@ -18,6 +18,7 @@ interface ParsedTransaction {
   paymentMethod: "CASH" | "CARD" | "COD" | "INSTAPAY";
   date: string;
   notes: string;
+  merchant?: string;
 }
 
 type ActionResult =
@@ -62,7 +63,8 @@ Return NOTHING else — no explanation, no markdown, no commentary.
   "category": string,
   "paymentMethod": "CASH" | "CARD" | "COD" | "INSTAPAY",
   "date": "YYYY-MM-DD",
-  "notes": string
+  "notes": string,
+  "merchant": string
 }
 
 ## CATEGORY ENUM (use EXACTLY one of these strings)
@@ -108,10 +110,15 @@ miyya w khamseen / مية وخمسين → 150
 تالاف / تلاف → thousands
 خومسوميت / خومسميت → خمسمية = 500
 
+## MERCHANT / PLATFORM
+If category is "Ads", extract the platform name into the "merchant" field (e.g. "Meta", "TikTok", "Google", "Snapchat"). 
+Example: "1000 meta ads" → merchant: "Meta"
+If not mentioned, output empty string.
+
 ## FEW-SHOT EXAMPLES
 
 Input: "دفعت ألف وخمسمية على الads كاش"
-Output: {"amount":1500,"type":"EXPENSE","category":"Ads","paymentMethod":"CASH","date":"${currentDate}","notes":"Paid 1500 EGP for ads"}
+Output: {"amount":1500,"type":"EXPENSE","category":"Ads","paymentMethod":"CASH","date":"${currentDate}","notes":"Paid 1500 EGP for ads","merchant":""}
 
 Input: "اشتريت telt talaf قماش انستاباي"
 Output: {"amount":3000,"type":"EXPENSE","category":"Raw Materials","paymentMethod":"INSTAPAY","date":"${currentDate}","notes":"Fabric 3000 EGP via Instapay"}
@@ -120,13 +127,13 @@ Input: "جه أوردر miyya w khamseen كاش أون ديليفري"
 Output: {"amount":150,"type":"INCOME","category":"Sales Revenue","paymentMethod":"COD","date":"${currentDate}","notes":"COD order 150 EGP"}
 
 Input: "paid 2000 for Meta ads yesterday"
-Output: {"amount":2000,"type":"EXPENSE","category":"Ads","paymentMethod":"CASH","date":"${yesterdayDate}","notes":"Meta ads 2000 EGP"}
+Output: {"amount":2000,"type":"EXPENSE","category":"Ads","paymentMethod":"CASH","date":"${yesterdayDate}","notes":"Meta ads 2000 EGP","merchant":"Meta"}
 
 Input: "شحن بخمستالاف انستاباي امبارح"
 Output: {"amount":5000,"type":"EXPENSE","category":"Logistics (Shipping)","paymentMethod":"INSTAPAY","date":"${yesterdayDate}","notes":"Shipping 5000 EGP via Instapay"}
 
 Input: "Facebook boost ب telt talaf"
-Output: {"amount":3000,"type":"EXPENSE","category":"Ads","paymentMethod":"CASH","date":"${currentDate}","notes":"Facebook boost 3000 EGP"}
+Output: {"amount":3000,"type":"EXPENSE","category":"Ads","paymentMethod":"CASH","date":"${currentDate}","notes":"Facebook boost 3000 EGP","merchant":"Meta"}
 
 ## PAYMENT METHOD
 كاش / cash / نقدي → "CASH"
@@ -214,6 +221,10 @@ async function extractTransactionFromText(
       parsed.notes = "";
     } else {
       parsed.notes = parsed.notes.slice(0, 60);
+    }
+
+    if (typeof parsed.merchant !== "string") {
+      parsed.merchant = "";
     }
 
     return { success: true, data: parsed };

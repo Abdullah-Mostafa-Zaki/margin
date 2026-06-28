@@ -82,6 +82,7 @@ export function TransactionsShell({
       notes: t.notes,
       status: t.status as "PENDING" | "RECEIVED",
       fulfillmentStatus: (t as any).fulfillmentStatus as "UNFULFILLED" | "SHIPPED" | "DELIVERED" | "RETURNED",
+      merchant: t.merchant,
     };
     formHandleRef.current?.openForEdit(payload);
   }, []);
@@ -336,6 +337,7 @@ export function TransactionsShell({
               </TableHead>
               <TableHead className="whitespace-nowrap">Date</TableHead>
               <TableHead className="whitespace-nowrap">Category</TableHead>
+              {activeTab === "EXPENSE" && <TableHead className="whitespace-nowrap">Merchant</TableHead>}
               <TableHead className="whitespace-nowrap">Payment</TableHead>
               <TableHead className="whitespace-nowrap">Status</TableHead>
               <TableHead className="whitespace-nowrap">Fulfillment</TableHead>
@@ -379,6 +381,7 @@ export function TransactionsShell({
                     {new Date(t.date).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">{t.category}</TableCell>
+                  {activeTab === "EXPENSE" && <TableCell className="whitespace-nowrap">{t.merchant || "-"}</TableCell>}
                   <TableCell className="whitespace-nowrap">{t.paymentMethod}</TableCell>
                   <TableCell className="whitespace-nowrap">
                     <Badge

@@ -40,6 +40,8 @@ export async function createTransaction(orgSlug: string, formData: FormData) {
   const notes = rawNotes?.trim() ? rawNotes.trim() : null;
   
   const receiptUrl = formData.get("receiptUrl") as string | null;
+  const merchantRaw = formData.get("merchant") as string | null;
+  const merchant = merchantRaw?.trim() ? merchantRaw.trim() : null;
   const sourceRaw = formData.get("source") as string | null;
   const sourceEnum = ["MANUAL", "IMPORT_IMAGE", "IMPORT_CSV", "VOICE"].includes(sourceRaw || "") ? sourceRaw : "MANUAL";
 
@@ -77,6 +79,7 @@ export async function createTransaction(orgSlug: string, formData: FormData) {
       status,
       fulfillmentStatus: fulfillmentOverride || "UNFULFILLED",
       notes,
+      merchant,
       receiptUrl,
       organizationId: org.id,
       createdById: membership?.userId || (session.user as any).id,
@@ -140,6 +143,8 @@ export async function updateTransaction(id: string, orgSlug: string, formData: F
   const notes = rawNotes?.trim() ? rawNotes.trim() : null;
   
   const receiptUrl = formData.get("receiptUrl") as string | null;
+  const merchantRaw = formData.get("merchant") as string | null;
+  const merchant = merchantRaw?.trim() ? merchantRaw.trim() : null;
 
   let status: "PENDING" | "RECEIVED";
   if (paymentMethod === "COD") {
@@ -176,6 +181,7 @@ export async function updateTransaction(id: string, orgSlug: string, formData: F
       status,
       fulfillmentStatus: fulfillmentOverride || "UNFULFILLED",
       notes,
+      merchant,
       receiptUrl,
     },
   });
