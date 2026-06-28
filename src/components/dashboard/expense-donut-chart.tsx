@@ -54,15 +54,15 @@ export function ExpenseDonutChart({ data, subtitle }: Props) {
         <h3 className="font-semibold tracking-tight">Expense Breakdown</h3>
         <p className="text-sm text-muted-foreground mb-4">By category</p>
       </div>
-      <div className="h-[380px] md:h-[450px] w-full min-h-[380px]">
-        <ResponsiveContainer width="100%" height="100%" minHeight={380}>
+      <div className="h-[280px] md:h-[350px] w-full min-h-[280px]">
+        <ResponsiveContainer width="100%" height="100%" minHeight={280}>
           <PieChart>
             <Pie
               data={dataWithPercentage}
               cx="50%"
-              cy="40%"
-              innerRadius={60}
-              outerRadius={90}
+              cy="45%"
+              innerRadius={70}
+              outerRadius={105}
               paddingAngle={2}
               dataKey="amount"
               nameKey="category"
