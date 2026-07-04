@@ -45,8 +45,10 @@ export async function createTransaction(orgSlug: string, formData: FormData) {
   const sourceRaw = formData.get("source") as string | null;
   const sourceEnum = ["MANUAL", "IMPORT_IMAGE", "IMPORT_CSV", "VOICE"].includes(sourceRaw || "") ? sourceRaw : "MANUAL";
 
-  let status: "PENDING" | "RECEIVED";
-  if (paymentMethod === "COD") {
+  let status: any;
+  if (paymentMethod === "COD" && fulfillmentOverride === "RETURNED") {
+    status = "GHOST_REVENUE";
+  } else if (paymentMethod === "COD") {
     status = "PENDING";
   } else if (statusOverride) {
     status = statusOverride;
@@ -146,8 +148,10 @@ export async function updateTransaction(id: string, orgSlug: string, formData: F
   const merchantRaw = formData.get("merchant") as string | null;
   const merchant = merchantRaw?.trim() ? merchantRaw.trim() : null;
 
-  let status: "PENDING" | "RECEIVED";
-  if (paymentMethod === "COD") {
+  let status: any;
+  if (paymentMethod === "COD" && fulfillmentOverride === "RETURNED") {
+    status = "GHOST_REVENUE";
+  } else if (paymentMethod === "COD") {
     status = "PENDING";
   } else if (statusOverride) {
     status = statusOverride;
@@ -420,13 +424,32 @@ export async function bulkUpdateFulfillmentStatus(ids: string[], status: Fulfill
   const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
   if (!membership && !isSuperAdmin) throw new Error("Forbidden");
 
-  await prisma.transaction.updateMany({
-    where: {
-      id: { in: ids },
-      organizationId: org.id,
-    },
-    data: { fulfillmentStatus: status },
-  });
+  if (status === "RETURNED") {
+    await prisma.transaction.updateMany({
+      where: {
+        id: { in: ids },
+        organizationId: org.id,
+        paymentMethod: "COD"
+      },
+      data: { fulfillmentStatus: status, status: "GHOST_REVENUE" },
+    });
+    await prisma.transaction.updateMany({
+      where: {
+        id: { in: ids },
+        organizationId: org.id,
+        paymentMethod: { not: "COD" }
+      },
+      data: { fulfillmentStatus: status },
+    });
+  } else {
+    await prisma.transaction.updateMany({
+      where: {
+        id: { in: ids },
+        organizationId: org.id,
+      },
+      data: { fulfillmentStatus: status },
+    });
+  }
 
   revalidatePath(`/${orgSlug}/transactions`);
   revalidateTag(`org-${org.id}-transactions`, 'default');

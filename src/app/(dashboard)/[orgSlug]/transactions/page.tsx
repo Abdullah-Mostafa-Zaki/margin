@@ -14,7 +14,7 @@ import { getRecurringExpenses } from "@/app/actions/recurring.actions";
 
 export default async function TransactionsPage(props: {
   params: Promise<{ orgSlug: string }>;
-  searchParams: Promise<{ tag?: string; range?: string; from?: string; to?: string; page?: string }>;
+  searchParams: Promise<{ tag?: string; range?: string; from?: string; to?: string; page?: string; tab?: string }>;
 }) {
   const resolvedParams = await props.params;
   const resolvedSearchParams = await props.searchParams;
@@ -34,6 +34,10 @@ export default async function TransactionsPage(props: {
   const take = 50;
   const skip = (page - 1) * take;
 
+  let activeTab: "INCOME" | "EXPENSE" | "RECURRING" = "INCOME";
+  if (resolvedSearchParams.tab === "EXPENSE") activeTab = "EXPENSE";
+  if (resolvedSearchParams.tab === "RECURRING") activeTab = "RECURRING";
+
   const organization = await prisma.organization.findUnique({
     where: { slug: resolvedParams.orgSlug },
   });
@@ -46,9 +50,10 @@ export default async function TransactionsPage(props: {
   }
 
   const [transactions, totalTransactionsCount] = await Promise.all([
-    prisma.transaction.findMany({
+    activeTab === "RECURRING" ? Promise.resolve([]) : prisma.transaction.findMany({
       where: {
         organizationId: organization.id,
+        type: activeTab,
         ...(tagFilter ? { 
           OR: [
             { dropId: tagFilter },
@@ -61,9 +66,10 @@ export default async function TransactionsPage(props: {
       take,
       skip,
     }),
-    prisma.transaction.count({
+    activeTab === "RECURRING" ? Promise.resolve(0) : prisma.transaction.count({
       where: {
         organizationId: organization.id,
+        type: activeTab,
         ...(tagFilter ? { 
           OR: [
             { dropId: tagFilter },
@@ -132,7 +138,8 @@ export default async function TransactionsPage(props: {
         tags={tags}
         activeTagLabel={activeTag?.name}
         currentPage={page}
-        totalPages={Math.ceil(totalTransactionsCount / take)}
+        totalPages={activeTab === "RECURRING" ? 1 : Math.ceil(totalTransactionsCount / take)}
+        activeTab={activeTab}
       />
     </div>
   );

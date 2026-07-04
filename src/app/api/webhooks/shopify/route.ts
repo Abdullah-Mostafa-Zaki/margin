@@ -116,9 +116,9 @@ export async function POST(req: Request) {
 
     // Derive transaction status
     const financialStatus = order.financial_status?.toLowerCase();
-    let txStatus: "PENDING" | "RECEIVED" | "RETURNED" = financialStatus === "pending" ? "PENDING" : "RECEIVED";
+    let txStatus: "PENDING" | "RECEIVED" | "RETURNED" | "GHOST_REVENUE" = financialStatus === "pending" ? "PENDING" : "RECEIVED";
     if (financialStatus === "refunded" || financialStatus === "voided" || order.cancelled_at) {
-      txStatus = "RETURNED";
+      txStatus = paymentMethod === "COD" ? "GHOST_REVENUE" : "RETURNED";
     } else if (paymentMethod === "COD") {
       // COD can be marked as RECEIVED later by Bosta sync or manually
       // but if Shopify says it's paid (e.g. they paid by card), it's RECEIVED.

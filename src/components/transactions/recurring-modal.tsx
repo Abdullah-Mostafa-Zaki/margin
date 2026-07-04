@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ const EXPENSE_CATEGORIES = [
   "Manufacturing",
   "Packaging",
   "Logistics (Shipping)",
+  "Transportation",
   "Ads",
   "Content Creation",
   "Facilities",
@@ -56,6 +57,7 @@ export function RecurringModal({ orgSlug, tags = [], open, onOpenChange, editDat
   const [startDate, setStartDate] = useState("");
   const [dropId, setDropId] = useState("none");
   const [loading, setLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -91,30 +93,32 @@ export function RecurringModal({ orgSlug, tags = [], open, onOpenChange, editDat
     setLoading(true);
     setError("");
 
-    try {
-      const data: RecurringExpenseData = {
-        name,
-        amount: Number(amount),
-        category,
-        frequency,
-        startDate: new Date(startDate),
-        dropId: dropId === "none" ? undefined : dropId,
-      };
+    startTransition(async () => {
+      try {
+        const data: RecurringExpenseData = {
+          name,
+          amount: Number(amount),
+          category,
+          frequency,
+          startDate: new Date(startDate),
+          dropId: dropId === "none" ? undefined : dropId,
+        };
 
-      if (editData) {
-        await updateRecurringExpense(orgSlug, editData.id, data);
-      } else {
-        await createRecurringExpense(orgSlug, data);
+        if (editData) {
+          await updateRecurringExpense(orgSlug, editData.id, data);
+        } else {
+          await createRecurringExpense(orgSlug, data);
+        }
+        
+        onSuccess();
+        onOpenChange(false);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || "An error occurred.");
+      } finally {
+        setLoading(false);
       }
-      
-      onSuccess();
-      onOpenChange(false);
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "An error occurred.");
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   return (
@@ -206,8 +210,8 @@ export function RecurringModal({ orgSlug, tags = [], open, onOpenChange, editDat
 
           {error && <p className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</p>}
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Saving..." : "Save Recurring Expense"}
+          <Button type="submit" className="w-full" disabled={loading || isPending}>
+            {loading || isPending ? "Saving..." : "Save Recurring Expense"}
           </Button>
         </form>
       </DialogContent>

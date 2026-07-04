@@ -62,13 +62,19 @@ export async function createRecurringExpense(orgSlug: string, data: RecurringExp
         category: data.category,
         frequency: data.frequency,
         startDate: data.startDate,
-        nextDueDate: data.startDate, // Initial due date is the start date
+        nextDueDate: data.startDate,
         dropId: data.dropId || null,
         isActive: true,
       },
     });
 
     console.log("[createRecurringExpense] Success, created expense ID:", newExpense.id);
+    
+    // Immediately backfill any missed occurrences (this also computes the true future nextDueDate)
+    const session = await getServerSession(authOptions);
+    const user = await prisma.user.findUnique({ where: { email: session?.user?.email || "" } });
+    await backfillMissedOccurrences(newExpense.id, user?.id);
+
     revalidatePath(`/${orgSlug}/transactions`, "page");
     return { 
       success: true, 
@@ -111,6 +117,11 @@ export async function updateRecurringExpense(orgSlug: string, id: string, data: 
       dropId: data.dropId === "" ? null : data.dropId, // Allow clearing drop
     },
   });
+
+  // Backfill if the user moved the start date into the past
+  const session = await getServerSession(authOptions);
+  const user = await prisma.user.findUnique({ where: { email: session?.user?.email || "" } });
+  await backfillMissedOccurrences(updated.id, user?.id);
 
   revalidatePath(`/${orgSlug}/transactions`, "page");
   return { 
@@ -225,4 +236,62 @@ export async function logRecurringExpenseNow(orgSlug: string, id: string) {
 
   revalidatePath(`/${orgSlug}/transactions`, "page");
   return { success: true };
+}
+
+export async function backfillMissedOccurrences(recurringExpenseId: string, createdById?: string) {
+  const expense = await prisma.recurringExpense.findUnique({
+    where: { id: recurringExpenseId },
+    include: {
+      organization: {
+        include: {
+          memberships: {
+            where: { role: "ADMIN" },
+            include: { user: true }
+          }
+        }
+      }
+    }
+  });
+
+  if (!expense || !expense.isActive) return { processed: false, backfillCount: 0 };
+
+  const now = new Date();
+  let nextDate = new Date(expense.nextDueDate);
+  let backfillCount = 0;
+  
+  // Use provided createdById, otherwise fallback to the first admin's id
+  const authorId = createdById || expense.organization.memberships[0]?.user.id;
+
+  while (nextDate <= now && backfillCount < 50) {
+    await prisma.transaction.create({
+      data: {
+        organizationId: expense.organizationId,
+        type: "EXPENSE",
+        status: "RECEIVED",
+        amount: expense.amount,
+        category: expense.category,
+        date: new Date(nextDate),
+        paymentMethod: "CASH",
+        notes: expense.name,
+        dropId: expense.dropId,
+        source: "MANUAL",
+        createdById: authorId,
+      }
+    });
+
+    if (expense.frequency === "WEEKLY") nextDate.setDate(nextDate.getDate() + 7);
+    else if (expense.frequency === "MONTHLY") nextDate.setMonth(nextDate.getMonth() + 1);
+    else if (expense.frequency === "YEARLY") nextDate.setFullYear(nextDate.getFullYear() + 1);
+
+    backfillCount++;
+  }
+
+  if (backfillCount > 0) {
+    await prisma.recurringExpense.update({
+      where: { id: expense.id },
+      data: { nextDueDate: nextDate }
+    });
+  }
+  
+  return { processed: backfillCount > 0, backfillCount };
 }

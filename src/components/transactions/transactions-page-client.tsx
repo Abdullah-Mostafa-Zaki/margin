@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { Transaction } from "@prisma/client";
 import { CodEscrowCard } from "@/components/transactions/cod-escrow-card";
 import { TransactionsShell } from "@/components/transactions/transactions-shell";
@@ -24,6 +25,7 @@ interface TransactionsPageClientProps {
   activeTagLabel?: string;
   currentPage?: number;
   totalPages?: number;
+  activeTab: "INCOME" | "EXPENSE" | "RECURRING";
 }
 
 export function TransactionsPageClient({
@@ -38,13 +40,19 @@ export function TransactionsPageClient({
   activeTagLabel,
   currentPage = 1,
   totalPages = 1,
+  activeTab,
 }: TransactionsPageClientProps) {
-  const [activeTab, setActiveTab] = useState<"INCOME" | "EXPENSE" | "RECURRING">("INCOME");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const handleTabChange = (tab: "INCOME" | "EXPENSE" | "RECURRING") => {
-    setActiveTab(tab);
     setSelectedIds(new Set()); // Clear selection when switching tabs
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    params.set("page", "1");
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   const toggleId = (id: string) =>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { sendRecurringExpenseLoggedEmail } from "@/lib/mail";
+import { backfillMissedOccurrences } from "@/app/actions/recurring.actions";
 
 // Vercel Cron handles the schedule. We just process whatever is due.
 export async function POST(request: Request) {
@@ -35,60 +36,24 @@ export async function POST(request: Request) {
     let processedCount = 0;
 
     for (const expense of dueExpenses) {
-      // Create the transaction
-      await prisma.transaction.create({
-        data: {
-          organizationId: expense.organizationId,
-          type: "EXPENSE",
-          status: "RECEIVED",
-          amount: expense.amount,
-          category: expense.category,
-          date: now,
-          paymentMethod: "CASH", // Defaulting to CASH for automated entries, user can edit later
-          notes: expense.name,
-          dropId: expense.dropId,
-          source: "MANUAL", // We'll leave it as MANUAL or we could add AUTOMATED if it existed
-          // We must assign a createdById, we can use the first owner's ID
-          createdById: expense.organization.memberships[0]?.user.id,
-        }
-      });
+      // The shared function handles creating all transactions starting from nextDueDate,
+      // and fast-forwarding the nextDueDate exactly as needed.
+      const result = await backfillMissedOccurrences(expense.id);
 
-      // Calculate next due date
-      const nextDate = new Date(expense.nextDueDate);
-      if (expense.frequency === "WEEKLY") {
-        nextDate.setDate(nextDate.getDate() + 7);
-      } else if (expense.frequency === "MONTHLY") {
-        nextDate.setMonth(nextDate.getMonth() + 1);
-      } else if (expense.frequency === "YEARLY") {
-        nextDate.setFullYear(nextDate.getFullYear() + 1);
-      }
-
-      // Ensure nextDate is in the future (if they set a start date way in the past, fast-forward it)
-      while (nextDate <= now) {
-        if (expense.frequency === "WEEKLY") nextDate.setDate(nextDate.getDate() + 7);
-        else if (expense.frequency === "MONTHLY") nextDate.setMonth(nextDate.getMonth() + 1);
-        else if (expense.frequency === "YEARLY") nextDate.setFullYear(nextDate.getFullYear() + 1);
-      }
-
-      // Update the recurring expense
-      await prisma.recurringExpense.update({
-        where: { id: expense.id },
-        data: { nextDueDate: nextDate }
-      });
-
-      // Send emails to owners
-      const owners = expense.organization.memberships;
-      for (const owner of owners) {
-        if (owner.user.email) {
-          try {
-            await sendRecurringExpenseLoggedEmail(owner.user.email, expense.name, Number(expense.amount));
-          } catch (emailErr) {
-            console.error(`[CRON] Failed to send email to ${owner.user.email}:`, emailErr);
+      if (result.processed) {
+        // Send emails to owners
+        const owners = expense.organization.memberships;
+        for (const owner of owners) {
+          if (owner.user.email) {
+            try {
+              await sendRecurringExpenseLoggedEmail(owner.user.email, expense.name, Number(expense.amount));
+            } catch (emailErr) {
+              console.error(`[CRON] Failed to send email to ${owner.user.email}:`, emailErr);
+            }
           }
         }
+        processedCount++;
       }
-
-      processedCount++;
     }
 
     return NextResponse.json({ success: true, processedCount });

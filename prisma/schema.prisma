@@ -251,6 +251,7 @@ enum TransactionStatus {
   PENDING
   RECEIVED
   RETURNED
+  GHOST_REVENUE
 }
 
 enum PaymentMethod {

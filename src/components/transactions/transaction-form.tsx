@@ -17,6 +17,7 @@ const EXPENSE_CATEGORIES = [
   "Manufacturing",
   "Packaging",
   "Logistics (Shipping)",
+  "Transportation",
   "Ads",
   "Content Creation",
   "Facilities",
