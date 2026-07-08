@@ -77,36 +77,7 @@ export default async function RecommendationsPage(props: {
         productBreakdown={productBreakdown} 
       />
 
-      {/* Actionable Alerts Section */}
-      <div className="mt-12 space-y-4">
-        <h2 className="text-xl font-bold tracking-tight">Actionable Alerts</h2>
-        
-        <div className="flex flex-col space-y-3">
-          {/* Alert 1 (Warning) */}
-          <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 shadow-sm">
-            <span className="text-lg leading-none">⚠️</span>
-            <div>
-              <p className="text-sm font-medium">Missing Instapay receipts for 3 logged expenses.</p>
-            </div>
-          </div>
 
-          {/* Alert 2 (Insight) */}
-          <div className="flex items-start gap-3 p-4 rounded-xl border border-blue-200 bg-blue-50 text-blue-900 shadow-sm">
-            <span className="text-lg leading-none">💡</span>
-            <div>
-              <p className="text-sm font-medium">Your Meta ad spend jumped 20% this week.</p>
-            </div>
-          </div>
-
-          {/* Alert 3 (Action) */}
-          <div className="flex items-start gap-3 p-4 rounded-xl border border-zinc-200 bg-white text-zinc-900 shadow-sm">
-            <span className="text-lg leading-none">📦</span>
-            <div>
-              <p className="text-sm font-medium">5 Bosta shipments have been stuck in 'Pending' for over 48 hours.</p>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
