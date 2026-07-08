@@ -92,16 +92,28 @@ export default async function TransactionsPage(props: {
   }
 
   // Pending COD always fetched unfiltered by date
+  const pendingCODAggregate = await prisma.transaction.aggregate({
+    where: {
+      organizationId: organization.id,
+      type: "INCOME",
+      status: "PENDING"
+    },
+    _sum: { amount: true },
+    _count: true
+  });
+  
+  const totalPendingCod = Number(pendingCODAggregate._sum.amount || 0);
+  const totalPendingCodCount = pendingCODAggregate._count || 0;
+
   const pendingCODTransactions = await prisma.transaction.findMany({
     where: {
       organizationId: organization.id,
       type: "INCOME",
       status: "PENDING"
     },
-    orderBy: [{ date: "desc" }, { createdAt: "desc" }]
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+    take: 10
   });
-
-  const totalPendingCod = pendingCODTransactions.reduce((sum: number, t: Transaction) => sum + Number(t.amount), 0);
 
   const recurringExpenses = await getRecurringExpenses(resolvedParams.orgSlug);
 
@@ -127,7 +139,8 @@ export default async function TransactionsPage(props: {
           amount: Number(t.amount)
         }))}
         totalPendingCod={totalPendingCod}
-        showCodCard={!activeTag && pendingCODTransactions.length > 0}
+        totalPendingCodCount={totalPendingCodCount}
+        showCodCard={!activeTag && totalPendingCodCount > 0}
         transactions={transactions.map((t: any) => ({
           ...t,
           amount: Number(t.amount)

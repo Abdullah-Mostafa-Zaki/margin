@@ -18,6 +18,7 @@ interface TransactionsPageClientProps {
     notes: string | null;
   }[];
   totalPendingCod: number;
+  totalPendingCodCount: number;
   showCodCard: boolean;
   transactions: Transaction[];
   recurringExpenses?: any[];
@@ -33,6 +34,7 @@ interface TransactionsPageClientProps {
 export function TransactionsPageClient({
   codTransactions,
   totalPendingCod,
+  totalPendingCodCount,
   showCodCard,
   transactions,
   recurringExpenses = [],
@@ -151,6 +153,7 @@ export function TransactionsPageClient({
         <CodEscrowCard
           transactions={codTransactions}
           totalPendingCod={totalPendingCod}
+          totalPendingCodCount={totalPendingCodCount}
           orgSlug={orgSlug}
           tags={tags}
           selectedIds={selectedIds}

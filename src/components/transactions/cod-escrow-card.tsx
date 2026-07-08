@@ -1,8 +1,12 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MarkReceivedButton, MarkAllReceivedButton, MarkReturnedButton } from "@/components/transactions/action-buttons";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { fetchPendingCODTransactions } from "@/actions/transactions.actions";
 
 interface CodEscrowCardProps {
   transactions: {
@@ -14,6 +18,7 @@ interface CodEscrowCardProps {
   orgSlug: string;
   tags: { id: string; name: string }[];
   totalPendingCod: number;
+  totalPendingCodCount: number;
   selectedIds: Set<string>;
   onToggle: (id: string) => void;
   onSelectAll: (ids: string[], selected: boolean) => void;
@@ -24,12 +29,36 @@ export function CodEscrowCard({
   orgSlug,
   tags,
   totalPendingCod,
+  totalPendingCodCount,
   selectedIds,
   onToggle,
   onSelectAll,
 }: CodEscrowCardProps) {
-  const allSelected = transactions.length > 0 && transactions.every((t) => selectedIds.has(t.id));
-  const someSelected = transactions.some((t) => selectedIds.has(t.id));
+  const [displayedTransactions, setDisplayedTransactions] = useState(transactions);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [skip, setSkip] = useState(10);
+
+  // Sync with server updates (e.g. marking as received resets the list)
+  useEffect(() => {
+    setDisplayedTransactions(transactions);
+    setSkip(10);
+  }, [transactions]);
+
+  const handleShowMore = async () => {
+    setIsLoadingMore(true);
+    try {
+      const nextBatch = await fetchPendingCODTransactions({ orgSlug, skip, take: 10 });
+      setDisplayedTransactions(prev => [...prev, ...nextBatch]);
+      setSkip(prev => prev + 10);
+    } catch (err) {
+      console.error("Failed to load more COD transactions:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  const allSelected = displayedTransactions.length > 0 && displayedTransactions.every((t) => selectedIds.has(t.id));
+  const someSelected = displayedTransactions.some((t) => selectedIds.has(t.id));
   const indeterminate = someSelected && !allSelected;
 
   return (
@@ -40,14 +69,19 @@ export function CodEscrowCard({
             checked={allSelected ? true : indeterminate ? "indeterminate" : false}
             onCheckedChange={() => {
               onSelectAll(
-                transactions.map((t) => t.id),
+                displayedTransactions.map((t) => t.id),
                 !allSelected
               );
             }}
             aria-label="Select all pending COD"
           />
           <div>
-            <CardTitle className="text-amber-900">Pending COD Escrow</CardTitle>
+            <CardTitle className="text-amber-900 flex items-center gap-2">
+              Pending COD Escrow
+              <span className="text-xs font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                {totalPendingCodCount} Pending Orders
+              </span>
+            </CardTitle>
             <p className="text-sm text-amber-700 mt-1">
               Total pending amount: <span className="font-bold text-lg">EGP {totalPendingCod.toLocaleString()}</span>
             </p>
@@ -57,7 +91,7 @@ export function CodEscrowCard({
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {transactions.map((t) => (
+          {displayedTransactions.map((t) => (
             <div
               key={t.id}
               className="flex items-center justify-between rounded-lg bg-white p-4 shadow-sm border border-amber-100"
@@ -85,6 +119,21 @@ export function CodEscrowCard({
               </div>
             </div>
           ))}
+
+          {displayedTransactions.length < totalPendingCodCount && (
+            <div className="pt-2 pb-1 flex justify-center">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-amber-700 border-amber-200 hover:bg-amber-100 w-full max-w-xs"
+                onClick={handleShowMore}
+                disabled={isLoadingMore}
+              >
+                {isLoadingMore ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Show More
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

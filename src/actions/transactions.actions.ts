@@ -540,3 +540,38 @@ export async function fetchTransactionsTabData({
     totalCount 
   };
 }
+
+export async function fetchPendingCODTransactions({
+  orgSlug,
+  skip = 0,
+  take = 10
+}: {
+  orgSlug: string;
+  skip?: number;
+  take?: number;
+}) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const organization = await prisma.organization.findUnique({
+    where: { slug: orgSlug }
+  });
+
+  if (!organization) throw new Error("Organization not found");
+
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      organizationId: organization.id,
+      type: "INCOME",
+      status: "PENDING"
+    },
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+    skip,
+    take
+  });
+
+  return transactions.map((t: any) => ({
+    ...t,
+    amount: Number(t.amount)
+  }));
+}
