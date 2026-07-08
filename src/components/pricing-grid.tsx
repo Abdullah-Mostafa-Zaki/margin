@@ -1,11 +1,12 @@
 import React from 'react';
 import Link from 'next/link';
 import { Bot, LineChart, Package, Users, History, Receipt, Check, X, Truck, Mail, Headphones, Sparkles, BarChart2 } from 'lucide-react';
+import { PLAN_PRICES } from '@/lib/plans';
 
 const tiers = [
   {
     name: "Free",
-    price: "0",
+    price: PLAN_PRICES.FREE.toLocaleString(),
     description: "Try it out. Hit the ceiling fast.",
     features: [
       { name: "20 total AI transactions", icon: <Bot className="h-4 w-4 text-emerald-500" /> },
@@ -22,7 +23,7 @@ const tiers = [
   },
   {
     name: "Plus",
-    price: "500",
+    price: PLAN_PRICES.PLUS.toLocaleString(),
     description: "Automate the grunt work.",
     features: [
       { name: "100 total AI transactions", icon: <Bot className="h-4 w-4 text-emerald-500" /> },
@@ -40,7 +41,7 @@ const tiers = [
   },
   {
     name: "Pro",
-    price: "1,000",
+    price: PLAN_PRICES.PRO.toLocaleString(),
     description: "The full picture for scaling brands.",
     mostPopular: true,
     features: [
@@ -58,7 +59,7 @@ const tiers = [
   },
   {
     name: "Business",
-    price: "5,000",
+    price: PLAN_PRICES.BUSINESS.toLocaleString(),
     description: "For real operations with real teams.",
     features: [
       { name: "Unlimited AI transactions", icon: <Bot className="h-4 w-4 text-emerald-500" /> },

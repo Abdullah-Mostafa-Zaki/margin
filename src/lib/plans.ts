@@ -18,6 +18,13 @@ export type PlanLimits = {
   yearlyReports: boolean;
 };
 
+export const PLAN_PRICES: Record<Plan, number> = {
+  FREE: 0,
+  PLUS: 500,
+  PRO: 1000,
+  BUSINESS: 5000,
+};
+
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   FREE: {
     maxAiTransactions: 20,

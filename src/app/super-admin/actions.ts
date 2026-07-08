@@ -45,3 +45,15 @@ export async function resetUsage(organizationId: string) {
 
   revalidatePath('/super-admin');
 }
+
+export async function fetchOrgActivityLog(organizationId: string) {
+  await verifySuperAdmin();
+
+  const transactions = await prisma.transaction.findMany({
+    where: { organizationId },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+  });
+
+  return transactions;
+}
