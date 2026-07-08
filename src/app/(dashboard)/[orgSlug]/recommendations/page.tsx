@@ -47,7 +47,8 @@ export default async function RecommendationsPage(props: {
 
   lineItems.forEach(item => {
     const rev = item.quantity * Number(item.price);
-    productRevenue[item.name] = (productRevenue[item.name] || 0) + rev;
+    const key = item.sku || item.name;
+    productRevenue[key] = (productRevenue[key] || 0) + rev;
     totalLineItemRevenue += rev;
   });
 

@@ -171,6 +171,30 @@ export async function POST(req: Request) {
           updateData.dropId = activeDrop.id;
         }
 
+        // Re-sync LineItems: Delete existing and recreate from payload
+        await prisma.lineItem.deleteMany({
+          where: { transactionId: existingTx.id }
+        });
+
+        updateData.lineItems = {
+          create: (order.line_items || []).map((item: any) => {
+            const originalPrice = Number(item.price || 0);
+            const totalDiscount = Number(item.total_discount || 0);
+            const quantity = item.quantity || 1;
+            const effectiveUnitPrice = quantity > 0 
+                ? ((originalPrice * quantity) - totalDiscount) / quantity 
+                : originalPrice;
+
+            return {
+              name: item.title || item.name || "Unknown Product",
+              sku: item.sku ? String(item.sku) : null,
+              variantId: item.variant_id ? String(item.variant_id) : null,
+              quantity,
+              price: effectiveUnitPrice
+            };
+          })
+        };
+
         await prisma.transaction.update({
           where: { id: existingTx.id },
           data: updateData
