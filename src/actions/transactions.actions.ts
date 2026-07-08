@@ -454,3 +454,89 @@ export async function bulkUpdateFulfillmentStatus(ids: string[], status: Fulfill
   revalidatePath(`/${orgSlug}/transactions`);
   revalidateTag(`org-${org.id}-transactions`, 'default');
 }
+
+export async function fetchTransactionsTabData({
+  orgSlug,
+  tab,
+  tagFilter,
+  startDate,
+  endDate,
+  page = 1,
+  take = 50
+}: {
+  orgSlug: string;
+  tab: "INCOME" | "EXPENSE" | "RECURRING";
+  tagFilter?: string;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  take?: number;
+}) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const organization = await prisma.organization.findUnique({
+    where: { slug: orgSlug },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!organization) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = organization.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
+
+  if (tab === "RECURRING") {
+    const { getRecurringExpenses } = await import("@/app/actions/recurring.actions");
+    const expenses = await getRecurringExpenses(orgSlug);
+    return { transactions: [], recurringExpenses: expenses, totalCount: 0 };
+  }
+
+  const dateFilter = startDate && endDate ? {
+    gte: new Date(startDate),
+    lte: new Date(endDate),
+  } : undefined;
+
+  const skip = (page - 1) * take;
+
+  const [transactions, totalCount] = await Promise.all([
+    prisma.transaction.findMany({
+      where: {
+        organizationId: organization.id,
+        type: tab,
+        ...(tagFilter ? { 
+          OR: [
+            { dropId: tagFilter },
+            { drops: { some: { dropId: tagFilter } } }
+          ]
+        } : {}),
+        ...(dateFilter ? { date: dateFilter } : {})
+      },
+      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+      take,
+      skip,
+    }),
+    prisma.transaction.count({
+      where: {
+        organizationId: organization.id,
+        type: tab,
+        ...(tagFilter ? { 
+          OR: [
+            { dropId: tagFilter },
+            { drops: { some: { dropId: tagFilter } } }
+          ]
+        } : {}),
+        ...(dateFilter ? { date: dateFilter } : {})
+      }
+    })
+  ]);
+
+  return { 
+    transactions: transactions.map((t: any) => ({
+      ...t,
+      amount: Number(t.amount)
+    })), 
+    recurringExpenses: [], 
+    totalCount 
+  };
+}
