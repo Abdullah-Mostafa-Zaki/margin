@@ -162,7 +162,7 @@ export async function POST(req: Request) {
       if (existingTx) {
         // Handle Updates / Partial Refunds
         const updateData: any = {
-          amount: Number(price),
+          amount: Number(price) - Number(organization.courierFee || 0),
           status: txStatus !== existingTx.status && txStatus === "RETURNED" ? "RETURNED" : undefined,
           fulfillmentStatus: fulfillmentStatus !== "UNFULFILLED" ? fulfillmentStatus : undefined,
         };
@@ -183,7 +183,7 @@ export async function POST(req: Request) {
     await prisma.transaction.create({
       data: {
         type: "INCOME",
-        amount: Number(price),
+        amount: Number(price) - Number(organization.courierFee || 0),
         date: orderDate,
         category: "Shopify Sale",
         status: txStatus,
@@ -216,6 +216,24 @@ export async function POST(req: Request) {
         }
       },
     });
+
+    if (Number(organization.courierFee) > 0) {
+      await prisma.transaction.create({
+        data: {
+          type: "EXPENSE",
+          amount: Number(organization.courierFee),
+          date: orderDate,
+          category: "Logistics (Shipping)",
+          status: "RECEIVED",
+          paymentMethod: "CASH",
+          organizationId: organization.id,
+          createdById: ownerId,
+          shopifyOrderId: normalizedOrderId ? `${normalizedOrderId}-shipping` : null,
+          dropId: activeDrop ? activeDrop.id : undefined,
+          notes: `Auto-deducted shipping cost for Shopify Order ${order.name || "\x23" + order.order_number}`,
+        }
+      });
+    }
 
     // ── 10. Respond 200 OK so Shopify knows we successfully received it ────
     return new NextResponse("OK", { status: 200 });

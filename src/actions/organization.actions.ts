@@ -90,3 +90,40 @@ export async function updateOrganizationName(orgId: string, newName: string) {
   
   return updatedOrg;
 }
+
+export async function updateOrganizationCourierFee(orgId: string, fee: number) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  if (fee < 0) throw new Error("Fee cannot be negative");
+  
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+
+  if (!membership && !isSuperAdmin) {
+    throw new Error("Forbidden");
+  }
+
+  if (!isSuperAdmin && membership?.role !== "ADMIN") {
+    throw new Error("Forbidden: Insufficient permissions");
+  }
+
+  const updatedOrg = await prisma.organization.update({
+    where: { id: orgId },
+    data: { courierFee: fee },
+  });
+
+  import("next/cache").then(mod => {
+    mod.revalidatePath(`/${updatedOrg.slug}`);
+    mod.revalidatePath(`/${updatedOrg.slug}/settings`);
+  });
+  
+  return updatedOrg;
+}

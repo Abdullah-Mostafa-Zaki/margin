@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { EditOrgForm } from "@/components/settings/edit-org-form";
+import { EditCourierFeeForm } from "@/components/settings/edit-courier-fee-form";
 import { ShopifyIntegration } from "@/components/settings/shopify-integration";
 import { BostaConnectForm } from "@/components/settings/bosta-connect-form";
 import { PageTracker } from "@/components/analytics/PageTracker";
@@ -98,6 +99,8 @@ export default async function SettingsPage({
               />
             </div>
             <p className="text-xs text-zinc-500">Contact support to change these details.</p>
+            <hr className="my-2" />
+            <EditCourierFeeForm orgId={organization.id} initialFee={organization.courierFee || 0} />
           </div>
         </div>
 
