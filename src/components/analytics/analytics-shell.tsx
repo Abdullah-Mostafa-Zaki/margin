@@ -155,12 +155,12 @@ export function AnalyticsShell({
               <FadeIn delay={0.4}>
                 <Card className="border border-red-200 bg-red-50/50 h-full shadow-sm">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-bold text-red-900 uppercase tracking-wider">Ghost Revenue</CardTitle>
+                    <CardTitle className="text-sm font-bold text-red-900 uppercase tracking-wider">Returned Revenue</CardTitle>
                     <ArrowDownRight className="h-5 w-5 text-red-600" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold tracking-tight text-red-950">
-                      EGP {insights.ghostRevenue.toLocaleString()}
+                      EGP {insights.returnedRevenue.toLocaleString()}
                     </div>
                     <p className="text-xs text-red-700 mt-2 font-medium">Lost revenue from returned orders.</p>
                   </CardContent>

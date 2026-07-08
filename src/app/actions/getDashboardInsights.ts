@@ -17,7 +17,7 @@ export interface DashboardInsights {
   netProfit: number;
   adSpend: number;
   pendingEscrow: number;
-  ghostRevenue: number;
+  returnedRevenue: number;
   excelBullets: string[];
   expenseSubtitle: string;
   marginPct: number;
@@ -80,7 +80,7 @@ async function fetchDashboardInsights(
 
   let realizedRevenue = 0;
   let pendingEscrow = 0;
-  let ghostRevenue = 0;
+  let returnedRevenue = 0;
   let manualExpenses = 0;
   let shippingCosts = 0;
   let adSpend = 0;
@@ -99,7 +99,7 @@ async function fetchDashboardInsights(
         pendingEscrow += sumAmount;
       }
       if (group.fulfillmentStatus === "RETURNED") {
-        ghostRevenue += sumAmount;
+        returnedRevenue += sumAmount;
       }
       if (sumShipment > 0) {
         shippingCosts += sumShipment;
@@ -249,7 +249,7 @@ async function fetchDashboardInsights(
     netProfit,
     adSpend,
     pendingEscrow,
-    ghostRevenue,
+    returnedRevenue,
     excelBullets,
     expenseSubtitle,
     marginPct,

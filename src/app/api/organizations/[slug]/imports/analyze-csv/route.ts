@@ -572,10 +572,10 @@ function extractTransactions(
 // Pass 1 Alternative — Direct One-Pass Extraction (for <= 1000 rows)
 // ────────────────────────────────────────────────────────────────────
 
-async function extractTransactionsDirect(groq: Groq, headers: string[], rows: Record<string, any>[]): Promise<any[]> {
+async function processChunk(groq: Groq, headers: string[], chunkRows: Record<string, any>[], chunkIndex: number, isRetry: boolean = false): Promise<any[]> {
   // Format sheet as text table
   let tableStr = headers.join(" | ") + "\n" + headers.map(() => "---").join(" | ") + "\n";
-  for (const row of rows) {
+  for (const row of chunkRows) {
     const rowValues = headers.map(h => {
       const v = row[h];
       return v !== null && v !== undefined ? String(v).trim() : "";
@@ -612,24 +612,45 @@ Data:
 ${tableStr}`;
 
   let responseText = "";
+  let finishReason = "";
+
   try {
     const completion = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       response_format: { type: "json_object" },
+      max_tokens: 8192,
       messages: [{ role: "user", content: prompt }],
     });
-    responseText = completion.choices[0]?.message?.content ?? "";
+    const choice = completion.choices[0];
+    responseText = choice?.message?.content ?? "";
+    finishReason = choice?.finish_reason ?? "";
   } catch (err: any) {
-    console.warn("🔴 [CSV Direct] Groq JSON mode failed, retrying without response_format:", err.message);
+    console.warn(`🔴 [CSV Direct] Chunk ${chunkIndex} Groq JSON mode failed, retrying without response_format:`, err.message);
     try {
       const completion = await groq.chat.completions.create({
         model: "llama-3.3-70b-versatile",
+        max_tokens: 8192,
         messages: [{ role: "user", content: prompt }],
       });
-      responseText = completion.choices[0]?.message?.content ?? "";
+      const choice = completion.choices[0];
+      responseText = choice?.message?.content ?? "";
+      finishReason = choice?.finish_reason ?? "";
     } catch (retryErr: any) {
-      console.error("🔴 [CSV Direct] Groq retry also failed:", retryErr.message);
+      console.error(`🔴 [CSV Direct] Chunk ${chunkIndex} Groq retry also failed:`, retryErr.message);
       return [];
+    }
+  }
+
+  // Handle truncation
+  if (finishReason === "length") {
+    if (!isRetry && chunkRows.length > 1) {
+      console.warn(`🟡 [CSV Direct] Chunk ${chunkIndex} truncated (finish_reason=length). Retrying by splitting ${chunkRows.length} rows in half.`);
+      const mid = Math.floor(chunkRows.length / 2);
+      const half1 = await processChunk(groq, headers, chunkRows.slice(0, mid), chunkIndex + 0.1, true);
+      const half2 = await processChunk(groq, headers, chunkRows.slice(mid), chunkIndex + 0.2, true);
+      return [...half1, ...half2];
+    } else {
+      console.error(`🔴 [CSV Direct] Chunk ${chunkIndex} STILL truncated after retry (or single row). Proceeding with truncated data.`);
     }
   }
 
@@ -638,16 +659,50 @@ ${tableStr}`;
 
   try {
     const parsed = JSON.parse(responseText);
-    return Array.isArray(parsed.transactions) ? parsed.transactions : [];
-  } catch (e) {
-    console.error("🔴 [CSV Direct] Failed to parse transactions JSON:", e);
+    let txs = Array.isArray(parsed.transactions) ? parsed.transactions : [];
+    
+    // If it STILL truncated (isRetry === true and finishReason === length), map confidence to low
+    if (finishReason === "length" && isRetry) {
+      txs = txs.map((tx: any) => ({
+        ...tx,
+        confidence: "low",
+        confidenceNote: "Row may be incomplete due to processing limits — please review"
+      }));
+    }
+    
+    console.log(`✅ [CSV Direct] Chunk ${chunkIndex} parsed ${txs.length} transactions (finish_reason: ${finishReason})`);
+    return txs;
+  } catch (e: any) {
+    console.error(`🔴 [CSV Direct] Chunk ${chunkIndex} failed to parse transactions JSON:`, e.message);
     return [];
   }
+}
+
+async function extractTransactionsDirect(groq: Groq, headers: string[], rows: Record<string, any>[]): Promise<any[]> {
+  const CHUNK_SIZE = 75;
+  const allTransactions: any[] = [];
+  
+  console.log(`📋 [CSV Direct] Processing ${rows.length} rows in chunks of ${CHUNK_SIZE}...`);
+  
+  for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+    const chunkRows = rows.slice(i, i + CHUNK_SIZE);
+    const chunkIndex = Math.floor(i / CHUNK_SIZE) + 1;
+    
+    console.log(`📋 [CSV Direct] Starting chunk ${chunkIndex} (rows ${i + 1} to ${Math.min(i + CHUNK_SIZE, rows.length)})`);
+    const chunkTxs = await processChunk(groq, headers, chunkRows, chunkIndex);
+    allTransactions.push(...chunkTxs);
+  }
+  
+  console.log(`✅ [CSV Direct] Completed all chunks. Total extracted: ${allTransactions.length}`);
+  return allTransactions;
 }
 
 // ────────────────────────────────────────────────────────────────────
 // Route handler
 // ────────────────────────────────────────────────────────────────────
+
+// Caps Strategy 1 token usage to protect the shared Groq daily quota used by voice logging, receipts, and reports.
+const STRATEGY_1_MAX_ROWS = 300;
 
 export async function POST(
   request: NextRequest,
@@ -729,9 +784,9 @@ export async function POST(
       }
       const groq = new Groq({ apiKey });
 
-      if (rows.length <= 1000) {
+      if (rows.length <= STRATEGY_1_MAX_ROWS) {
         // ═══════════════════════════════════════════════════════════════
-        // Flexible path — Direct One-Pass Extraction (<= 1000 rows)
+        // Flexible path — Direct One-Pass Extraction (<= 300 rows)
         // ═══════════════════════════════════════════════════════════════
         console.log(`📋 [CSV Direct] Sending ${rows.length} rows directly to Groq for one-pass extraction.`);
         const directTransactions = await extractTransactionsDirect(groq, headers, rows);
@@ -739,7 +794,7 @@ export async function POST(
         console.log(`✅ [CSV Direct] Extracted ${directTransactions.length} transactions via one-pass`);
       } else {
         // ═══════════════════════════════════════════════════════════════
-        // Flexible path — Two-Pass Structure Detection (> 1000 rows)
+        // Flexible path — Two-Pass Structure Detection (> 300 rows)
         // ═══════════════════════════════════════════════════════════════
         console.log(`📋 [CSV Pass1] Fallback two-pass extraction for large sheet (${rows.length} rows)`);
         

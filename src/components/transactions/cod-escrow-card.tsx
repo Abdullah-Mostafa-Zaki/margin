@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MarkReceivedButton, MarkAllReceivedButton } from "@/components/transactions/action-buttons";
+import { MarkReceivedButton, MarkAllReceivedButton, MarkReturnedButton } from "@/components/transactions/action-buttons";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface CodEscrowCardProps {
@@ -79,7 +79,8 @@ export function CodEscrowCard({
                   </div>
                 </div>
               </div>
-              <div onClick={(e) => e.stopPropagation()}>
+              <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-2">
+                <MarkReturnedButton id={t.id} orgSlug={orgSlug} />
                 <MarkReceivedButton id={t.id} orgSlug={orgSlug} />
               </div>
             </div>

@@ -47,7 +47,7 @@ export async function createTransaction(orgSlug: string, formData: FormData) {
 
   let status: any;
   if (paymentMethod === "COD" && fulfillmentOverride === "RETURNED") {
-    status = "GHOST_REVENUE";
+    status = "RETURNED";
   } else if (paymentMethod === "COD") {
     status = "PENDING";
   } else if (statusOverride) {
@@ -150,7 +150,7 @@ export async function updateTransaction(id: string, orgSlug: string, formData: F
 
   let status: any;
   if (paymentMethod === "COD" && fulfillmentOverride === "RETURNED") {
-    status = "GHOST_REVENUE";
+    status = "RETURNED";
   } else if (paymentMethod === "COD") {
     status = "PENDING";
   } else if (statusOverride) {
@@ -236,7 +236,7 @@ export async function deleteTransaction(id: string, orgSlug: string) {
   revalidateTag(`org-${org.id}-transactions`, 'default');
 }
 
-export async function updateTransactionStatus(id: string, status: "PENDING" | "RECEIVED", orgSlug: string) {
+export async function updateTransactionStatus(id: string, status: "PENDING" | "RECEIVED" | "RETURNED", orgSlug: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
@@ -431,7 +431,7 @@ export async function bulkUpdateFulfillmentStatus(ids: string[], status: Fulfill
         organizationId: org.id,
         paymentMethod: "COD"
       },
-      data: { fulfillmentStatus: status, status: "GHOST_REVENUE" },
+      data: { fulfillmentStatus: status, status: "RETURNED" },
     });
     await prisma.transaction.updateMany({
       where: {

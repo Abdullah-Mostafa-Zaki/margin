@@ -46,7 +46,7 @@ async function fetchAlerts(organizationId: string): Promise<Alert[]> {
   let returnedOrders = 0;
   let realizedRevenue = 0;
   let pendingEscrow = 0;  // COD/PENDING INCOME
-  let ghostRevenue = 0;   // RETURNED INCOME that was already counted
+  let returnedRevenue = 0;   // RETURNED INCOME that was already counted
   let totalExpenses = 0;
 
   grouped.forEach((g) => {
@@ -57,7 +57,7 @@ async function fetchAlerts(organizationId: string): Promise<Alert[]> {
       totalIncomeOrders += count;
       if (g.fulfillmentStatus === "RETURNED") {
         returnedOrders += count;
-        ghostRevenue += amt;
+        returnedRevenue += amt;
       }
       if (g.status === "RECEIVED" && g.fulfillmentStatus !== "RETURNED") {
         realizedRevenue += amt;
@@ -126,14 +126,14 @@ async function fetchAlerts(organizationId: string): Promise<Alert[]> {
     });
   }
 
-  // ── Rule 5: Ghost Revenue ────────────────────────────────────────────────────
-  if (ghostRevenue > 0) {
+  // ── Rule 5: Returned Revenue ────────────────────────────────────────────────────
+  if (returnedRevenue > 0) {
     alerts.push({
-      id: "GHOST_REVENUE",
+      id: "RETURNED",
       severity: "info",
-      title: "Ghost Revenue Detected",
-      message: `${ghostRevenue.toLocaleString("en-EG")} EGP in returned orders may have been previously counted as income. Ensure these are marked as RETURNED in your records.`,
-      metric: `${ghostRevenue.toLocaleString("en-EG")} EGP`,
+      title: "Returned Revenue Detected",
+      message: `${returnedRevenue.toLocaleString("en-EG")} EGP in returned orders may have been previously counted as income. Ensure these are marked as RETURNED in your records.`,
+      metric: `${returnedRevenue.toLocaleString("en-EG")} EGP`,
     });
   }
 
