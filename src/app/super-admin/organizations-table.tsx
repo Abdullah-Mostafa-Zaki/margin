@@ -324,8 +324,7 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
             ) : activityLogs.length === 0 ? (
               <div className="p-8 text-center text-sm text-zinc-500">No transactions found for this organization.</div>
             ) : (
-              <div className="w-full overflow-x-auto">
-                <Table className="min-w-[700px]">
+              <Table className="min-w-[700px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
@@ -341,7 +340,7 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                   {activityLogs.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell className="text-xs whitespace-nowrap">{new Date(log.createdAt).toLocaleString()}</TableCell>
-                      <TableCell className="text-xs">{log.source}</TableCell>
+                      <TableCell className="text-xs">{log.shopifyOrderId ? 'SHOPIFY' : log.source}</TableCell>
                       <TableCell className="text-xs font-medium">{log.type}</TableCell>
                       <TableCell className="text-xs">{log.category}</TableCell>
                       <TableCell className="text-xs">{log.paymentMethod || '-'}</TableCell>
@@ -351,7 +350,6 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                   ))}
                 </TableBody>
               </Table>
-              </div>
             )}
           </div>
         </DialogContent>
