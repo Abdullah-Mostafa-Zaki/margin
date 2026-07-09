@@ -196,8 +196,7 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Organization</TableHead>
-                <TableHead>Slug</TableHead>
+                <TableHead className="sticky left-0 z-20 bg-zinc-50 shadow-[1px_0_0_rgba(0,0,0,0.1)] min-w-[200px]">Organization</TableHead>
                 <TableHead>Plan</TableHead>
                 <TableHead className="text-right cursor-pointer hover:bg-zinc-50" onClick={() => handleSort('totalUsage')}>
                   <div className="flex items-center justify-end gap-1">
@@ -224,19 +223,23 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                 
                 return (
                   <TableRow key={org.id}>
-                    <TableCell className="font-medium flex items-center gap-2">
-                      <div 
-                        className={`w-2 h-2 rounded-full ${
-                          daysSinceActive <= 7 ? 'bg-green-500' :
-                          daysSinceActive <= 30 ? 'bg-yellow-400' :
-                          'bg-red-500'
-                        }`}
-                        title={isSignedUp ? 'Signed Up' : 'Active'}
-                      />
-                      {org.name}
-                    </TableCell>
-                    <TableCell className="text-zinc-500 font-mono text-sm">
-                      {org.slug}
+                    <TableCell className="sticky left-0 z-10 bg-white shadow-[1px_0_0_rgba(0,0,0,0.1)] min-w-[200px] border-r border-zinc-100">
+                      <div className="flex flex-col gap-0.5">
+                        <div className="font-medium flex items-center gap-2">
+                          <div 
+                            className={`shrink-0 w-2 h-2 rounded-full ${
+                              daysSinceActive <= 7 ? 'bg-green-500' :
+                              daysSinceActive <= 30 ? 'bg-yellow-400' :
+                              'bg-red-500'
+                            }`}
+                            title={isSignedUp ? 'Signed Up' : 'Active'}
+                          />
+                          <span className="truncate max-w-[140px] sm:max-w-[180px]">{org.name}</span>
+                        </div>
+                        <span className="text-zinc-500 font-mono text-xs pl-4 truncate max-w-[140px] sm:max-w-[180px]">
+                          {org.slug}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Select
@@ -321,11 +324,15 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
             ) : activityLogs.length === 0 ? (
               <div className="p-8 text-center text-sm text-zinc-500">No transactions found for this organization.</div>
             ) : (
-              <Table>
+              <div className="w-full overflow-x-auto">
+                <Table className="min-w-[700px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Category</TableHead>
                     <TableHead>Source</TableHead>
+                    <TableHead>Payment Method</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
@@ -333,14 +340,18 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                 <TableBody>
                   {activityLogs.map((log) => (
                     <TableRow key={log.id}>
-                      <TableCell className="text-xs">{new Date(log.createdAt).toLocaleString()}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{new Date(log.createdAt).toLocaleString()}</TableCell>
+                      <TableCell className="text-xs font-medium">{log.type}</TableCell>
+                      <TableCell className="text-xs">{log.category}</TableCell>
                       <TableCell className="text-xs">{log.source}</TableCell>
-                      <TableCell className="text-xs font-mono">{Number(log.amount).toLocaleString()} EGP</TableCell>
+                      <TableCell className="text-xs">{log.paymentMethod || '-'}</TableCell>
+                      <TableCell className="text-xs font-mono whitespace-nowrap">{Number(log.amount).toLocaleString()} EGP</TableCell>
                       <TableCell className="text-xs">{log.status}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+              </div>
             )}
           </div>
         </DialogContent>

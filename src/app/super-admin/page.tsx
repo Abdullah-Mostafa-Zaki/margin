@@ -300,9 +300,9 @@ export default async function SuperAdminPage({
         </div>
 
         {/* 2. Master Organizations Table */}
-        <div>
-          <Card>
-            <CardContent className="p-0">
+        <div className="w-full">
+          <Card className="w-full overflow-hidden">
+            <CardContent className="p-0 overflow-hidden w-full">
               {/* Note: Pass all processedOrgs; the filtering by date is better handled inside or kept out so we can see all orgs,
                   but for now we pass the filtered ones or all of them. The user wants to see them for management. */}
               <OrganizationsTable recentOrgs={processedOrgs as any} />
