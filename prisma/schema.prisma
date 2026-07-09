@@ -279,6 +279,7 @@ enum TransactionSource {
   IMPORT_IMAGE
   IMPORT_CSV
   VOICE
+  SHOPIFY
 }
 
 // ─── DropStatus ──────────────────────────────────────────────────────────────

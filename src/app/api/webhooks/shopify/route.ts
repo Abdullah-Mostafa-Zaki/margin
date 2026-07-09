@@ -207,6 +207,7 @@ export async function POST(req: Request) {
     await prisma.transaction.create({
       data: {
         type: "INCOME",
+        source: "SHOPIFY",
         amount: Number(price) - Number(organization.courierFee || 0),
         date: orderDate,
         category: "Shopify Sale",
@@ -245,6 +246,7 @@ export async function POST(req: Request) {
       await prisma.transaction.create({
         data: {
           type: "EXPENSE",
+          source: "SHOPIFY",
           amount: Number(organization.courierFee),
           date: orderDate,
           category: "Logistics (Shipping)",
