@@ -329,9 +329,9 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
+                    <TableHead>Source</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Category</TableHead>
-                    <TableHead>Source</TableHead>
                     <TableHead>Payment Method</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
@@ -341,9 +341,9 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                   {activityLogs.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell className="text-xs whitespace-nowrap">{new Date(log.createdAt).toLocaleString()}</TableCell>
+                      <TableCell className="text-xs">{log.source}</TableCell>
                       <TableCell className="text-xs font-medium">{log.type}</TableCell>
                       <TableCell className="text-xs">{log.category}</TableCell>
-                      <TableCell className="text-xs">{log.source}</TableCell>
                       <TableCell className="text-xs">{log.paymentMethod || '-'}</TableCell>
                       <TableCell className="text-xs font-mono whitespace-nowrap">{Number(log.amount).toLocaleString()} EGP</TableCell>
                       <TableCell className="text-xs">{log.status}</TableCell>
