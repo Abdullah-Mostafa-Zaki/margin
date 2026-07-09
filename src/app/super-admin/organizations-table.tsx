@@ -314,7 +314,7 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
       </div>
 
       <Dialog open={isActivityOpen} onOpenChange={setIsActivityOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="sm:max-w-3xl lg:max-w-5xl">
           <DialogHeader>
             <DialogTitle>Activity Log: {activeOrgName}</DialogTitle>
           </DialogHeader>
