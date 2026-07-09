@@ -178,7 +178,7 @@ export default async function SuperAdminPage({
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
         {/* Header */}
-        <div className="flex items-end justify-between">
+        <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">⚡ Super Admin</h1>
             <p className="text-zinc-500 mt-1">
@@ -186,7 +186,7 @@ export default async function SuperAdminPage({
             </p>
           </div>
           {/* Time Filter Bar */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-zinc-500 mr-2">Filter Metrics:</span>
             {['today', 'week', 'month', 'all'].map((r) => (
               <Link 
@@ -312,9 +312,9 @@ export default async function SuperAdminPage({
 
         {/* 3. Analytics (Collapsible / Bottom) */}
         <details className="group border border-zinc-200 rounded-xl bg-white [&_summary::-webkit-details-marker]:hidden">
-          <summary className="flex cursor-pointer items-center justify-between p-6 font-semibold text-zinc-900">
+          <summary className="flex cursor-pointer flex-col sm:flex-row items-start sm:items-center justify-between p-6 font-semibold text-zinc-900 gap-2 sm:gap-0">
             <span>📊 View Secondary Analytics (Onboarding & Product Usage)</span>
-            <span className="transition group-open:-rotate-180">
+            <span className="transition group-open:-rotate-180 self-end sm:self-auto">
               <svg fill="none" height="24" shapeRendering="geometricPrecision" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
             </span>
           </summary>

@@ -27,6 +27,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -173,7 +174,7 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 pb-0">
         <Input
           placeholder="Filter by name or slug..."
           value={searchTerm}
@@ -279,7 +280,8 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                           <MoreHorizontal className="h-4 w-4" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuGroup>
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuItem onClick={(e) => {
                             e.preventDefault();
                             window.location.href = `/${org.slug}`;
@@ -296,6 +298,7 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                             <RotateCcw className="h-4 w-4 text-red-500" />
                             Reset Usage
                           </DropdownMenuItem>
+                          </DropdownMenuGroup>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
