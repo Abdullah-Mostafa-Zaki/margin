@@ -11,6 +11,14 @@
     {
       "path": "/api/cron/sync-drop-status",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/recurring-expenses",
+      "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/cron/generate-reports",
+      "schedule": "0 21 * * *"
     }
   ]
 }
