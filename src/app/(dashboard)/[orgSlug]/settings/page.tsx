@@ -8,6 +8,7 @@ import { EditCourierFeeForm } from "@/components/settings/edit-courier-fee-form"
 import { ShopifyIntegration } from "@/components/settings/shopify-integration";
 import { BostaConnectForm } from "@/components/settings/bosta-connect-form";
 import { PageTracker } from "@/components/analytics/PageTracker";
+import { formatCairoDate } from "@/lib/date-utils";
 import { PLAN_LIMITS } from "@/lib/plans";
 import Link from "next/link";
 
@@ -180,7 +181,7 @@ export default async function SettingsPage({
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right text-zinc-500 whitespace-nowrap">
-                      {new Date(membership.createdAt).toLocaleDateString()}
+                      {formatCairoDate(new Date(membership.createdAt), "MM/dd/yyyy")}
                     </td>
                   </tr>
                 ))}
@@ -215,7 +216,7 @@ export default async function SettingsPage({
                   </span>
                 </div>
                 <div className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider border-t pt-2 mt-1">
-                  Joined {new Date(membership.createdAt).toLocaleDateString()}
+                  Joined {formatCairoDate(new Date(membership.createdAt), "MM/dd/yyyy")}
                 </div>
               </div>
             ))}

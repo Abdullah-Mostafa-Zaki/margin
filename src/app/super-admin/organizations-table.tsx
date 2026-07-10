@@ -38,6 +38,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { formatCairoDate } from "@/lib/date-utils";
 
 const planColors: Record<string, string> = {
   FREE: 'bg-zinc-100 text-zinc-800',
@@ -270,7 +271,7 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                     </TableCell>
                     <TableCell className="text-right text-sm">
                       <div className={isSignedUp ? "text-zinc-400" : "text-zinc-900"}>
-                        {new Date(org.lastActive).toLocaleDateString()}
+                        {formatCairoDate(new Date(org.lastActive), "MM/dd/yyyy")}
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
                         {isSignedUp ? 'Signed up' : 'Last action'}
@@ -339,7 +340,7 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                 <TableBody>
                   {activityLogs.map((log) => (
                     <TableRow key={log.id}>
-                      <TableCell className="text-xs whitespace-nowrap">{new Date(log.createdAt).toLocaleString()}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{formatCairoDate(new Date(log.createdAt), "MM/dd/yyyy, h:mm:ss a")}</TableCell>
                       <TableCell className="text-xs">{log.source}</TableCell>
                       <TableCell className="text-xs font-medium">{log.type}</TableCell>
                       <TableCell className="text-xs">{log.category}</TableCell>

@@ -10,6 +10,7 @@ import { Loader2, FileText, Download, TrendingUp, TrendingDown, ArrowRight } fro
 import { toast } from "sonner";
 import { Report } from "@prisma/client";
 import { format } from "date-fns";
+import { formatCairoDate } from "@/lib/date-utils";
 
 export default function ReportsClient({ orgSlug, initialReports }: { orgSlug: string, initialReports: Report[] }) {
   const [reports, setReports] = useState(initialReports);
@@ -125,7 +126,7 @@ function ReportCard({ report, onDownload }: { report: Report; onDownload: () => 
               </Badge>
             </div>
             <CardDescription>
-              {format(new Date(report.startDate), "MMM d, yyyy")} - {format(new Date(report.endDate), "MMM d, yyyy")}
+              {formatCairoDate(new Date(report.startDate), "MMM d, yyyy")} - {formatCairoDate(new Date(report.endDate), "MMM d, yyyy")}
             </CardDescription>
           </div>
           {report.type === "YEARLY" && (

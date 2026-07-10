@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { DeleteTagButton } from "@/components/tags/action-buttons";
 import { updateTag } from "@/actions/tags.actions";
 import { toast } from "sonner";
+import { startOfCairoDay, formatCairoDate } from "@/lib/date-utils";
 
 interface DropCardProps {
   id: string;
@@ -54,9 +55,9 @@ export function DropCard({
   if (startDate && endDate) {
     // If same day, just show one day
     if (startDate.getTime() === endDate.getTime()) {
-      dateString = format(startDate, "MMM d, yyyy");
+      dateString = formatCairoDate(startDate, "MMM d, yyyy");
     } else {
-      dateString = `${format(startDate, "MMM d")} – ${format(endDate, "MMM d, yyyy")}`;
+      dateString = `${formatCairoDate(startDate, "MMM d")} – ${formatCairoDate(endDate, "MMM d, yyyy")}`;
     }
   }
 
@@ -67,7 +68,7 @@ export function DropCard({
     }
 
     if (editStartDate && editEndDate) {
-      if (new Date(editEndDate) < new Date(editStartDate)) {
+      if (startOfCairoDay(new Date(editEndDate)) < startOfCairoDay(new Date(editStartDate))) {
         setErrorMsg("End Date cannot be before Start Date");
         return;
       }
@@ -128,7 +129,7 @@ export function DropCard({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-zinc-400 hover:text-zinc-900 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="h-8 w-8 text-zinc-400 hover:text-zinc-900 transition-colors"
               onClick={() => handleOpenChange(true)}
             >
               <PencilIcon className="h-4 w-4" />

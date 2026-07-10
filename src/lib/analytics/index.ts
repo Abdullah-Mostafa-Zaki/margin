@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { startOfCairoDay } from "@/lib/date-utils";
 
 export interface AnalyticsPayload {
   metrics: Record<string, any>;
@@ -234,8 +235,7 @@ export async function calculateReturnStatusCount(orgId: string, startDate: Date,
 
 
 export async function calculateHistoricalBenchmarks(orgId: string, endDate: Date) {
-  const ninetyDaysAgo = new Date(endDate);
-  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  const ninetyDaysAgo = startOfCairoDay(new Date(endDate.getTime() - 90 * 24 * 60 * 60 * 1000));
 
   // Get total revenue for 90 days
   const revAgg = await prisma.transaction.aggregate({
@@ -354,9 +354,8 @@ export async function generateAnalyticsPayload(
   endDate: Date,
   reportType: "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY"
 ): Promise<AnalyticsPayload> {
-  const priorStartDate = new Date(startDate);
   const periodDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-  priorStartDate.setDate(priorStartDate.getDate() - periodDays);
+  const priorStartDate = startOfCairoDay(new Date(startDate.getTime() - periodDays * 24 * 60 * 60 * 1000));
 
   const [
     rev, 

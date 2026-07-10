@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getCairoNow } from "@/lib/date-utils";
 
 export async function GET(request: Request) {
   try {
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
         currentMonthVoice: 0,
         currentMonthImage: 0,
         currentMonthText: 0,
-        usageResetDate: new Date(),
+        usageResetDate: getCairoNow(),
       },
     });
 

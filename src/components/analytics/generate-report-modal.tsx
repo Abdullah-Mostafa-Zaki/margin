@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { Badge } from "@/components/ui/badge";
+import { formatCairoDate } from "@/lib/date-utils";
 import { Plan } from "@prisma/client";
 import { PLAN_LIMITS } from "@/lib/plans";
 import Link from "next/link";
@@ -223,7 +224,7 @@ export function GenerateReportModal({ orgSlug, plan }: { orgSlug: string; plan: 
                     <img src="/logo.svg" alt="Margin" className="h-10" />
                     <div className="text-right">
                       <h1 className="text-2xl font-semibold text-slate-800">Margin {generatedReport.type === "WEEKLY" ? "Tactical Pulse" : generatedReport.type === "MONTHLY" ? "Boardroom Report" : "Executive Summary"}</h1>
-                      <p className="text-sm text-slate-500 mt-1">Reporting Period: {format(new Date(generatedReport.startDate), "MMM d, yyyy")} – {format(new Date(generatedReport.endDate), "MMM d, yyyy")}</p>
+                      <p className="text-sm text-slate-500 mt-1">Reporting Period: {formatCairoDate(new Date(generatedReport.startDate), "MMM d, yyyy")} – {formatCairoDate(new Date(generatedReport.endDate), "MMM d, yyyy")}</p>
                     </div>
                   </div>
                   

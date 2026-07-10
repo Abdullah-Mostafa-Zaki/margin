@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCairoDate } from "@/lib/date-utils";
 import { MarkReceivedButton, MarkAllReceivedButton, MarkReturnedButton } from "@/components/transactions/action-buttons";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -109,7 +110,7 @@ export function CodEscrowCard({
                     EGP {Number(t.amount).toLocaleString()}
                   </div>
                   <div className="text-sm text-amber-600">
-                    {new Date(t.date).toLocaleDateString()} • {t.notes || "No courier specified"}
+                    {formatCairoDate(new Date(t.date), "d MMM yyyy")} • {t.notes || "No courier specified"}
                   </div>
                 </div>
               </div>

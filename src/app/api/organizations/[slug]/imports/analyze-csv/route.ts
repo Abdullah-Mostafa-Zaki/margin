@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import Groq from "groq-sdk";
 import { groupShopifyRows } from "@/lib/utils/shopifyCsvGrouper";
+import { formatCairoDate } from "@/lib/date-utils";
 
 // ────────────────────────────────────────────────────────────────────
 // Types
@@ -264,9 +265,10 @@ async function detectStructure(
 // ────────────────────────────────────────────────────────────────────
 
 function parseDate(raw: any): string {
-  if (!raw) return new Date().toISOString().split("T")[0];
+  const defaultDate = formatCairoDate(new Date(), "yyyy-MM-dd");
+  if (!raw) return defaultDate;
   const s = String(raw).trim();
-  if (!s) return new Date().toISOString().split("T")[0];
+  if (!s) return defaultDate;
 
   // Excel serial date
   const num = Number(s);
@@ -281,7 +283,7 @@ function parseDate(raw: any): string {
     return d.toISOString().split("T")[0];
   }
 
-  return new Date().toISOString().split("T")[0];
+  return defaultDate;
 }
 
 function parseAmount(raw: any): number {
@@ -497,7 +499,7 @@ function extractTransactions(
     // ── Date ──
     const dateRaw = cellByIdx(ruleset.columns.date);
     const dateStr = parseDate(dateRaw);
-    const dateClean = dateRaw != null && dateStr !== new Date().toISOString().split("T")[0];
+    const dateClean = dateRaw != null && dateStr !== formatCairoDate(new Date(), "yyyy-MM-dd");
     if (!dateClean) inferredFields++;
 
     // ── Description ──
@@ -583,7 +585,7 @@ async function processChunk(groq: Groq, headers: string[], chunkRows: Record<str
     tableStr += rowValues.join(" | ") + "\n";
   }
 
-  const todayDate = new Date().toISOString().split('T')[0];
+  const todayDate = formatCairoDate(new Date(), "yyyy-MM-dd");
 
   const prompt = `This is a financial spreadsheet from an Egyptian clothing brand. It may have any structure — vertical, horizontal, Arabic, English, mixed, with or without headers, with summary rows, with merged cells. 
 Read the entire sheet, understand what it contains, and extract every financial transaction you can identify.
@@ -762,7 +764,7 @@ export async function POST(
         }
 
         allTransactions.push({
-          date: t.date ? new Date(t.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          date: t.date ? new Date(t.date).toISOString().split('T')[0] : formatCairoDate(new Date(), "yyyy-MM-dd"),
           description: `Shopify Order #${t.shopifyOrderId}`,
           amount: parseFloat(t.amount) || 0,
           type: "INCOME",

@@ -4,6 +4,7 @@ import {
   ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend
 } from "recharts";
+import { formatCairoDate } from "@/lib/date-utils";
 import { ReturnTrend } from "@/app/actions/getAdvancedReturnMetrics";
 
 export function ReturnTrendsChart({ data }: { data: ReturnTrend[] }) {
@@ -20,8 +21,7 @@ export function ReturnTrendsChart({ data }: { data: ReturnTrend[] }) {
 
   // Format the date strings "YYYY-MM-DD" into more readable labels
   const formattedData = data.map(d => {
-    const parts = d.date.split('-');
-    const label = `${parseInt(parts[2])} ${new Date(d.date).toLocaleString('default', { month: 'short' })}`;
+    const label = formatCairoDate(new Date(d.date), "d MMM");
     return { ...d, label };
   });
 

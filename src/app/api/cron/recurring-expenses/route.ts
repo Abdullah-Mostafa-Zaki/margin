@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { sendRecurringExpenseLoggedEmail } from "@/lib/mail";
 import { backfillMissedOccurrences } from "@/app/actions/recurring.actions";
+import { getCairoNow } from "@/lib/date-utils";
 
 // Vercel Cron handles the schedule. We just process whatever is due.
 export async function POST(request: Request) {
@@ -11,7 +12,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const now = new Date();
+    const now = getCairoNow();
     
     // Find all active recurring expenses where the nextDueDate is today or earlier
     const dueExpenses = await prisma.recurringExpense.findMany({

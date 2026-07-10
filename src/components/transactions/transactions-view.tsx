@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Transaction } from "@prisma/client";
+import { formatCairoDate } from "@/lib/date-utils";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -144,7 +145,7 @@ export function TransactionsView({
               displayedTransactions.map((t) => (
                 <TableRow key={t.id}>
                   <TableCell className="whitespace-nowrap">
-                    {new Date(t.date).toLocaleDateString()}
+                    {formatCairoDate(new Date(t.date), "d MMM yyyy")}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {t.category}

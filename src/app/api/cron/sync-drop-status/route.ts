@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { revalidateTag } from "next/cache";
+import { getCairoNow } from "@/lib/date-utils";
 
 /**
  * POST /api/cron/sync-drop-status
@@ -19,7 +20,7 @@ export async function GET(req: Request) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
-  const now = new Date();
+  const now = getCairoNow();
   let updated = 0;
   let errors = 0;
 

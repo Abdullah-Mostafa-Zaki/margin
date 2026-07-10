@@ -2,6 +2,7 @@
 
 import type { Transaction } from "@prisma/client";
 import { DeleteTransactionButton } from "@/components/transactions/action-buttons";
+import { formatCairoDate } from "@/lib/date-utils";
 import { Badge } from "@/components/ui/badge";
 
 export function MobileTransactionCard({ transaction, orgSlug, onEdit }: { transaction: Transaction; orgSlug: string; onEdit?: () => void }) {
@@ -21,7 +22,7 @@ export function MobileTransactionCard({ transaction, orgSlug, onEdit }: { transa
           )}
         </div>
         <span className="text-xs text-zinc-500 mt-0.5">
-          {new Date(t.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+          {formatCairoDate(new Date(t.date), "d MMM")}
         </span>
       </div>
       <div className="flex flex-col items-end gap-1.5">

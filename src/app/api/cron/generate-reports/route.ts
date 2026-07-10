@@ -15,8 +15,11 @@ const REPORT_TYPE_TO_PLAN_KEY: Record<ReportType, keyof PlanLimits> = {
   YEARLY: "yearlyReports",
 };
 
-function getDatesForReport(type: ReportType, now: Date) {
-  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Midnight today
+import { getCairoNow, startOfCairoDay } from "@/lib/date-utils";
+
+function getDatesForReport(type: ReportType, trueNow: Date) {
+  // Use Cairo midnight for exact UTC boundaries
+  const end = startOfCairoDay(trueNow); 
   let start = new Date(end);
 
   switch (type) {
@@ -53,10 +56,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: "No active organizations found" });
     }
 
-    const now = new Date();
-    const dayOfWeek = now.getDay(); // 0 is Sunday
-    const date = now.getDate(); // 1-31
-    const month = now.getMonth(); // 0-11
+    const trueNow = new Date();
+    const cairoNow = getCairoNow();
+    const dayOfWeek = cairoNow.getDay(); // 0 is Sunday
+    const date = cairoNow.getDate(); // 1-31
+    const month = cairoNow.getMonth(); // 0-11
 
     const reportsToRun: ReportType[] = [];
 
@@ -94,7 +98,7 @@ export async function GET(request: Request) {
     const results = [];
 
     for (const reportType of reportsToRun) {
-      const { startDateStr, endDateStr } = getDatesForReport(reportType, now);
+      const { startDateStr, endDateStr } = getDatesForReport(reportType, trueNow);
       const planKey = REPORT_TYPE_TO_PLAN_KEY[reportType];
 
       for (const org of organizations) {

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import type { Transaction } from "@prisma/client";
+import { formatCairoDate } from "@/lib/date-utils";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -172,7 +173,7 @@ export function TransactionsShell({
         <button
           onClick={(e) => { e.stopPropagation(); onTabChange("INCOME"); setSelectedCategory("All"); }}
           className={`
-            relative flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold
+            relative flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-1 sm:px-4 rounded-xl text-[11px] sm:text-sm font-semibold
             transition-all duration-200 ease-in-out select-none
             ${activeTab === "INCOME"
               ? "bg-[#27A67A] text-white shadow-sm"
@@ -180,10 +181,10 @@ export function TransactionsShell({
             }
           `}
         >
-          <TrendingUp className="w-4 h-4 shrink-0" />
-          Revenue
+          <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span className="truncate">Revenue</span>
           {incomeCount > 0 && (
-            <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-medium ${activeTab === "INCOME" ? "bg-emerald-500/40 text-white" : "bg-zinc-200 text-zinc-600"
+            <span className={`ml-0 sm:ml-1 text-[9px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded-full font-medium ${activeTab === "INCOME" ? "bg-emerald-500/40 text-white" : "bg-zinc-200 text-zinc-600"
               }`}>
               {incomeCount}
             </span>
@@ -194,7 +195,7 @@ export function TransactionsShell({
         <button
           onClick={(e) => { e.stopPropagation(); onTabChange("EXPENSE"); setSelectedCategory("All"); }}
           className={`
-            relative flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold
+            relative flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-1 sm:px-4 rounded-xl text-[11px] sm:text-sm font-semibold
             transition-all duration-200 ease-in-out select-none
             ${activeTab === "EXPENSE"
               ? "bg-red-500 text-white shadow-sm"
@@ -202,10 +203,10 @@ export function TransactionsShell({
             }
           `}
         >
-          <TrendingDown className="w-4 h-4 shrink-0" />
-          Expenses
+          <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span className="truncate">Expenses</span>
           {expenseCount > 0 && (
-            <span className={`ml-1 text-xs px-1.5 py-0.5 rounded-full font-medium ${activeTab === "EXPENSE" ? "bg-red-400 text-white" : "bg-zinc-200 text-zinc-600"
+            <span className={`ml-0 sm:ml-1 text-[9px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded-full font-medium ${activeTab === "EXPENSE" ? "bg-red-400 text-white" : "bg-zinc-200 text-zinc-600"
               }`}>
               {expenseCount}
             </span>
@@ -216,7 +217,7 @@ export function TransactionsShell({
         <button
           onClick={(e) => { e.stopPropagation(); onTabChange("RECURRING"); setSelectedCategory("All"); }}
           className={`
-            relative flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold
+            relative flex-1 flex items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 px-1 sm:px-4 rounded-xl text-[11px] sm:text-sm font-semibold
             transition-all duration-200 ease-in-out select-none
             ${activeTab === "RECURRING"
               ? "bg-blue-500 text-white shadow-sm"
@@ -224,8 +225,8 @@ export function TransactionsShell({
             }
           `}
         >
-          <Repeat className="w-4 h-4 shrink-0" />
-          Recurring
+          <Repeat className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span className="truncate">Recurring</span>
         </button>
       </div>
 
@@ -342,17 +343,17 @@ export function TransactionsShell({
 
       {activeTab === "RECURRING" ? (
         <div className="mt-6 space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-start sm:items-center gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-zinc-900">Recurring Expenses</h2>
-              <p className="text-sm text-zinc-500">Manage fixed costs that automatically log over time.</p>
+              <h2 className="text-base sm:text-lg font-semibold text-zinc-900 leading-tight">Recurring Expenses</h2>
+              <p className="text-xs sm:text-sm text-zinc-500 mt-0.5">Manage fixed costs that automatically log over time.</p>
             </div>
             <button
               onClick={() => {
                 setRecurringToEdit(null);
                 setIsRecurringModalOpen(true);
               }}
-              className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-blue-500 text-white shadow hover:bg-blue-600 h-9 px-4 py-2"
+              className="inline-flex items-center justify-center rounded-md text-xs sm:text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-blue-500 text-white shadow hover:bg-blue-600 h-8 sm:h-9 px-3 sm:px-4 py-1 sm:py-2 shrink-0 whitespace-nowrap mt-1 sm:mt-0"
             >
               Add Recurring
             </button>
@@ -430,7 +431,7 @@ export function TransactionsShell({
                     />
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
-                    {new Date(t.date).toLocaleDateString()}
+                    {formatCairoDate(new Date(t.date), "d MMM yyyy")}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">{t.category}</TableCell>
                   {activeTab === "EXPENSE" && <TableCell className="whitespace-nowrap">{t.merchant || "-"}</TableCell>}

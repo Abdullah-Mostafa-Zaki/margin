@@ -13,6 +13,7 @@ import {
   logRecurringExpenseNow 
 } from "@/app/actions/recurring.actions";
 import { toast } from "sonner";
+import { formatCairoDate } from "@/lib/date-utils";
 import { useState } from "react";
 
 interface RecurringListProps {
@@ -79,7 +80,7 @@ export function RecurringList({ expenses, selectedIds, orgSlug, onToggle, onSele
         </TableHeader>
         <TableBody>
           {expenses.map((expense) => {
-            const nextDueStr = new Date(expense.nextDueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+            const nextDueStr = formatCairoDate(new Date(expense.nextDueDate), "d MMM yyyy");
             return (
               <TableRow key={expense.id} className="group cursor-pointer hover:bg-zinc-50 transition-colors">
                 <TableCell className="w-12 px-4" onClick={(e) => e.stopPropagation()}>

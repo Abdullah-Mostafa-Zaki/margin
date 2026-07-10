@@ -8,6 +8,7 @@ import { createTag } from "@/actions/tags.actions";
 import { Plus } from "lucide-react";
 import { usePlan } from "@/lib/plan-context";
 import { PLAN_LIMITS } from "@/lib/plans";
+import { startOfCairoDay } from "@/lib/date-utils";
 
 export default function TagForm({ orgSlug, currentDropCount = 0 }: { orgSlug: string; currentDropCount?: number }) {
   const router = useRouter();
@@ -28,7 +29,7 @@ export default function TagForm({ orgSlug, currentDropCount = 0 }: { orgSlug: st
     const endDate = formData.get("endDate") as string;
 
     if (startDate && endDate) {
-      if (new Date(endDate) < new Date(startDate)) {
+      if (startOfCairoDay(new Date(endDate)) < startOfCairoDay(new Date(startDate))) {
         setError("End Date cannot be before Start Date");
         return;
       }

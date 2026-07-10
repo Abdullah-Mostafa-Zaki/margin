@@ -1,6 +1,6 @@
 import { ChatHome } from "@/components/chat/chat-home";
 import prisma from "@/lib/prisma";
-import { getTodayMetrics } from "@/app/actions/getTodayMetrics";
+import { getMonthMetrics } from "@/app/actions/getMonthMetrics";
 import { getAlerts } from "@/app/actions/getAlerts";
 import { AlertsBanner } from "@/components/dashboard/alerts-banner";
 import { KpiBar } from "@/components/dashboard/kpi-bar";
@@ -25,8 +25,8 @@ export default async function DashboardPage(props: {
 
   if (!org) return null;
 
-  const [todayMetrics, alerts] = await Promise.all([
-    getTodayMetrics(org.id),
+  const [monthMetrics, alerts] = await Promise.all([
+    getMonthMetrics(org.id),
     getAlerts(org.id),
   ]);
 
@@ -35,9 +35,9 @@ export default async function DashboardPage(props: {
       <div className="flex-none max-w-5xl mx-auto w-full">
         <AlertsBanner alerts={alerts} />
         <KpiBar
-          todayNetProfit={todayMetrics.todayNetProfit}
-          todayRevenue={todayMetrics.todayRevenue}
-          todayExpenses={todayMetrics.todayExpenses}
+          monthNetProfit={monthMetrics.monthNetProfit}
+          monthRevenue={monthMetrics.monthRevenue}
+          monthExpenses={monthMetrics.monthExpenses}
         />
       </div>
 

@@ -1,3 +1,5 @@
+import { formatCairoDate } from "@/lib/date-utils";
+
 export function groupTransactionsByDate(transactions: {
   date: Date;
   type: string;
@@ -6,10 +8,7 @@ export function groupTransactionsByDate(transactions: {
   const grouped: Record<string, { date: string; income: number; expenses: number }> = {};
 
   transactions.forEach((t) => {
-    const dateKey = new Date(t.date).toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'short'
-    });
+    const dateKey = formatCairoDate(new Date(t.date), "d MMM");
 
     if (!grouped[dateKey]) {
       grouped[dateKey] = { date: dateKey, income: 0, expenses: 0 };
