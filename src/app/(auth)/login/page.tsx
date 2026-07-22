@@ -24,7 +24,8 @@ function LoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   const isVerify = searchParams.get("verifyRequest") === "1";
 
-  const [mode, setMode] = useState<Mode>("login");
+  const initialMode = searchParams.get("mode") === "signup" ? "register" : "login";
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
