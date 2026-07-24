@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { revalidateTag } from "next/cache";
 import { posthog } from "@/lib/posthog";
 
 export async function POST(
@@ -110,6 +111,7 @@ export async function POST(
           count: successfulTransactions.length
         }
       });
+      revalidateTag(`org-${org.id}-transactions`, 'default');
     }
 
     return NextResponse.json({ success: true, count: successfulTransactions.length });

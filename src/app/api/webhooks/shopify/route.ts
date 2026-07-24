@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { unstable_noStore as noStore } from 'next/cache';
+import { revalidateTag } from "next/cache";
 import crypto from "crypto";
 import prisma from "@/lib/prisma";
 import { PLAN_LIMITS } from "@/lib/plans";
@@ -199,6 +200,7 @@ export async function POST(req: Request) {
           where: { id: existingTx.id },
           data: updateData
         });
+        revalidateTag(`org-${organization.id}-transactions`, 'default');
         return new NextResponse("OK", { status: 200 });
       }
     }
@@ -260,6 +262,8 @@ export async function POST(req: Request) {
         }
       });
     }
+
+    revalidateTag(`org-${organization.id}-transactions`, 'default');
 
     // ── 10. Respond 200 OK so Shopify knows we successfully received it ────
     return new NextResponse("OK", { status: 200 });

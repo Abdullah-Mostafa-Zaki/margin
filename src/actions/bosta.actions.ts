@@ -1,6 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
+import { revalidateTag } from "next/cache";
 
 /**
  * Helper to ensure the Authorization header is correctly formatted.
@@ -141,6 +142,9 @@ export async function syncBostaDeliveries(organizationId: string) {
     const deliveries = json.deliveries || json.data?.deliveries || [];
 
     let processedCount = 0;
+    // Collect distinct org IDs touched so we can fire revalidateTag once per org
+    // after the loop rather than on every iteration.
+    const touchedOrgIds = new Set<string>();
 
     for (const transaction of pendingTransactions) {
       const expectedSuffix = `#${transaction.shopifyOrderId}`;
@@ -189,7 +193,13 @@ export async function syncBostaDeliveries(organizationId: string) {
         data: updateData
       });
 
+      touchedOrgIds.add(transaction.organizationId);
       processedCount++;
+    }
+
+    // Bust the cache once per org after the loop — not on every iteration
+    for (const orgId of touchedOrgIds) {
+      revalidateTag(`org-${orgId}-transactions`, 'default');
     }
 
     return processedCount;
