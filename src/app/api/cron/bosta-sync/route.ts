@@ -21,13 +21,15 @@ export async function GET(request: Request) {
     });
 
     let totalProcessed = 0;
+    let totalFailed = 0;
 
     for (const org of organizations) {
-      const processedCount = await syncBostaDeliveries(org.id);
+      const { processedCount, failedCount } = await syncBostaDeliveries(org.id);
       totalProcessed += processedCount;
+      totalFailed += failedCount;
     }
 
-    return NextResponse.json({ success: true, processedCount: totalProcessed });
+    return NextResponse.json({ success: true, processedCount: totalProcessed, failedCount: totalFailed });
   } catch (error) {
     console.error("Bosta sync cron error:", error);
     return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });

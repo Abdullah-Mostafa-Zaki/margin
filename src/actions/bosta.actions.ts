@@ -124,7 +124,7 @@ export async function syncBostaDeliveries(organizationId: string) {
       where: { organizationId, status: "PENDING", shopifyOrderId: { not: null } }
     });
 
-    if (pendingTransactions.length === 0) return 0;
+    if (pendingTransactions.length === 0) return { processedCount: 0, failedCount: 0 };
 
     // Use v0 for listing as it provides the most stable delivery object (Verified)
     const response = await fetch("https://app.bosta.co/api/v0/deliveries?limit=500", {
@@ -136,15 +136,13 @@ export async function syncBostaDeliveries(organizationId: string) {
       cache: "no-store"
     });
 
-    if (!response.ok) return 0;
+    if (!response.ok) return { processedCount: 0, failedCount: 0 };
 
     const json = await response.json();
     const deliveries = json.deliveries || json.data?.deliveries || [];
 
     let processedCount = 0;
-    // Collect distinct org IDs touched so we can fire revalidateTag once per org
-    // after the loop rather than on every iteration.
-    const touchedOrgIds = new Set<string>();
+    let failedCount = 0;
 
     for (const transaction of pendingTransactions) {
       const expectedSuffix = `#${transaction.shopifyOrderId}`;
@@ -188,24 +186,27 @@ export async function syncBostaDeliveries(organizationId: string) {
         updateData.amount = Number(bostaDelivery.cod);
       }
 
-      await prisma.transaction.update({
-        where: { id: transaction.id },
-        data: updateData
-      });
-
-      touchedOrgIds.add(transaction.organizationId);
-      processedCount++;
+      try {
+        await prisma.transaction.update({
+          where: { id: transaction.id },
+          data: updateData
+        });
+        processedCount++;
+      } catch (innerError) {
+        console.error(`Bosta Sync Error updating transaction ${transaction.id}:`, innerError);
+        failedCount++;
+        continue;
+      }
     }
 
-    // Bust the cache once per org after the loop — not on every iteration
-    for (const orgId of touchedOrgIds) {
-      revalidateTag(`org-${orgId}-transactions`, 'default');
+    if (processedCount > 0) {
+      revalidateTag(`org-${organizationId}-transactions`, 'default');
     }
 
-    return processedCount;
+    return { processedCount, failedCount };
   } catch (error) {
     console.error("Bosta Sync Error:", error);
-    return 0;
+    return { processedCount: 0, failedCount: 0 };
   }
 }
 
