@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma"
 import { redirect } from "next/navigation"
 import { Calculator } from "@/components/landing/calculator"
 import { ProblemSection } from "@/components/landing/problem-section"
+import { ProductDiagram } from "@/components/landing/product-diagram"
 import { Inter, Fraunces, IBM_Plex_Mono } from 'next/font/google'
 
 const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'] })
@@ -183,9 +184,9 @@ export default async function LandingPage() {
         .landing-theme .r-total { animation-delay: 1.85s; }
         .landing-theme .stamp { animation-delay: 2.25s; }
 
-        /* SECTION HEADS */
-        .landing-theme .section { padding: 88px 0; }
-        .landing-theme .section-head { max-width: 640px; margin-bottom: 56px; }
+        /* SECTIONS */
+        .landing-theme .section { padding: 64px 0; }
+        .landing-theme .section-head { text-align: center; max-width: 600px; margin: 0 auto 56px; }
         .landing-theme .section-tag { font-size: 12.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brass); margin-bottom: 14px; }
         .landing-theme .section-head h2 { font-size: 34px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
         .landing-theme .section-head p { color: var(--text-mid); font-size: 16px; margin-top: 14px; line-height: 1.6; }
@@ -326,7 +327,7 @@ export default async function LandingPage() {
           <div className="hero-grid">
             <div>
               <h1 className="display">Shopify says one number.<br />Your <em>cash on hand</em> says another.</h1>
-              <p className="lede">Margin tracks every COD return, courier float, and unconfirmed order against what Bosta actually settles. This ensures the revenue on your screen matches the revenue in your account.</p>
+              <p className="lede">Margin connects your storefront and courier to give you the real number. See exactly what&apos;s pending, what&apos;s returned, and what&apos;s actually settled in cash.</p>
               <div className="hero-ctas">
                 <Link href="/login?mode=signup" className="btn btn-primary">Create free workspace</Link>
                 <Link href="/login" className="btn btn-ghost">Sign in to dashboard</Link>
@@ -356,19 +357,6 @@ export default async function LandingPage() {
 
       <div className="perf"></div>
 
-      <section className="section" id="problem">
-        <div className="wrap">
-          <div className="section-head">
-            <div className="section-tag">THE PROBLEM</div>
-            <h2>1,000,000 EGP in sales isn't 1,000,000 EGP in profit.</h2>
-            <p>Founders track revenue because it's the easiest number to see. It's also the one that lies to you the longest.</p>
-          </div>
-          <ProblemSection />
-        </div>
-      </section>
-
-      <div className="perf"></div>
-
       <section className="section" id="features">
         <div className="wrap">
           <div className="section-head">
@@ -376,6 +364,7 @@ export default async function LandingPage() {
             <h2>Built around how you already work</h2>
             <p>No new habits. Margin reads the receipts and voice notes you&apos;re already using, and syncs with the tools you already run on.</p>
           </div>
+          <ProductDiagram />
           <div className="feat-list">
             <div className="feat-row">
               <div className="feat-num">01</div>
@@ -411,6 +400,19 @@ export default async function LandingPage() {
               <div className="feat-desc"><p>Every order starts as pending and is never counted as revenue until Bosta confirms delivery. Watch your true net margin update per drop, not per guess.</p></div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <div className="perf"></div>
+
+      <section className="section" id="problem">
+        <div className="wrap">
+          <div className="section-head">
+            <div className="section-tag">THE PROBLEM</div>
+            <h2>1,000,000 EGP in sales isn't 1,000,000 EGP in profit.</h2>
+            <p>Founders track revenue because it's the easiest number to see. It's also the one that lies to you the longest.</p>
+          </div>
+          <ProblemSection />
         </div>
       </section>
 

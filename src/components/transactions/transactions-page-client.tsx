@@ -161,12 +161,7 @@ export function TransactionsPageClient({
           onSelectAll={selectMany}
         />
       )}
-      <div className={`relative transition-opacity duration-200 ${isLoading ? "opacity-50 pointer-events-none" : ""}`}>
-        {isLoading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
-          </div>
-        )}
+      <div className="relative transition-opacity duration-200">
         <TransactionsShell
           transactions={currentData.transactions}
           recurringExpenses={currentData.recurringExpenses}
@@ -181,6 +176,7 @@ export function TransactionsPageClient({
           totalPages={currentData.totalPages}
           activeTab={activeTabState}
           onTabChange={handleTabChange}
+          isLoading={isLoading}
         />
       </div>
       {activeTabState === "RECURRING" ? (

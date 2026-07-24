@@ -44,6 +44,7 @@ interface TransactionsShellProps {
   totalPages?: number;
   activeTab: "INCOME" | "EXPENSE" | "RECURRING";
   onTabChange: (tab: "INCOME" | "EXPENSE" | "RECURRING") => void;
+  isLoading?: boolean;
 }
 
 export function TransactionsShell({
@@ -60,6 +61,7 @@ export function TransactionsShell({
   totalPages = 1,
   activeTab,
   onTabChange,
+  isLoading,
 }: TransactionsShellProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "highest" | "lowest">("newest");
@@ -369,6 +371,27 @@ export function TransactionsShell({
             }}
             orgSlug={orgSlug}
           />
+        </div>
+      ) : isLoading ? (
+        <div className="w-full mt-6 space-y-4 animate-pulse">
+          <div className="hidden md:flex items-center gap-4 py-4 px-4 border rounded-md bg-white">
+            <div className="h-4 w-4 bg-zinc-200 rounded"></div>
+            <div className="h-4 w-24 bg-zinc-200 rounded"></div>
+            <div className="h-4 w-32 bg-zinc-200 rounded"></div>
+            <div className="h-4 w-20 bg-zinc-200 rounded"></div>
+            <div className="h-4 w-16 bg-zinc-200 rounded ml-auto"></div>
+          </div>
+          <div className="hidden md:flex items-center gap-4 py-4 px-4 border rounded-md bg-white">
+            <div className="h-4 w-4 bg-zinc-200 rounded"></div>
+            <div className="h-4 w-24 bg-zinc-200 rounded"></div>
+            <div className="h-4 w-32 bg-zinc-200 rounded"></div>
+            <div className="h-4 w-20 bg-zinc-200 rounded"></div>
+            <div className="h-4 w-16 bg-zinc-200 rounded ml-auto"></div>
+          </div>
+          <div className="md:hidden flex flex-col gap-3">
+             <div className="h-24 w-full bg-zinc-200 rounded-xl"></div>
+             <div className="h-24 w-full bg-zinc-200 rounded-xl"></div>
+          </div>
         </div>
       ) : (
         <>

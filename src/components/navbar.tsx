@@ -5,17 +5,14 @@ export function Navbar() {
   return (
     <nav className="relative z-10 border-b border-zinc-200 bg-white/50 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)] overflow-hidden p-1.5">
-            <Image
-              src="/logo.svg"
-              alt="Margin Logo"
-              width={32}
-              height={32}
-              className="w-full h-full object-contain"
-            />
-          </div>
-          <span className="text-[20px] font-semibold tracking-tight text-zinc-900">Margin.</span>
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/MARGIN.png"
+            alt="Margin"
+            width={96}
+            height={48}
+            className="object-contain"
+          />
         </Link>
         <div className="flex items-center gap-4">
           <Link
