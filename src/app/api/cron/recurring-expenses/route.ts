@@ -35,6 +35,7 @@ export async function POST(request: Request) {
     console.log(`[CRON] Found ${dueExpenses.length} recurring expenses due for processing.`);
 
     let processedCount = 0;
+    let failedCount = 0;
 
     for (const expense of dueExpenses) {
       // The shared function handles creating all transactions starting from nextDueDate,
@@ -55,9 +56,13 @@ export async function POST(request: Request) {
         }
         processedCount++;
       }
+      
+      if (result.failedCount) {
+        failedCount += result.failedCount;
+      }
     }
 
-    return NextResponse.json({ success: true, processedCount });
+    return NextResponse.json({ success: true, processedCount, failedCount });
   } catch (error) {
     console.error("[CRON] Failed to process recurring expenses:", error);
     return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });

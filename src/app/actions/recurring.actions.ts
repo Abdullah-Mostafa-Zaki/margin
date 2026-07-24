@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { RecurringFrequency } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export interface RecurringExpenseData {
   name: string;
@@ -76,6 +76,7 @@ export async function createRecurringExpense(orgSlug: string, data: RecurringExp
     await backfillMissedOccurrences(newExpense.id, user?.id);
 
     revalidatePath(`/${orgSlug}/transactions`, "page");
+    revalidateTag(`org-${org.id}-transactions`, 'default');
     return { 
       success: true, 
       data: {
@@ -124,6 +125,7 @@ export async function updateRecurringExpense(orgSlug: string, id: string, data: 
   await backfillMissedOccurrences(updated.id, user?.id);
 
   revalidatePath(`/${orgSlug}/transactions`, "page");
+  revalidateTag(`org-${org.id}-transactions`, 'default');
   return { 
     success: true, 
     data: {
@@ -142,6 +144,7 @@ export async function deleteRecurringExpense(orgSlug: string, id: string) {
   });
 
   revalidatePath(`/${orgSlug}/transactions`, "page");
+  revalidateTag(`org-${org.id}-transactions`, 'default');
   return { success: true };
 }
 
@@ -154,6 +157,7 @@ export async function reactivateRecurringExpense(orgSlug: string, id: string) {
   });
 
   revalidatePath(`/${orgSlug}/transactions`, "page");
+  revalidateTag(`org-${org.id}-transactions`, 'default');
   return { success: true };
 }
 
@@ -165,6 +169,7 @@ export async function hardDeleteRecurringExpense(orgSlug: string, id: string) {
   });
 
   revalidatePath(`/${orgSlug}/transactions`, "page");
+  revalidateTag(`org-${org.id}-transactions`, 'default');
   return { success: true };
 }
 
@@ -177,6 +182,7 @@ export async function bulkActivateRecurringExpenses(orgSlug: string, ids: string
   });
 
   revalidatePath(`/${orgSlug}/transactions`, "page");
+  revalidateTag(`org-${org.id}-transactions`, 'default');
   return { success: true };
 }
 
@@ -189,6 +195,7 @@ export async function bulkDeactivateRecurringExpenses(orgSlug: string, ids: stri
   });
 
   revalidatePath(`/${orgSlug}/transactions`, "page");
+  revalidateTag(`org-${org.id}-transactions`, 'default');
   return { success: true };
 }
 
@@ -200,6 +207,7 @@ export async function bulkHardDeleteRecurringExpenses(orgSlug: string, ids: stri
   });
 
   revalidatePath(`/${orgSlug}/transactions`, "page");
+  revalidateTag(`org-${org.id}-transactions`, 'default');
   return { success: true };
 }
 
@@ -235,6 +243,7 @@ export async function logRecurringExpenseNow(orgSlug: string, id: string) {
   });
 
   revalidatePath(`/${orgSlug}/transactions`, "page");
+  revalidateTag(`org-${org.id}-transactions`, 'default');
   return { success: true };
 }
 
@@ -253,37 +262,42 @@ export async function backfillMissedOccurrences(recurringExpenseId: string, crea
     }
   });
 
-  if (!expense || !expense.isActive) return { processed: false, backfillCount: 0 };
+  if (!expense || !expense.isActive) return { processed: false, backfillCount: 0, failedCount: 0 };
 
   const now = new Date();
   let nextDate = new Date(expense.nextDueDate);
   let backfillCount = 0;
+  let failedCount = 0;
   
   // Use provided createdById, otherwise fallback to the first admin's id
   const authorId = createdById || expense.organization.memberships[0]?.user.id;
 
-  while (nextDate <= now && backfillCount < 50) {
-    await prisma.transaction.create({
-      data: {
-        organizationId: expense.organizationId,
-        type: "EXPENSE",
-        status: "RECEIVED",
-        amount: expense.amount,
-        category: expense.category,
-        date: new Date(nextDate),
-        paymentMethod: "CASH",
-        notes: expense.name,
-        dropId: expense.dropId,
-        source: "MANUAL",
-        createdById: authorId,
-      }
-    });
+  while (nextDate <= now && backfillCount + failedCount < 50) {
+    try {
+      await prisma.transaction.create({
+        data: {
+          organizationId: expense.organizationId,
+          type: "EXPENSE",
+          status: "RECEIVED",
+          amount: expense.amount,
+          category: expense.category,
+          date: new Date(nextDate),
+          paymentMethod: "CASH",
+          notes: expense.name,
+          dropId: expense.dropId,
+          source: "MANUAL",
+          createdById: authorId,
+        }
+      });
+      backfillCount++;
+    } catch (innerError) {
+      console.error(`Error backfilling occurrence for recurring expense ${expense.id}:`, innerError);
+      failedCount++;
+    }
 
     if (expense.frequency === "WEEKLY") nextDate.setDate(nextDate.getDate() + 7);
     else if (expense.frequency === "MONTHLY") nextDate.setMonth(nextDate.getMonth() + 1);
     else if (expense.frequency === "YEARLY") nextDate.setFullYear(nextDate.getFullYear() + 1);
-
-    backfillCount++;
   }
 
   if (backfillCount > 0) {
@@ -291,7 +305,8 @@ export async function backfillMissedOccurrences(recurringExpenseId: string, crea
       where: { id: expense.id },
       data: { nextDueDate: nextDate }
     });
+    revalidateTag(`org-${expense.organizationId}-transactions`, 'default');
   }
   
-  return { processed: backfillCount > 0, backfillCount };
+  return { processed: backfillCount > 0, backfillCount, failedCount };
 }
