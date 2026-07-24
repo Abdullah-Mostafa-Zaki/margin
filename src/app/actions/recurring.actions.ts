@@ -266,6 +266,7 @@ export async function backfillMissedOccurrences(recurringExpenseId: string, crea
 
   const now = new Date();
   let nextDate = new Date(expense.nextDueDate);
+  let newNextDueDate = new Date(expense.nextDueDate);
   let backfillCount = 0;
   let failedCount = 0;
   
@@ -290,20 +291,26 @@ export async function backfillMissedOccurrences(recurringExpenseId: string, crea
         }
       });
       backfillCount++;
+      
+      // Calculate next due date only after successful creation
+      if (expense.frequency === "WEEKLY") nextDate.setDate(nextDate.getDate() + 7);
+      else if (expense.frequency === "MONTHLY") nextDate.setMonth(nextDate.getMonth() + 1);
+      else if (expense.frequency === "YEARLY") nextDate.setFullYear(nextDate.getFullYear() + 1);
+      
+      newNextDueDate = new Date(nextDate);
     } catch (innerError) {
       console.error(`Error backfilling occurrence for recurring expense ${expense.id}:`, innerError);
       failedCount++;
+      // Stop on first failure so this failed occurrence becomes the nextDueDate
+      // and gets picked up on the next cron run.
+      break; 
     }
-
-    if (expense.frequency === "WEEKLY") nextDate.setDate(nextDate.getDate() + 7);
-    else if (expense.frequency === "MONTHLY") nextDate.setMonth(nextDate.getMonth() + 1);
-    else if (expense.frequency === "YEARLY") nextDate.setFullYear(nextDate.getFullYear() + 1);
   }
 
   if (backfillCount > 0) {
     await prisma.recurringExpense.update({
       where: { id: expense.id },
-      data: { nextDueDate: nextDate }
+      data: { nextDueDate: newNextDueDate }
     });
     revalidateTag(`org-${expense.organizationId}-transactions`, 'default');
   }
