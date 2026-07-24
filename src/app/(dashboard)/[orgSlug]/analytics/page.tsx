@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { unstable_cache } from "next/cache";
 import { AnalyticsShell } from "@/components/analytics/analytics-shell";
 import { PageTracker } from "@/components/analytics/PageTracker";
 import { DropFilter } from "@/components/analytics/drop-filter";
@@ -62,6 +63,73 @@ export default async function AnalyticsPage(props: {
   });
 
   // Insights is now the SINGLE SOURCE OF TRUTH for top-level KPIs
+  // Cache keys for the two raw Prisma queries below. These use the same tag
+  // (`org-${organizationId}-transactions`) as all sibling cached actions, so
+  // they are invalidated consistently whenever a transaction is created/updated/deleted.
+  const getCachedDailyTransactions = unstable_cache(
+    () => prisma.transaction.findMany({
+      where: { organizationId: organization.id, status: 'RECEIVED', ...dateFilter, ...tagFilter },
+      select: { date: true, type: true, amount: true },
+      orderBy: { date: 'asc' },
+    }),
+    [
+      'analytics-daily-transactions',
+      organization.id,
+      startDate?.toISOString() || 'all',
+      endDate?.toISOString() || 'all',
+      tagId || 'none',
+    ],
+    {
+      tags: [`org-${organization.id}-transactions`],
+      revalidate: 3600,
+    }
+  );
+
+  const getCachedLineItems = unstable_cache(
+    () => prisma.lineItem.findMany({
+      where: {
+        transaction: {
+          organizationId: organization.id,
+          type: 'INCOME',
+          status: 'RECEIVED',
+          ...dateFilter,
+          ...tagFilter,
+        },
+      },
+    }),
+    [
+      'analytics-line-items',
+      organization.id,
+      startDate?.toISOString() || 'all',
+      endDate?.toISOString() || 'all',
+      tagId || 'none',
+    ],
+    {
+      tags: [`org-${organization.id}-transactions`],
+      revalidate: 3600,
+    }
+  );
+
+  const getCachedExpenseByCategory = unstable_cache(
+    () => prisma.transaction.groupBy({
+      by: ['category'],
+      where: { organizationId: organization.id, type: 'EXPENSE', status: 'RECEIVED', ...dateFilter, ...tagFilter },
+      _sum: { amount: true },
+      orderBy: { _sum: { amount: 'desc' } },
+    }),
+    [
+      'analytics-expense-by-category',
+      organization.id,
+      startDate?.toISOString() || 'all',
+      endDate?.toISOString() || 'all',
+      tagId || 'none',
+    ],
+    {
+      tags: [`org-${organization.id}-transactions`],
+      revalidate: 3600,
+    }
+  );
+
   const [
     insights,
     velocity,
@@ -81,28 +149,9 @@ export default async function AnalyticsPage(props: {
     getReturnsByCity(organization.id, startDate, endDate, tagId),
     getMarketingMetrics(organization.id, startDate || undefined, endDate || undefined, tagId),
     getAdvancedReturnMetrics(organization.id, startDate, endDate, tagId),
-    prisma.transaction.findMany({
-      where: { organizationId: organization.id, status: 'RECEIVED', ...dateFilter, ...tagFilter },
-      select: { date: true, type: true, amount: true },
-      orderBy: { date: 'asc' }
-    }),
-    prisma.transaction.groupBy({
-      by: ['category'],
-      where: { organizationId: organization.id, type: 'EXPENSE', status: 'RECEIVED', ...dateFilter, ...tagFilter },
-      _sum: { amount: true },
-      orderBy: { _sum: { amount: 'desc' } }
-    }),
-    prisma.lineItem.findMany({
-      where: {
-        transaction: {
-          organizationId: organization.id,
-          type: 'INCOME',
-          status: 'RECEIVED',
-          ...dateFilter,
-          ...tagFilter
-        }
-      }
-    })
+    getCachedDailyTransactions(),
+    getCachedExpenseByCategory(),
+    getCachedLineItems(),
   ]);
 
   const baseChartData = groupTransactionsByDate(dailyTransactions);

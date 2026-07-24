@@ -32,82 +32,105 @@ async function fetchDropPerformance(
     }
   } : {};
 
-  // Fetch all drops for the org, filtered by tagId/dropId if provided
+  // Fetch all drops for the org, filtered by tagId if provided
   const drops = await prisma.drop.findMany({
     where: { organizationId, ...(tagId ? { id: tagId } : {}) }
   });
 
-  const performances: DropPerformance[] = await Promise.all(
-    drops.map(async (drop) => {
-      // INCOME transactions: use the exclusive dropId FK (prevents double-counting)
-      const incomeGrouped = await prisma.transaction.groupBy({
-        by: ['status'],
-        where: {
-          organizationId,
-          dropId: drop.id,
-          type: "INCOME",
-          ...dateFilter
-        },
-        _sum: { amount: true, shipmentFee: true }
-      });
+  if (drops.length === 0) return [];
 
-      // EXPENSE transactions: use the many-to-many join (expenses can be shared)
-      const expenseGrouped = await prisma.transaction.groupBy({
-        by: ['category'],
-        where: {
-          organizationId,
-          drops: { some: { dropId: drop.id } },
-          type: "EXPENSE",
-          ...dateFilter
-        },
-        _sum: { amount: true }
-      });
+  const dropIds = drops.map((d) => d.id);
 
-      let revenue = 0;
-      let shippingCost = 0;
-      let adSpend = 0;
-      let productionCost = 0;
+  // ── 2 total DB queries (down from 2×N) ────────────────────────────────────
 
-      incomeGrouped.forEach((g) => {
-        const amt = Number(g._sum.amount || 0);
-        const ship = Number(g._sum.shipmentFee || 0);
-        if (g.status === "RECEIVED") {
-          revenue += amt;
-        }
-        if (ship > 0) {
-          shippingCost += ship;
-        }
-      });
+  // Query 1: Income grouped by dropId + status across all drops at once.
+  // Uses the exclusive FK (dropId) on Transaction, which is the single source
+  // of truth for revenue attribution (prevents double-counting).
+  const allIncomeGrouped = await prisma.transaction.groupBy({
+    by: ['dropId', 'status'],
+    where: {
+      organizationId,
+      type: 'INCOME',
+      dropId: { in: dropIds },
+      ...dateFilter,
+    },
+    _sum: { amount: true, shipmentFee: true },
+  });
 
-      expenseGrouped.forEach((g) => {
-        const amt = Number(g._sum.amount || 0);
-        const cat = g.category?.toLowerCase() || "";
-        if (cat === "ads" || cat === "marketing" || cat === "ad spend") {
-          adSpend += amt;
-        } else if (cat === "raw materials" || cat === "packaging") {
-          productionCost += amt;
-        }
-      });
+  // Query 2: Expense amounts per drop, fetched via the TransactionDrop join table.
+  // Expenses use the many-to-many relation (a single expense can be shared across drops).
+  const allExpenseRows = await prisma.transactionDrop.findMany({
+    where: {
+      dropId: { in: dropIds },
+      transaction: {
+        organizationId,
+        type: 'EXPENSE',
+        ...dateFilter,
+      },
+    },
+    select: {
+      dropId: true,
+      transaction: {
+        select: { amount: true, category: true },
+      },
+    },
+  });
 
-      const netMargin = revenue - adSpend - productionCost - shippingCost;
-      const netMarginPercent = revenue > 0 ? (netMargin / revenue) * 100 : 0;
+  // ── Build lookup maps in JS ────────────────────────────────────────────────
 
-      return {
-        dropId: drop.id,
-        dropName: drop.name,
-        status: drop.status,
-        startDate: drop.startDate,
-        endDate: drop.endDate,
-        revenue,
-        adSpend,
-        productionCost,
-        netMargin,
-        netMarginPercent: Number(netMarginPercent.toFixed(1))
-      };
-    })
-  );
+  // Income map: dropId → { revenue, shippingCost }
+  const incomeMap = new Map<string, { revenue: number; shippingCost: number }>();
+  for (const g of allIncomeGrouped) {
+    if (!g.dropId) continue;
+    const existing = incomeMap.get(g.dropId) ?? { revenue: 0, shippingCost: 0 };
+    if (g.status === 'RECEIVED') {
+      existing.revenue += Number(g._sum.amount || 0);
+    }
+    existing.shippingCost += Number(g._sum.shipmentFee || 0);
+    incomeMap.set(g.dropId, existing);
+  }
 
-  // Sort by revenue descending
+  // Expense map: dropId → { adSpend, productionCost }
+  const expenseMap = new Map<string, { adSpend: number; productionCost: number }>();
+  for (const row of allExpenseRows) {
+    const existing = expenseMap.get(row.dropId) ?? { adSpend: 0, productionCost: 0 };
+    const amt = Number(row.transaction.amount || 0);
+    const cat = row.transaction.category?.toLowerCase() ?? '';
+    if (cat === 'ads' || cat === 'marketing' || cat === 'ad spend') {
+      existing.adSpend += amt;
+    } else if (cat === 'raw materials' || cat === 'packaging') {
+      existing.productionCost += amt;
+    }
+    expenseMap.set(row.dropId, existing);
+  }
+
+  // ── Build per-drop result (same output shape as before) ───────────────────
+
+  const performances: DropPerformance[] = drops.map((drop) => {
+    const inc = incomeMap.get(drop.id) ?? { revenue: 0, shippingCost: 0 };
+    const exp = expenseMap.get(drop.id) ?? { adSpend: 0, productionCost: 0 };
+
+    const { revenue, shippingCost } = inc;
+    const { adSpend, productionCost } = exp;
+
+    const netMargin = revenue - adSpend - productionCost - shippingCost;
+    const netMarginPercent = revenue > 0 ? (netMargin / revenue) * 100 : 0;
+
+    return {
+      dropId: drop.id,
+      dropName: drop.name,
+      status: drop.status,
+      startDate: drop.startDate,
+      endDate: drop.endDate,
+      revenue,
+      adSpend,
+      productionCost,
+      netMargin,
+      netMarginPercent: Number(netMarginPercent.toFixed(1)),
+    };
+  });
+
+  // Sort by revenue descending (same as before)
   performances.sort((a, b) => b.revenue - a.revenue);
 
   return performances;

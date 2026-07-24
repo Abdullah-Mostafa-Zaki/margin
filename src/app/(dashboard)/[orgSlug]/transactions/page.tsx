@@ -1,5 +1,3 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
@@ -19,9 +17,6 @@ export default async function TransactionsPage(props: {
   const resolvedParams = await props.params;
   const resolvedSearchParams = await props.searchParams;
   const tagFilter = resolvedSearchParams.tag;
-
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) redirect("/login");
 
   const { startDate, endDate } = getDateRangeFromParams(resolvedSearchParams);
 
