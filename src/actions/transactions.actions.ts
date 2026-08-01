@@ -386,11 +386,18 @@ export async function bulkAssignDrop(ids: string[], dropId: string, orgSlug: str
     .filter((t) => t.type === "EXPENSE")
     .map((t) => t.id);
 
-  // Update INCOME transactions: set the exclusive dropId FK
+  // Update INCOME transactions: exclusively link via TransactionDrop
   if (incomeIds.length > 0) {
-    await prisma.transaction.updateMany({
-      where: { id: { in: incomeIds }, organizationId: org.id },
-      data: { dropId },
+    await prisma.transactionDrop.deleteMany({
+      where: { transactionId: { in: incomeIds } }
+    });
+    
+    await prisma.transactionDrop.createMany({
+      data: incomeIds.map((id) => ({
+        transactionId: id,
+        dropId,
+      })),
+      skipDuplicates: true,
     });
   }
 
@@ -505,10 +512,7 @@ export async function fetchTransactionsTabData({
         organizationId: organization.id,
         type: tab,
         ...(tagFilter ? { 
-          OR: [
-            { dropId: tagFilter },
-            { drops: { some: { dropId: tagFilter } } }
-          ]
+          drops: { some: { dropId: tagFilter } }
         } : {}),
         ...(dateFilter ? { date: dateFilter } : {})
       },
@@ -521,10 +525,7 @@ export async function fetchTransactionsTabData({
         organizationId: organization.id,
         type: tab,
         ...(tagFilter ? { 
-          OR: [
-            { dropId: tagFilter },
-            { drops: { some: { dropId: tagFilter } } }
-          ]
+          drops: { some: { dropId: tagFilter } }
         } : {}),
         ...(dateFilter ? { date: dateFilter } : {})
       }

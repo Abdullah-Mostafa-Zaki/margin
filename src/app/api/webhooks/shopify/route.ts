@@ -168,8 +168,13 @@ export async function POST(req: Request) {
           fulfillmentStatus: fulfillmentStatus !== "UNFULFILLED" ? fulfillmentStatus : undefined,
         };
 
-        if (!existingTx.dropId && activeDrop) {
-          updateData.dropId = activeDrop.id;
+        if (activeDrop) {
+          await prisma.transactionDrop.deleteMany({
+            where: { transactionId: existingTx.id }
+          });
+          updateData.drops = {
+            create: { dropId: activeDrop.id }
+          };
         }
 
         // Re-sync LineItems: Delete existing and recreate from payload
@@ -219,7 +224,7 @@ export async function POST(req: Request) {
         organizationId: organization.id,
         createdById: ownerId,
         shopifyOrderId: normalizedOrderId,
-        dropId: activeDrop ? activeDrop.id : undefined,
+        drops: activeDrop ? { create: { dropId: activeDrop.id } } : undefined,
         customerCity: order.shipping_address?.city ?? null,
         customerId: order.customer?.id ? String(order.customer.id) : null,
         notes: `Shopify Order ${order.name || "\x23" + order.order_number}`,
@@ -257,7 +262,7 @@ export async function POST(req: Request) {
           organizationId: organization.id,
           createdById: ownerId,
           shopifyOrderId: normalizedOrderId ? `${normalizedOrderId}-shipping` : null,
-          dropId: activeDrop ? activeDrop.id : undefined,
+          drops: activeDrop ? { create: { dropId: activeDrop.id } } : undefined,
           notes: `Auto-deducted shipping cost for Shopify Order ${order.name || "\x23" + order.order_number}`,
         }
       });

@@ -43,18 +43,22 @@ async function fetchDropPerformance(
 
   // ── 2 total DB queries (down from 2×N) ────────────────────────────────────
 
-  // Query 1: Income grouped by dropId + status across all drops at once.
-  // Uses the exclusive FK (dropId) on Transaction, which is the single source
-  // of truth for revenue attribution (prevents double-counting).
-  const allIncomeGrouped = await prisma.transaction.groupBy({
-    by: ['dropId', 'status'],
+  // Query 1: Income amounts per drop, fetched via the TransactionDrop join table.
+  const allIncomeRows = await prisma.transactionDrop.findMany({
     where: {
-      organizationId,
-      type: 'INCOME',
       dropId: { in: dropIds },
-      ...dateFilter,
+      transaction: {
+        organizationId,
+        type: 'INCOME',
+        ...dateFilter,
+      },
     },
-    _sum: { amount: true, shipmentFee: true },
+    select: {
+      dropId: true,
+      transaction: {
+        select: { amount: true, shipmentFee: true, status: true },
+      },
+    },
   });
 
   // Query 2: Expense amounts per drop, fetched via the TransactionDrop join table.
@@ -80,14 +84,13 @@ async function fetchDropPerformance(
 
   // Income map: dropId → { revenue, shippingCost }
   const incomeMap = new Map<string, { revenue: number; shippingCost: number }>();
-  for (const g of allIncomeGrouped) {
-    if (!g.dropId) continue;
-    const existing = incomeMap.get(g.dropId) ?? { revenue: 0, shippingCost: 0 };
-    if (g.status === 'RECEIVED') {
-      existing.revenue += Number(g._sum.amount || 0);
+  for (const row of allIncomeRows) {
+    const existing = incomeMap.get(row.dropId) ?? { revenue: 0, shippingCost: 0 };
+    if (row.transaction.status === 'RECEIVED') {
+      existing.revenue += Number(row.transaction.amount || 0);
     }
-    existing.shippingCost += Number(g._sum.shipmentFee || 0);
-    incomeMap.set(g.dropId, existing);
+    existing.shippingCost += Number(row.transaction.shipmentFee || 0);
+    incomeMap.set(row.dropId, existing);
   }
 
   // Expense map: dropId → { adSpend, productionCost }
