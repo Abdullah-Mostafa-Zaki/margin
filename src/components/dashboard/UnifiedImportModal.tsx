@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScanLine, Sheet, Plus, ChevronLeft, Loader2, CheckCircle2, UploadCloud, AlertCircle, Trash2 } from "lucide-react";
+import { ScanLine, Sheet, Plus, ChevronLeft, Loader2, CheckCircle2, UploadCloud, AlertCircle, Trash2, Pencil, CalendarRange } from "lucide-react";
 import { useUploadThing } from "@/lib/uploadthing";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,7 +16,7 @@ import { usePostHog } from 'posthog-js/react';
 import { usePlan } from "@/lib/plan-context";
 import { PLAN_LIMITS } from "@/lib/plans";
 
-type ImportStep = "SPLIT" | "AI_SCANNER" | "SMART_SPREADSHEET" | "REVIEW" | "SAVING" | "DONE";
+type ImportStep = "SPLIT" | "AI_SCANNER" | "SMART_SPREADSHEET" | "REVIEW" | "PERIOD_ESTIMATE" | "SAVING" | "DONE";
 
 const EXPENSE_CATEGORIES = [
   "Raw Materials",
@@ -52,6 +52,10 @@ export interface UnifiedTransaction {
   confidence: "high" | "medium" | "low";
   confidenceNote?: string;
   imageUrl?: string;
+  dateConfidence?: "CONFIRMED" | "ESTIMATED";
+  estimatedRangeStart?: string;
+  estimatedRangeEnd?: string;
+  dropId?: string | null;
 }
 
 export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
@@ -60,6 +64,14 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
   const [isUploading, setIsUploading] = useState(false);
   const [transactions, setTransactions] = useState<UnifiedTransaction[]>([]);
   const [importMethod, setImportMethod] = useState<"image" | "shopify" | "flexible">("flexible");
+
+  const [periodStart, setPeriodStart] = useState("");
+  const [periodEnd, setPeriodEnd] = useState("");
+  const [matchingDrops, setMatchingDrops] = useState<any[]>([]);
+  const [selectedDropId, setSelectedDropId] = useState<string>("none");
+  const [isQueryingDrops, setIsQueryingDrops] = useState(false);
+  const [needsDropSelection, setNeedsDropSelection] = useState(false);
+  const [hideDateBanner, setHideDateBanner] = useState(false);
 
   const plan = usePlan();
   const hasImportAccess = PLAN_LIMITS[plan].fullExpenses;
@@ -122,6 +134,12 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
     setStep("SPLIT");
     setTransactions([]);
     setIsUploading(false);
+    setPeriodStart("");
+    setPeriodEnd("");
+    setMatchingDrops([]);
+    setSelectedDropId("none");
+    setNeedsDropSelection(false);
+    setHideDateBanner(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -189,20 +207,20 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
     setTransactions(newTx);
   };
 
-  const handleBatchSave = async () => {
+  const handleBatchSave = async (txsToSave = transactions) => {
     setStep("SAVING");
     try {
       const response = await fetch(`/api/organizations/${orgSlug}/transactions/batch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transactions, method: importMethod })
+        body: JSON.stringify({ transactions: txsToSave, method: importMethod })
       });
       
       if (!response.ok) throw new Error("Failed to save transactions");
       const data = await response.json();
       
       if (data.success) {
-        toast.success(`Saved ${data.created} transactions successfully.`);
+        toast.success(`Saved ${data.count} transactions successfully.`);
         setStep("DONE");
       } else {
         throw new Error(data.error || "Unknown error occurred.");
@@ -213,9 +231,64 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
     }
   };
 
+  const handleReviewConfirm = () => {
+    handleBatchSave();
+  };
+
+  const handlePeriodEstimateSubmit = async () => {
+    if (!periodStart || !periodEnd) {
+      toast.error("Please provide both start and end dates.");
+      return;
+    }
+
+    setIsQueryingDrops(true);
+    try {
+      const { getDropsByDateRange } = await import("@/actions/tags.actions");
+      const drops = await getDropsByDateRange(orgSlug, new Date(periodStart), new Date(periodEnd));
+      
+      setMatchingDrops(drops);
+      
+      if (drops.length === 0) {
+        applyMidpointAndSave(null);
+      } else if (drops.length === 1) {
+        applyMidpointAndSave(drops[0].id);
+      } else {
+        setNeedsDropSelection(true);
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsQueryingDrops(false);
+    }
+  };
+
+  const applyMidpointAndSave = (dropId: string | null) => {
+    const start = new Date(periodStart).getTime();
+    const end = new Date(periodEnd).getTime();
+    const mid = new Date((start + end) / 2).toISOString().split("T")[0];
+
+    const newTx = transactions.map(t => {
+      if (!t.date) {
+        return { 
+          ...t, 
+          date: mid, 
+          dateConfidence: "ESTIMATED", 
+          estimatedRangeStart: new Date(periodStart).toISOString(),
+          estimatedRangeEnd: new Date(periodEnd).toISOString(),
+          dropId: dropId === "none" ? null : dropId 
+        } as UnifiedTransaction;
+      }
+      return t;
+    });
+    setTransactions(newTx);
+    handleBatchSave(newTx);
+  };
+
   const totalCount = transactions.length;
   const totalIncome = transactions.filter(t => t.type === "INCOME").reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
   const totalExpense = transactions.filter(t => t.type === "EXPENSE").reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+  const missingDateCount = transactions.filter(t => !t.date).length;
+  const hasMissingDates = missingDateCount > 0;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -348,6 +421,41 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
 
         {step === "REVIEW" && (
           <div className="space-y-4">
+            {hasMissingDates && !hideDateBanner && (
+              <div className="space-y-3 mb-6">
+                <div className="text-amber-900 bg-amber-50 p-4 rounded-lg border border-amber-200">
+                  <p className="font-semibold">{missingDateCount} row{missingDateCount !== 1 ? 's are' : ' is'} missing dates. How do you want to handle them?</p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-4 w-full">
+                  <Card className="flex-1 cursor-pointer hover:border-primary transition-colors" onClick={() => setHideDateBanner(true)}>
+                    <CardHeader>
+                      <Pencil className="w-8 h-8 text-amber-500 mb-2" />
+                      <CardTitle>Add dates manually</CardTitle>
+                      <CardDescription>More accurate — edit each row yourself.</CardDescription>
+                    </CardHeader>
+                  </Card>
+                  <Card className="flex-1 cursor-pointer hover:border-primary transition-colors" onClick={() => setStep("PERIOD_ESTIMATE")}>
+                    <CardHeader>
+                      <CalendarRange className="w-8 h-8 text-emerald-500 mb-2" />
+                      <CardTitle>Pick a date range</CardTitle>
+                      <CardDescription>Faster — apply one range to all flagged rows.</CardDescription>
+                    </CardHeader>
+                  </Card>
+                </div>
+              </div>
+            )}
+            {hasMissingDates && hideDateBanner && (
+              <div className="flex items-center gap-2 mb-4">
+                <Button variant="ghost" size="icon" onClick={() => setHideDateBanner(false)} className="-ml-2">
+                  <ChevronLeft className="w-5 h-5" />
+                </Button>
+                <div className="flex flex-col">
+                  <DialogTitle>Missing dates</DialogTitle>
+                  <DialogDescription>Manually add dates for {missingDateCount} row{missingDateCount !== 1 ? 's' : ''}.</DialogDescription>
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row justify-between items-center bg-muted/50 p-4 rounded-lg">
               <div className="flex items-center gap-4">
                 <div><span className="text-sm text-muted-foreground">Count:</span> <span className="font-medium">{totalCount}</span></div>
@@ -559,8 +667,80 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
 
             <div className="flex flex-col sm:flex-row gap-2 w-full mt-4 sm:justify-end">
               <Button variant="outline" onClick={() => resetState()}>Cancel</Button>
-              <Button onClick={handleBatchSave}>Confirm & Import</Button>
+              <Button onClick={handleReviewConfirm} disabled={hasMissingDates}>Confirm & Import</Button>
             </div>
+          </div>
+        )}
+
+        {step === "PERIOD_ESTIMATE" && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={() => setStep("REVIEW")} className="-ml-2">
+                <ChevronLeft className="w-5 h-5" />
+              </Button>
+              <div className="flex flex-col">
+                <DialogTitle>Period Estimate</DialogTitle>
+                <DialogDescription>We couldn't find dates for {transactions.filter(t => !t.date).length} rows. What period does this file cover?</DialogDescription>
+              </div>
+            </div>
+
+            {!needsDropSelection ? (
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  <div className="flex-1 space-y-2">
+                    <label className="text-sm font-medium">Start Date</label>
+                    <Input type="date" value={periodStart} onChange={(e) => setPeriodStart(e.target.value)} />
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <label className="text-sm font-medium">End Date</label>
+                    <Input type="date" value={periodEnd} onChange={(e) => setPeriodEnd(e.target.value)} />
+                  </div>
+                </div>
+                <div className="flex justify-end pt-4">
+                  <Button onClick={handlePeriodEstimateSubmit} disabled={isQueryingDrops}>
+                    {isQueryingDrops && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    Continue
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                  <p className="font-medium">Multiple matching drops found</p>
+                  <p className="text-sm text-muted-foreground">This period overlaps with {matchingDrops.length} drops. Which one should these transactions be linked to?</p>
+                </div>
+                
+                <Select value={selectedDropId} onValueChange={(val: any) => setSelectedDropId(val)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a Drop">
+                      {(val: any) => {
+                        if (!val) return "Select a Drop";
+                        if (val === "none") return "None (Leave unlinked)";
+                        const d = matchingDrops.find((drop) => drop.id === val);
+                        if (!d) return "Select a Drop";
+                        return `${d.name} (${new Date(d.startDate).toLocaleDateString()} - ${new Date(d.endDate).toLocaleDateString()})`;
+                      }}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None (Leave unlinked)</SelectItem>
+                    {matchingDrops.map(d => {
+                      const labelText = `${d.name} (${new Date(d.startDate).toLocaleDateString()} - ${new Date(d.endDate).toLocaleDateString()})`;
+                      return (
+                        <SelectItem key={d.id} value={d.id} label={labelText}>
+                          {labelText}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+
+                <div className="flex justify-end pt-4 gap-2">
+                  <Button variant="outline" onClick={() => setNeedsDropSelection(false)}>Back</Button>
+                  <Button onClick={() => applyMidpointAndSave(selectedDropId)}>Confirm & Save</Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

@@ -264,11 +264,10 @@ async function detectStructure(
 // Pass 2 — Deterministic extraction using the ruleset
 // ────────────────────────────────────────────────────────────────────
 
-function parseDate(raw: any): string {
-  const defaultDate = formatCairoDate(new Date(), "yyyy-MM-dd");
-  if (!raw) return defaultDate;
+function parseDate(raw: any): string | null {
+  if (!raw) return null;
   const s = String(raw).trim();
-  if (!s) return defaultDate;
+  if (!s) return null;
 
   // Excel serial date
   const num = Number(s);
@@ -283,7 +282,7 @@ function parseDate(raw: any): string {
     return d.toISOString().split("T")[0];
   }
 
-  return defaultDate;
+  return null;
 }
 
 function parseAmount(raw: any): number {
@@ -499,8 +498,9 @@ function extractTransactions(
     // ── Date ──
     const dateRaw = cellByIdx(ruleset.columns.date);
     const dateStr = parseDate(dateRaw);
-    const dateClean = dateRaw != null && dateStr !== formatCairoDate(new Date(), "yyyy-MM-dd");
-    if (!dateClean) inferredFields++;
+    if (!dateStr) {
+      inferredFields++; // we are inferring that it needs a date later or we just mark it low confidence
+    }
 
     // ── Description ──
     const descRaw = cellByIdx(ruleset.columns.description);
@@ -547,7 +547,10 @@ function extractTransactions(
     // ── Confidence scoring ──
     let confidence: "high" | "medium" | "low" = "high";
     let confidenceNote: string | null = null;
-    if (defaultedFields >= 2) {
+    if (!dateStr) {
+      confidence = "low";
+      confidenceNote = "Missing date.";
+    } else if (defaultedFields >= 2) {
       confidence = "low";
       confidenceNote = "Multiple fields could not be extracted and were defaulted.";
     } else if (inferredFields > 0 || defaultedFields > 0) {
@@ -585,8 +588,6 @@ async function processChunk(groq: Groq, headers: string[], chunkRows: Record<str
     tableStr += rowValues.join(" | ") + "\n";
   }
 
-  const todayDate = formatCairoDate(new Date(), "yyyy-MM-dd");
-
   const prompt = `This is a financial spreadsheet from an Egyptian clothing brand. It may have any structure — vertical, horizontal, Arabic, English, mixed, with or without headers, with summary rows, with merged cells. 
 Read the entire sheet, understand what it contains, and extract every financial transaction you can identify.
 
@@ -596,17 +597,17 @@ Expense: "Raw Materials", "Manufacturing", "Packaging", "Logistics (Shipping)", 
 
 Valid payment methods: "CASH", "CARD", "INSTAPAY", "COD"
 
-If no date is provided for a transaction, use today's date in YYYY-MM-DD format: ${todayDate}
+If no date is found for a row, return "date": null and set "confidence": "low" with a confidenceNote explaining no date was found. Do not guess or default the date.
 
 Return ONLY a JSON object containing a "transactions" array with this exact schema for each transaction:
 {
-  "date": "YYYY-MM-DD", // default to ${todayDate} if unknown
+  "date": "YYYY-MM-DD" | null, // null if unknown
   "description": string, // map to "Unknown charge" if missing
   "amount": number, // positive absolute value
   "type": "INCOME" | "EXPENSE",
   "category": string, // map to one of the Valid categories
   "paymentMethod": string, // default "CASH". Cannot be COD for EXPENSE
-  "confidence": "high" | "medium" | "low", // use medium/low if fields were defaulted
+  "confidence": "high" | "medium" | "low", // use low if date is null, medium/low if fields were defaulted
   "confidenceNote": string | null
 }
 

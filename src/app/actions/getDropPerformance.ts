@@ -19,17 +19,25 @@ export interface DropPerformance {
 
 import { unstable_cache } from 'next/cache';
 
-async function fetchDropPerformance(
+export async function fetchDropPerformance(
   organizationId: string,
   startDate: Date | null,
   endDate: Date | null,
   tagId?: string
 ): Promise<DropPerformance[]> {
-  const dateFilter = startDate && endDate ? {
+  const dateFilter: any = startDate && endDate ? {
     date: {
       gte: startDate,
       lte: endDate,
-    }
+    },
+    OR: [
+      { dateConfidence: "CONFIRMED" },
+      { 
+        dateConfidence: "ESTIMATED",
+        estimatedRangeStart: { gte: startDate },
+        estimatedRangeEnd: { lte: endDate },
+      }
+    ]
   } : {};
 
   // Fetch all drops for the org, filtered by tagId if provided

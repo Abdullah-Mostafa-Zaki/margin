@@ -178,6 +178,9 @@ model Transaction {
   // Many-to-many join with Drop (for manual multi-drop assignment / expense tagging)
   drops               TransactionDrop[]
   source              TransactionSource @default(MANUAL)
+  dateConfidence      DateConfidence    @default(CONFIRMED)
+  estimatedRangeStart DateTime?
+  estimatedRangeEnd   DateTime?
 
   // ── Revenue double-counting prevention ────────────────────────────────────
   // A transaction can belong to AT MOST ONE drop for revenue purposes.
@@ -280,6 +283,11 @@ enum TransactionSource {
   IMPORT_CSV
   VOICE
   SHOPIFY
+}
+
+enum DateConfidence {
+  CONFIRMED
+  ESTIMATED
 }
 
 // ─── DropStatus ──────────────────────────────────────────────────────────────

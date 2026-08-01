@@ -166,6 +166,33 @@ export async function updateTag(id: string, orgSlug: string, name: string, descr
   revalidateTag(`org-${org.id}-transactions`, 'default');
 }
 
+export async function getDropsByDateRange(orgSlug: string, startDate: Date, endDate: Date) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const org = await prisma.organization.findUnique({
+    where: { slug: orgSlug },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
+
+  // Query Drops for the org where startDate <= periodEnd AND endDate >= periodStart
+  const drops = await prisma.drop.findMany({
+    where: {
+      organizationId: org.id,
+      startDate: { lte: endDate },
+      endDate: { gte: startDate },
+    },
+  });
+
+  return drops;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function computeDropStatus(startDate: Date, endDate: Date): "UPCOMING" | "LIVE" | "ENDED" {

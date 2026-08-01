@@ -17,7 +17,14 @@ export async function calculateRevenueMetrics(orgId: string, startDate: Date, en
   const result = await prisma.transaction.aggregate({
     where: {
       organizationId: orgId,
-      date: { gte: startDate, lte: endDate },
+      OR: [
+        { dateConfidence: "CONFIRMED", date: { gte: startDate, lte: endDate } },
+        { 
+          dateConfidence: "ESTIMATED",
+          estimatedRangeStart: { gte: startDate },
+          estimatedRangeEnd: { lte: endDate },
+        }
+      ],
       type: "INCOME",
       status: "RECEIVED",
     },
@@ -35,7 +42,14 @@ export async function calculateExpenseMetrics(orgId: string, startDate: Date, en
   const result = await prisma.transaction.aggregate({
     where: {
       organizationId: orgId,
-      date: { gte: startDate, lte: endDate },
+      OR: [
+        { dateConfidence: "CONFIRMED", date: { gte: startDate, lte: endDate } },
+        { 
+          dateConfidence: "ESTIMATED",
+          estimatedRangeStart: { gte: startDate },
+          estimatedRangeEnd: { lte: endDate },
+        }
+      ],
       type: "EXPENSE",
     },
     _sum: { amount: true },
@@ -45,7 +59,14 @@ export async function calculateExpenseMetrics(orgId: string, startDate: Date, en
     by: ["category"],
     where: {
       organizationId: orgId,
-      date: { gte: startDate, lte: endDate },
+      OR: [
+        { dateConfidence: "CONFIRMED", date: { gte: startDate, lte: endDate } },
+        { 
+          dateConfidence: "ESTIMATED",
+          estimatedRangeStart: { gte: startDate },
+          estimatedRangeEnd: { lte: endDate },
+        }
+      ],
       type: "EXPENSE",
     },
     _sum: { amount: true },
@@ -72,7 +93,14 @@ export async function calculateCodMetrics(orgId: string, startDate: Date, endDat
   const result = await prisma.transaction.aggregate({
     where: {
       organizationId: orgId,
-      date: { gte: startDate, lte: endDate },
+      OR: [
+        { dateConfidence: "CONFIRMED", date: { gte: startDate, lte: endDate } },
+        { 
+          dateConfidence: "ESTIMATED",
+          estimatedRangeStart: { gte: startDate },
+          estimatedRangeEnd: { lte: endDate },
+        }
+      ],
       type: "INCOME",
       paymentMethod: "COD",
       status: "PENDING",
@@ -94,7 +122,14 @@ export async function calculateProductMetrics(orgId: string, startDate: Date, en
     where: {
       transaction: {
         organizationId: orgId,
-        date: { gte: startDate, lte: endDate },
+      OR: [
+          { dateConfidence: "CONFIRMED", date: { gte: startDate, lte: endDate } },
+          { 
+            dateConfidence: "ESTIMATED",
+            estimatedRangeStart: { gte: startDate },
+            estimatedRangeEnd: { lte: endDate },
+          }
+        ],
         type: "INCOME",
         status: "RECEIVED",
       },
@@ -125,7 +160,14 @@ export async function calculateFulfillmentEfficiency(orgId: string, startDate: D
   const deliveredTxs = await prisma.transaction.findMany({
     where: {
       organizationId: orgId,
-      date: { gte: startDate, lte: endDate },
+      OR: [
+        { dateConfidence: "CONFIRMED", date: { gte: startDate, lte: endDate } },
+        { 
+          dateConfidence: "ESTIMATED",
+          estimatedRangeStart: { gte: startDate },
+          estimatedRangeEnd: { lte: endDate },
+        }
+      ],
       type: "INCOME",
       fulfillmentStatus: "DELIVERED"
     },
@@ -149,7 +191,14 @@ export async function calculateCostStructure(orgId: string, startDate: Date, end
     by: ["category"],
     where: {
       organizationId: orgId,
-      date: { gte: startDate, lte: endDate },
+      OR: [
+        { dateConfidence: "CONFIRMED", date: { gte: startDate, lte: endDate } },
+        { 
+          dateConfidence: "ESTIMATED",
+          estimatedRangeStart: { gte: startDate },
+          estimatedRangeEnd: { lte: endDate },
+        }
+      ],
       type: "EXPENSE",
     },
     _sum: { amount: true },
@@ -186,6 +235,14 @@ export async function calculateDropRoi(orgId: string, startDate: Date, endDate: 
     where: {
       organizationId: orgId,
       date: { gte: startDate, lte: endDate },
+      OR: [
+        { dateConfidence: "CONFIRMED" },
+        { 
+          dateConfidence: "ESTIMATED",
+          estimatedRangeStart: { gte: startDate },
+          estimatedRangeEnd: { lte: endDate },
+        }
+      ],
     },
     include: { drops: { include: { drop: true } } }
   });
@@ -225,7 +282,14 @@ export async function calculateReturnStatusCount(orgId: string, startDate: Date,
   const count = await prisma.transaction.count({
     where: {
       organizationId: orgId,
-      date: { gte: startDate, lte: endDate },
+      OR: [
+        { dateConfidence: "CONFIRMED", date: { gte: startDate, lte: endDate } },
+        { 
+          dateConfidence: "ESTIMATED",
+          estimatedRangeStart: { gte: startDate },
+          estimatedRangeEnd: { lte: endDate },
+        }
+      ],
       type: "INCOME",
       fulfillmentStatus: "RETURNED",
     }
@@ -241,7 +305,14 @@ export async function calculateHistoricalBenchmarks(orgId: string, endDate: Date
   const revAgg = await prisma.transaction.aggregate({
     where: {
       organizationId: orgId,
-      date: { gte: ninetyDaysAgo, lte: endDate },
+      OR: [
+        { dateConfidence: "CONFIRMED", date: { gte: ninetyDaysAgo, lte: endDate } },
+        { 
+          dateConfidence: "ESTIMATED",
+          estimatedRangeStart: { gte: ninetyDaysAgo },
+          estimatedRangeEnd: { lte: endDate },
+        }
+      ],
       type: "INCOME",
       status: "RECEIVED",
     },
@@ -254,7 +325,14 @@ export async function calculateHistoricalBenchmarks(orgId: string, endDate: Date
   const expAgg = await prisma.transaction.aggregate({
     where: {
       organizationId: orgId,
-      date: { gte: ninetyDaysAgo, lte: endDate },
+      OR: [
+        { dateConfidence: "CONFIRMED", date: { gte: ninetyDaysAgo, lte: endDate } },
+        { 
+          dateConfidence: "ESTIMATED",
+          estimatedRangeStart: { gte: ninetyDaysAgo },
+          estimatedRangeEnd: { lte: endDate },
+        }
+      ],
       type: "EXPENSE",
     },
     _sum: { amount: true },
@@ -266,7 +344,14 @@ export async function calculateHistoricalBenchmarks(orgId: string, endDate: Date
     by: ["category"],
     where: {
       organizationId: orgId,
-      date: { gte: ninetyDaysAgo, lte: endDate },
+      OR: [
+        { dateConfidence: "CONFIRMED", date: { gte: ninetyDaysAgo, lte: endDate } },
+        { 
+          dateConfidence: "ESTIMATED",
+          estimatedRangeStart: { gte: ninetyDaysAgo },
+          estimatedRangeEnd: { lte: endDate },
+        }
+      ],
       type: "EXPENSE",
     },
     _sum: { amount: true },
@@ -278,7 +363,14 @@ export async function calculateHistoricalBenchmarks(orgId: string, endDate: Date
   const returnsAgg = await prisma.transaction.aggregate({
     where: {
       organizationId: orgId,
-      date: { gte: ninetyDaysAgo, lte: endDate },
+      OR: [
+        { dateConfidence: "CONFIRMED", date: { gte: ninetyDaysAgo, lte: endDate } },
+        { 
+          dateConfidence: "ESTIMATED",
+          estimatedRangeStart: { gte: ninetyDaysAgo },
+          estimatedRangeEnd: { lte: endDate },
+        }
+      ],
       type: "EXPENSE",
       category: "Returns & Refunds",
     },
@@ -291,7 +383,14 @@ export async function calculateHistoricalBenchmarks(orgId: string, endDate: Date
   const codAgg = await prisma.transaction.aggregate({
     where: {
       organizationId: orgId,
-      date: { gte: ninetyDaysAgo, lte: endDate },
+      OR: [
+        { dateConfidence: "CONFIRMED", date: { gte: ninetyDaysAgo, lte: endDate } },
+        { 
+          dateConfidence: "ESTIMATED",
+          estimatedRangeStart: { gte: ninetyDaysAgo },
+          estimatedRangeEnd: { lte: endDate },
+        }
+      ],
       type: "INCOME",
       paymentMethod: "COD",
     },
@@ -348,6 +447,18 @@ export function calculateConfidenceScore(
   return "MEDIUM";
 }
 
+
+export async function calculateEstimatedDatesCount(orgId: string, startDate: Date, endDate: Date) {
+  const count = await prisma.transaction.count({
+    where: {
+      organizationId: orgId,
+      date: { gte: startDate, lte: endDate },
+      dateConfidence: "ESTIMATED",
+    }
+  });
+  return { estimatedDatesCount: count };
+}
+
 export async function generateAnalyticsPayload(
   orgId: string,
   startDate: Date,
@@ -361,12 +472,14 @@ export async function generateAnalyticsPayload(
     rev, 
     priorRev, 
     benchmarks, 
-    returnStats
+    returnStats,
+    estimatedCount
   ] = await Promise.all([
     calculateRevenueMetrics(orgId, startDate, endDate),
     calculateRevenueMetrics(orgId, priorStartDate, startDate),
     calculateHistoricalBenchmarks(orgId, endDate),
-    calculateReturnStatusCount(orgId, startDate, endDate)
+    calculateReturnStatusCount(orgId, startDate, endDate),
+    calculateEstimatedDatesCount(orgId, startDate, endDate)
   ]);
 
   let product = {}, fulfillment = {}, costStructure = {}, dropRoi = {};
@@ -422,6 +535,7 @@ export async function generateAnalyticsPayload(
     ...costStructure,
     ...dropRoi,
     ...returnStats,
+    ...estimatedCount,
   };
 
   // Check days of data for confidence score
