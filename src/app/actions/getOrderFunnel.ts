@@ -39,10 +39,11 @@ async function fetchOrderFunnel(
     drops: { some: { dropId: tagId } }
   } : {};
 
-  // Base query: All INCOME transactions
+  // Base query: All INCOME transactions that represent actual customer orders
   const baseWhere = {
     organizationId,
     type: "INCOME" as const,
+    category: { in: ["Sales Revenue", "Pop-up/Bazaar Sales", "Wholesale/B2B"] },
     ...dateFilter,
     ...tagFilter,
   };
