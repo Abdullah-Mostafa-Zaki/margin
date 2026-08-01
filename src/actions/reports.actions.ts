@@ -259,10 +259,14 @@ export async function getTransactionsForExport(
     const transactions = await prisma.transaction.findMany({
       where: {
         organizationId: org.id,
-        date: {
-          gte: new Date(startDateStr),
-          lte: new Date(endDateStr),
-        },
+        OR: [
+          { dateConfidence: "CONFIRMED" as any, date: { gte: new Date(startDateStr), lte: new Date(endDateStr) } },
+          { 
+            dateConfidence: "ESTIMATED" as any,
+            estimatedRangeStart: { gte: new Date(startDateStr) },
+            estimatedRangeEnd: { lte: new Date(endDateStr) },
+          }
+        ],
       },
       orderBy: { date: "desc" },
     });

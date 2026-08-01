@@ -1,0 +1,1613 @@
+================== src/app/actions/getReturnsByCity.ts
+"use server";
+
+import prisma from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+export interface CityReturnData {
+  city: string;
+  totalOrders: number;
+  returned: number;
+  returnRate: number;
+}
+
+import { unstable_cache } from 'next/cache';
+
+async function fetchReturnsByCity(
+  organizationId: string,
+  startDate: Date | null,
+  endDate: Date | null,
+  tagId?: string
+): Promise<CityReturnData[]> {
+  const dateFilter = startDate && endDate ? {
+    date: {
+      gte: startDate,
+      lte: endDate,
+    }
+  } : {};
+
+  const tagFilter = tagId ? { 
+    OR: [
+      { dropId: tagId },
+      { drops: { some: { dropId: tagId } } }
+    ]
+  } : {};
+
+  // Fetch COD INCOME transactions with a city
+  const transactions = await prisma.transaction.findMany({
+    where: {
+      organizationId,
+      paymentMethod: "COD",
+      type: "INCOME",
+      customerCity: { not: null },
+      ...dateFilter,
+      ...tagFilter,
+    },
+    select: {
+      customerCity: true,
+      status: true,
+    },
+  });
+
+  const cityMap = new Map<string, { totalOrders: number; returned: number }>();
+
+  for (const t of transactions) {
+    if (!t.customerCity) continue;
+    
+    // Normalize city: capitalize first letter, lowercase the rest
+    const rawCity = t.customerCity.trim();
+    if (!rawCity) continue;
+    const normalizedCity = rawCity.charAt(0).toUpperCase() + rawCity.slice(1).toLowerCase();
+
+    const existing = cityMap.get(normalizedCity) || { totalOrders: 0, returned: 0 };
+    existing.totalOrders += 1;
+    if (t.status === "RETURNED") {
+      existing.returned += 1;
+    }
+    cityMap.set(normalizedCity, existing);
+  }
+
+  const results: CityReturnData[] = [];
+  for (const [city, data] of Array.from(cityMap.entries())) {
+    const returnRate = data.totalOrders > 0 ? (data.returned / data.totalOrders) * 100 : 0;
+    results.push({
+      city,
+      totalOrders: data.totalOrders,
+      returned: data.returned,
+      returnRate,
+    });
+  }
+
+  // Sort descending by returnRate, then by totalOrders
+  results.sort((a, b) => {
+    if (b.returnRate !== a.returnRate) {
+      return b.returnRate - a.returnRate;
+    }
+    return b.totalOrders - a.totalOrders;
+  });
+
+  return results.slice(0, 10);
+}
+
+export async function getReturnsByCity(
+  organizationId: string,
+  startDate: Date | null,
+  endDate: Date | null,
+  tagId?: string
+): Promise<CityReturnData[]> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized: No session");
+
+  const org = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden: User does not belong to this organization");
+
+  const getCached = unstable_cache(
+    async () => fetchReturnsByCity(organizationId, startDate, endDate, tagId),
+    [
+      'returns-by-city',
+      organizationId,
+      startDate?.toISOString() || 'all',
+      endDate?.toISOString() || 'all',
+      tagId || 'none'
+    ],
+    {
+      tags: [`org-${organizationId}-transactions`],
+      revalidate: 3600
+    }
+  );
+
+  return getCached();
+}
+
+================== src/app/actions/getOrderFunnel.ts
+"use server";
+
+import prisma from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+export interface OrderFunnelData {
+  totalOrders: number;
+  shipped: number;
+  delivered: number;
+  returned: number;
+  returnRate: number;
+}
+
+import { unstable_cache } from 'next/cache';
+
+async function fetchOrderFunnel(
+  organizationId: string,
+  startDate: Date | null,
+  endDate: Date | null,
+  tagId?: string
+): Promise<OrderFunnelData> {
+  const dateFilter = startDate && endDate ? {
+    date: {
+      gte: startDate,
+      lte: endDate,
+    }
+  } : {};
+
+  const tagFilter = tagId ? { 
+    OR: [
+      { dropId: tagId },
+      { drops: { some: { dropId: tagId } } }
+    ]
+  } : {};
+
+  // Base query: All INCOME transactions
+  const baseWhere = {
+    organizationId,
+    type: "INCOME" as const,
+    ...dateFilter,
+    ...tagFilter,
+  };
+
+  const totalOrders = await prisma.transaction.count({
+    where: baseWhere,
+  });
+
+  const shipped = await prisma.transaction.count({
+    where: {
+      ...baseWhere,
+      fulfillmentStatus: { in: ["SHIPPED", "DELIVERED", "RETURNED"] },
+    },
+  });
+
+  const delivered = await prisma.transaction.count({
+    where: {
+      ...baseWhere,
+      fulfillmentStatus: "DELIVERED",
+    },
+  });
+
+  const returned = await prisma.transaction.count({
+    where: {
+      ...baseWhere,
+      fulfillmentStatus: "RETURNED",
+    },
+  });
+
+  const returnRate = totalOrders > 0 ? (returned / totalOrders) * 100 : 0;
+
+  return {
+    totalOrders,
+    shipped,
+    delivered,
+    returned,
+    returnRate,
+  };
+}
+
+export async function getOrderFunnel(
+  organizationId: string,
+  startDate: Date | null,
+  endDate: Date | null,
+  tagId?: string
+): Promise<OrderFunnelData> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized: No session");
+
+  const org = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden: User does not belong to this organization");
+
+  const getCached = unstable_cache(
+    async () => fetchOrderFunnel(organizationId, startDate, endDate, tagId),
+    [
+      'order-funnel',
+      organizationId,
+      startDate?.toISOString() || 'all',
+      endDate?.toISOString() || 'all',
+      tagId || 'none'
+    ],
+    {
+      tags: [`org-${organizationId}-transactions`],
+      revalidate: 3600
+    }
+  );
+
+  return getCached();
+}
+
+================== src/app/actions/getMonthMetrics.ts
+"use server";
+
+import prisma from "@/lib/prisma";
+import { unstable_cache } from "next/cache";
+import { startOfCairoMonth, endOfCairoMonth } from "@/lib/date-utils";
+
+async function fetchMonthMetrics(organizationId: string) {
+  const now = new Date();
+  
+  const startOfMonthUtc = startOfCairoMonth(now);
+  const endOfMonthUtc = endOfCairoMonth(now);
+
+  const grouped = await prisma.transaction.groupBy({
+    by: ["type", "status"],
+    where: {
+      organizationId,
+      date: {
+        gte: startOfMonthUtc,
+        lte: endOfMonthUtc,
+      },
+    },
+    _sum: { amount: true },
+  });
+
+  let monthRevenue = 0;
+  let monthExpenses = 0;
+
+  grouped.forEach((g) => {
+    const amt = Number(g._sum.amount || 0);
+    if (g.type === "INCOME" && g.status === "RECEIVED") {
+      monthRevenue += amt;
+    } else if (g.type === "EXPENSE") {
+      monthExpenses += amt;
+    }
+  });
+
+  const monthNetProfit = monthRevenue - monthExpenses;
+
+  return {
+    monthRevenue,
+    monthExpenses,
+    monthNetProfit,
+  };
+}
+
+export async function getMonthMetrics(organizationId: string) {
+  const getCached = unstable_cache(
+    async () => fetchMonthMetrics(organizationId),
+    ["monthMetrics", organizationId],
+    {
+      tags: [`org-${organizationId}-transactions`],
+      revalidate: 300, // 5 minutes
+    }
+  );
+  return getCached();
+}
+
+================== src/app/actions/getMarketingMetrics.ts
+import prisma from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+
+export interface MarketingMetrics {
+  roas: number | null;
+  roasPrevious: number | null;
+  cac: number | null;
+  cacPrevious: number | null;
+  adSpendByDate: { date: Date; amount: number }[];
+}
+
+import { unstable_cache } from 'next/cache';
+
+async function fetchMarketingMetrics(
+  organizationId: string,
+  startDate?: Date,
+  endDate?: Date,
+  tagId?: string
+): Promise<MarketingMetrics> {
+  const dateFilter: Prisma.TransactionWhereInput = startDate && endDate ? { date: { gte: startDate, lte: endDate } } : {};
+  const isAllTime = !startDate && !endDate;
+
+  // Helper to fetch metrics for a given period
+  const fetchPeriodMetrics = async (filter: Prisma.TransactionWhereInput, pStart?: Date) => {
+    const localTagFilter = tagId ? { 
+      OR: [
+        { dropId: tagId },
+        { drops: { some: { dropId: tagId } } }
+      ]
+    } : {};
+
+    // A. Ad Spend
+    const adSpendTxs = await prisma.transaction.findMany({
+      where: {
+        organizationId,
+        type: "EXPENSE",
+        status: "RECEIVED",
+        ...filter,
+        ...localTagFilter,
+        OR: [
+          { category: { equals: "Ads", mode: "insensitive" } },
+          { category: { equals: "Marketing", mode: "insensitive" } },
+          { category: { equals: "Ad Spend", mode: "insensitive" } },
+        ],
+      },
+      select: { amount: true, date: true },
+      orderBy: { date: "asc" },
+    });
+
+    const totalAdSpend = adSpendTxs.reduce((sum, tx) => sum + Number(tx.amount), 0);
+
+    // B. Realized Revenue
+    const incomeTxs = await prisma.transaction.aggregate({
+      where: {
+        organizationId,
+        type: "INCOME",
+        status: "RECEIVED",
+        ...filter,
+        ...localTagFilter,
+      },
+      _sum: { amount: true },
+    });
+    const realizedRevenue = Number(incomeTxs._sum.amount || 0);
+
+    const roas = totalAdSpend > 0 ? realizedRevenue / totalAdSpend : null;
+
+    // C. New Customers
+    let newCustomerCount = 0;
+    
+    const currentPeriodCustomers = await prisma.transaction.findMany({
+      where: {
+        organizationId,
+        type: "INCOME",
+        customerId: { not: null },
+        ...filter,
+        ...localTagFilter,
+      },
+      select: { customerId: true },
+      distinct: ["customerId"],
+    });
+
+    const customerIds = currentPeriodCustomers.map((c) => c.customerId as string);
+
+    if (customerIds.length > 0) {
+      if (!pStart) {
+        newCustomerCount = customerIds.length;
+      } else {
+        const existingPrior = await prisma.transaction.findMany({
+          where: {
+            organizationId,
+            type: "INCOME",
+            customerId: { in: customerIds },
+            date: { lt: pStart },
+            ...localTagFilter,
+          },
+          select: { customerId: true },
+          distinct: ["customerId"],
+        });
+
+        const priorSet = new Set(existingPrior.map((c) => c.customerId as string));
+        newCustomerCount = customerIds.filter((id) => !priorSet.has(id)).length;
+      }
+    }
+
+    const cac = newCustomerCount > 0 ? totalAdSpend / newCustomerCount : (totalAdSpend > 0 ? totalAdSpend : null);
+
+    return { totalAdSpend, roas, cac, adSpendTxs };
+  };
+
+  // Current Period
+  const current = await fetchPeriodMetrics(dateFilter, startDate);
+
+  // Previous Period
+  let prevFilter: Prisma.TransactionWhereInput = {};
+  if (isAllTime) {
+    const now = new Date();
+    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    
+    const currentMonthData = await fetchPeriodMetrics({ date: { gte: startOfThisMonth } }, startOfThisMonth);
+    current.roas = currentMonthData.roas;
+    current.cac = currentMonthData.cac;
+
+    prevFilter = { date: { gte: startOfLastMonth, lte: endOfLastMonth } };
+  } else {
+    const duration = endDate!.getTime() - startDate!.getTime();
+    const prevStart = new Date(startDate!.getTime() - duration - 1);
+    const prevEnd = new Date(startDate!.getTime() - 1);
+    prevFilter = { date: { gte: prevStart, lte: prevEnd } };
+  }
+
+  const prev = await fetchPeriodMetrics(prevFilter, isAllTime ? undefined : new Date(startDate!.getTime() - (endDate!.getTime() - startDate!.getTime()) - 1));
+
+  return {
+    roas: current.roas,
+    roasPrevious: prev.roas,
+    cac: current.cac,
+    cacPrevious: prev.cac,
+    adSpendByDate: current.adSpendTxs.map((tx) => ({
+      date: tx.date,
+      amount: Number(tx.amount),
+    })),
+  };
+}
+
+export async function getMarketingMetrics(
+  organizationId: string,
+  startDate?: Date,
+  endDate?: Date,
+  tagId?: string
+): Promise<MarketingMetrics> {
+  const org = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    select: { id: true },
+  });
+
+  if (!org) {
+    throw new Error("Organization not found");
+  }
+
+  const getCached = unstable_cache(
+    async () => fetchMarketingMetrics(organizationId, startDate, endDate, tagId),
+    [
+      'marketing-metrics',
+      organizationId,
+      startDate?.toISOString() || 'all',
+      endDate?.toISOString() || 'all',
+      tagId || 'none'
+    ],
+    {
+      tags: [`org-${organizationId}-transactions`],
+      revalidate: 3600
+    }
+  );
+
+  return getCached();
+}
+
+================== src/app/actions/getDashboardInsights.ts
+"use server";
+
+import prisma from "@/lib/prisma";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface DashboardInsights {
+  mainText: string;
+  actionText: string;
+  escrowText: string | null;
+  /** Tailwind background, border, and text classes combined */
+  colorClass: string;
+  
+  totalOrders: number;
+  realizedRevenue: number;
+  totalExpenses: number;
+  netProfit: number;
+  adSpend: number;
+  pendingEscrow: number;
+  returnedRevenue: number;
+  excelBullets: string[];
+  expenseSubtitle: string;
+  marginPct: number;
+  rawPercent: number;
+  ordersToBreakeven: number;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatCurrency(amount: number): string {
+  return `${Math.round(amount).toLocaleString("en-EG")} EGP`;
+}
+
+function formatPercent(value: number): string {
+  return `${Math.round(value)}%`;
+}
+
+// ─── Main Action ──────────────────────────────────────────────────────────────
+
+import { unstable_cache } from 'next/cache';
+
+async function fetchDashboardInsights(
+  organizationId: string,
+  startDate: Date | null,
+  endDate: Date | null,
+  tagId?: string
+): Promise<DashboardInsights> {
+  const dateFilter = startDate && endDate ? {
+    date: {
+      gte: startDate,
+      lte: endDate,
+    }
+  } : {};
+
+  const tagFilter = tagId ? { 
+    OR: [
+      { dropId: tagId },
+      { drops: { some: { dropId: tagId } } }
+    ]
+  } : {};
+
+  // Fetch grouped transactions to leverage SQL aggregation and save memory
+  const groupedTransactions = await prisma.transaction.groupBy({
+    by: ['type', 'status', 'category', 'fulfillmentStatus'],
+    where: {
+      organizationId,
+      ...dateFilter,
+      ...tagFilter,
+    },
+    _sum: {
+      amount: true,
+      shipmentFee: true,
+    },
+    _count: {
+      id: true,
+    },
+  });
+
+  // ─── Calculations ──────────────────────────────────────────────────────────
+
+  let realizedRevenue = 0;
+  let pendingEscrow = 0;
+  let returnedRevenue = 0;
+  let manualExpenses = 0;
+  let shippingCosts = 0;
+  let adSpend = 0;
+  let totalOrders = 0;
+  const expenseByCategory: Record<string, number> = {};
+
+  groupedTransactions.forEach((group) => {
+    const sumAmount = Number(group._sum.amount || 0);
+    const sumShipment = Number(group._sum.shipmentFee || 0);
+
+    if (group.type === "INCOME") {
+      if (group.status === "RECEIVED") {
+        realizedRevenue += sumAmount;
+      }
+      if (group.status === "PENDING") {
+        pendingEscrow += sumAmount;
+      }
+      if (group.fulfillmentStatus === "RETURNED") {
+        returnedRevenue += sumAmount;
+      }
+      if (sumShipment > 0) {
+        shippingCosts += sumShipment;
+      }
+      
+      // God Metric Denominator
+      if (group.status === "RECEIVED" && group.category.toLowerCase() === "sales revenue") {
+        totalOrders += group._count.id;
+      }
+    } else if (group.type === "EXPENSE") {
+      manualExpenses += sumAmount;
+
+      // Ad Spend
+      const catLower = group.category.toLowerCase();
+      if (catLower === "ads" || catLower === "marketing" || catLower === "ad spend") {
+        adSpend += sumAmount;
+      }
+
+      // Expense Breakdown
+      expenseByCategory[group.category] = (expenseByCategory[group.category] || 0) + sumAmount;
+    }
+  });
+
+  const totalExpenses = manualExpenses + shippingCosts;
+
+  if (shippingCosts > 0) {
+    expenseByCategory["Shipping"] = (expenseByCategory["Shipping"] || 0) + shippingCosts;
+  }
+
+  let topExpenseCategory: { category: string; pct: number } | null = null;
+  if (totalExpenses > 0) {
+    const sortedExpenses = Object.entries(expenseByCategory).sort((a, b) => b[1] - a[1]);
+    if (sortedExpenses.length > 0) {
+      topExpenseCategory = {
+        category: sortedExpenses[0][0],
+        pct: (sortedExpenses[0][1] / totalExpenses) * 100
+      };
+    }
+  }
+
+  // 8. Net Profit
+  const netProfit = realizedRevenue - totalExpenses;
+
+  // 9. Margin % (guard against division by zero)
+  const marginPct =
+    realizedRevenue > 0 ? (netProfit / realizedRevenue) * 100 : 0;
+
+  // 10. Ad Spend % (guard against division by zero)
+  const adSpendPct =
+    realizedRevenue > 0 ? (adSpend / realizedRevenue) * 100 : 0;
+
+  // 11. Raw Materials %
+  const rawExpense = expenseByCategory["Raw Materials"] || 0;
+  const rawPercent = totalExpenses > 0 ? (rawExpense / totalExpenses) * 100 : 0;
+
+  // 12. Orders to Breakeven
+  const averageOrderValue = totalOrders > 0 ? realizedRevenue / totalOrders : 0;
+  const ordersToBreakeven = netProfit < 0 && averageOrderValue > 0 
+    ? Math.ceil(Math.abs(netProfit) / averageOrderValue) 
+    : 0;
+
+  // ─── Formatted values ──────────────────────────────────────────────────────
+
+  const fRevenue = formatCurrency(realizedRevenue);
+  const fEscrow = formatCurrency(pendingEscrow);
+  const fNetProfit = formatCurrency(netProfit);
+  const fMargin = formatPercent(marginPct);
+  const fAdPct = formatPercent(adSpendPct);
+
+  // ─── Excel Bullets ────────────────────────────────────────────────────────
+  const excelBullets: string[] = [];
+  excelBullets.push(`You generated ${fRevenue} in top-line revenue, but your actual take-home profit is only ${fNetProfit}.`);
+  if (adSpend > 0) {
+    excelBullets.push(`You spent ${formatCurrency(adSpend)} to acquire these sales.`);
+  }
+  if (pendingEscrow > 0) {
+    excelBullets.push(`You have ${fEscrow} floating with couriers right now.`);
+  }
+
+  // ─── Expense Chart Subtitle ───────────────────────────────────────────────
+  let expenseSubtitle = "";
+  if (topExpenseCategory && topExpenseCategory.pct > 70 && topExpenseCategory.category.toLowerCase() === "raw materials") {
+    expenseSubtitle = "Raw materials dominate your costs. Negotiate bulk pricing.";
+  } else if (adSpendPct > 40) {
+    expenseSubtitle = "Ads are consuming a massive portion of revenue. Drill down on ROAS.";
+  } else if (topExpenseCategory) {
+    expenseSubtitle = `${topExpenseCategory.category} is your highest expense at ${Math.round(topExpenseCategory.pct)}%. Monitor closely.`;
+  }
+
+  // ─── Escrow Text (universal rule) ─────────────────────────────────────────
+
+  let escrowText: string | null = null;
+  if (pendingEscrow > realizedRevenue) {
+    escrowText = `Most of your money (${fEscrow}) is still uncollected. Focus on delivery success rate.`;
+  } else if (pendingEscrow > 0) {
+    escrowText = `You also have ${fEscrow} waiting with couriers.`;
+  }
+
+  // ─── Insight Rules (evaluated in strict order) ────────────────────────────
+
+  let mainText = "";
+  let actionText = "";
+  let colorClass = "";
+
+  // Rule 1: No revenue
+  if (realizedRevenue === 0) {
+    mainText = "No revenue found for this period.";
+    actionText = "Start generating sales to see actionable insights.";
+    colorClass = "bg-zinc-50 border-zinc-200 text-zinc-900";
+  }
+  // Rule 2: Losing money
+  else if (netProfit < 0) {
+    mainText = `You made ${fRevenue} revenue, but you're losing money.`;
+    actionText = adSpendPct > 30
+      ? `Ads are eating ${fAdPct} of it. Reduce acquisition costs.`
+      : "Cut costs immediately to reach profitability.";
+    colorClass = "bg-rose-50 border-rose-200 text-rose-900";
+  }
+  // Rule 3: Warning state (low profitability or high ad spend)
+  else if (marginPct > 0 && marginPct <= 15) {
+    mainText = `You made ${fNetProfit} true profit. Your margins are tight at ${fMargin}.`;
+    actionText = adSpendPct > 20
+      ? `Watch your acquisition costs. Ads represent ${fAdPct} of revenue.`
+      : "Increase prices or reduce costs.";
+    colorClass = "bg-amber-50 border-amber-200 text-amber-900";
+  }
+  // Rule 4: Green State (Healthy)
+  else {
+    mainText = `You made ${fNetProfit} in true profit. Your margins are healthy at ${fMargin}.`;
+    actionText = "Keep it up. Focus on scaling what's working.";
+    colorClass = "bg-emerald-50 border-emerald-200 text-emerald-900";
+  }
+
+  // Dynamic injection for expense ratios (e.g. Raw Materials > 70%)
+  if (realizedRevenue > 0 && topExpenseCategory && topExpenseCategory.pct > 70 && topExpenseCategory.category.toLowerCase() === "raw materials") {
+    actionText += ` Raw materials are taking up ${Math.round(topExpenseCategory.pct)}% of expenses. Check supplier pricing.`;
+  }
+
+  return {
+    mainText,
+    actionText,
+    escrowText,
+    colorClass,
+    totalOrders,
+    realizedRevenue,
+    totalExpenses,
+    netProfit,
+    adSpend,
+    pendingEscrow,
+    returnedRevenue,
+    excelBullets,
+    expenseSubtitle,
+    marginPct,
+    rawPercent,
+    ordersToBreakeven,
+  };
+}
+
+export async function getDashboardInsights(
+  organizationId: string,
+  startDate: Date | null,
+  endDate: Date | null,
+  tagId?: string
+): Promise<DashboardInsights> {
+  const getCached = unstable_cache(
+    async () => fetchDashboardInsights(organizationId, startDate, endDate, tagId),
+    [
+      'dashboard-insights',
+      organizationId,
+      startDate?.toISOString() || 'all',
+      endDate?.toISOString() || 'all',
+      tagId || 'none'
+    ],
+    {
+      tags: [`org-${organizationId}-transactions`],
+      revalidate: 3600
+    }
+  );
+  return getCached();
+}
+
+================== src/app/actions/getAnalyticsVelocity.ts
+"use server";
+
+import prisma from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+export interface VelocityDeltas {
+  netProfit: number | null;
+  realizedRevenue: number | null;
+  totalExpenses: number | null;
+  pendingEscrow: number | null;
+}
+
+import { unstable_cache } from 'next/cache';
+
+async function fetchAnalyticsVelocity(
+  organizationId: string,
+  startDate: Date | null,
+  endDate: Date | null,
+  tagId?: string
+): Promise<VelocityDeltas> {
+  let currentStart: Date | null = startDate;
+  let currentEnd: Date | null = endDate;
+  let prevStart: Date | null = null;
+  let prevEnd: Date | null = null;
+
+  if (currentStart && currentEnd) {
+    const durationMs = currentEnd.getTime() - currentStart.getTime();
+    prevEnd = new Date(currentStart.getTime() - 1);
+    prevStart = new Date(prevEnd.getTime() - durationMs);
+  } else {
+    // "All Time" - compare current month vs previous month
+    const now = new Date();
+    currentStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    currentEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    
+    prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    prevEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+  }
+
+  const tagFilter = tagId ? { 
+    drops: { some: { dropId: tagId } }
+  } : {};
+
+  // Fetch current period transactions
+  const currentTransactions = await prisma.transaction.findMany({
+    where: {
+      organizationId,
+      date: { gte: currentStart, lte: currentEnd },
+      ...tagFilter,
+    },
+    select: { type: true, amount: true, status: true, shipmentFee: true },
+  });
+
+  // Fetch previous period transactions
+  const prevTransactions = await prisma.transaction.findMany({
+    where: {
+      organizationId,
+      date: { gte: prevStart, lte: prevEnd },
+      ...tagFilter,
+    },
+    select: { type: true, amount: true, status: true, shipmentFee: true },
+  });
+
+  const calculateMetrics = (txs: any[]) => {
+    let realizedRevenue = 0;
+    let pendingEscrow = 0;
+    let manualExpenses = 0;
+    let shippingCosts = 0;
+
+    txs.forEach((t) => {
+      if (t.type === "INCOME") {
+        if (t.status === "RECEIVED") realizedRevenue += Number(t.amount);
+        if (t.status === "PENDING") pendingEscrow += Number(t.amount);
+        if (t.shipmentFee) shippingCosts += Number(t.shipmentFee);
+      } else if (t.type === "EXPENSE") {
+        manualExpenses += Number(t.amount);
+      }
+    });
+
+    const totalExpenses = manualExpenses + shippingCosts;
+    const netProfit = realizedRevenue - totalExpenses;
+
+    return { netProfit, realizedRevenue, totalExpenses, pendingEscrow };
+  };
+
+  const currentMetrics = calculateMetrics(currentTransactions);
+  const prevMetrics = calculateMetrics(prevTransactions);
+
+  const calculateDelta = (current: number, previous: number) => {
+    if (previous === 0) return null; // Can't calculate percentage if previous was 0
+    return ((current - previous) / Math.abs(previous)) * 100;
+  };
+
+  // If there are no transactions in the previous period, we return null for deltas
+  if (prevTransactions.length === 0) {
+    return { netProfit: null, realizedRevenue: null, totalExpenses: null, pendingEscrow: null };
+  }
+
+  return {
+    netProfit: calculateDelta(currentMetrics.netProfit, prevMetrics.netProfit),
+    realizedRevenue: calculateDelta(currentMetrics.realizedRevenue, prevMetrics.realizedRevenue),
+    totalExpenses: calculateDelta(currentMetrics.totalExpenses, prevMetrics.totalExpenses),
+    pendingEscrow: calculateDelta(currentMetrics.pendingEscrow, prevMetrics.pendingEscrow),
+  };
+}
+
+export async function getAnalyticsVelocity(
+  organizationId: string,
+  startDate: Date | null,
+  endDate: Date | null,
+  tagId?: string
+): Promise<VelocityDeltas> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized: No session");
+
+  const org = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden: User does not belong to this organization");
+
+  const getCached = unstable_cache(
+    async () => fetchAnalyticsVelocity(organizationId, startDate, endDate, tagId),
+    [
+      'analytics-velocity',
+      organizationId,
+      startDate?.toISOString() || 'all',
+      endDate?.toISOString() || 'all',
+      tagId || 'none'
+    ],
+    {
+      tags: [`org-${organizationId}-transactions`],
+      revalidate: 3600
+    }
+  );
+
+  return getCached();
+}
+
+================== src/app/actions/getAdvancedReturnMetrics.ts
+"use server";
+
+import prisma from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { unstable_cache } from "next/cache";
+
+export interface ReturnedProduct {
+  sku: string | null;
+  name: string;
+  quantity: number;
+  lostRevenue: number;
+}
+
+export interface ReturnedDrop {
+  dropId: string;
+  dropName: string;
+  totalOrders: number;
+  returnedOrders: number;
+  returnRate: number;
+  lostRevenue: number;
+}
+
+export interface ReturnTrend {
+  date: string;
+  returnCount: number;
+  lostRevenue: number;
+}
+
+export interface AdvancedReturnMetrics {
+  products: ReturnedProduct[];
+  drops: ReturnedDrop[];
+  trends: ReturnTrend[];
+}
+
+async function fetchAdvancedReturnMetrics(
+  organizationId: string,
+  startDate: Date | null,
+  endDate: Date | null,
+  tagId?: string
+): Promise<AdvancedReturnMetrics> {
+  const dateFilter = startDate && endDate ? { date: { gte: startDate, lte: endDate } } : {};
+  const tagFilter = tagId ? { 
+    OR: [
+      { dropId: tagId },
+      { drops: { some: { dropId: tagId } } }
+    ]
+  } : {};
+
+  // 1. Most Returned Products
+  const returnedLineItems = await prisma.lineItem.findMany({
+    where: {
+      transaction: {
+        organizationId,
+        type: "INCOME",
+        OR: [
+          { status: "RETURNED" },
+          { fulfillmentStatus: "RETURNED" }
+        ],
+        ...dateFilter,
+        ...tagFilter,
+      }
+    },
+    select: { name: true, sku: true, quantity: true, price: true }
+  });
+
+  const productMap = new Map<string, ReturnedProduct>();
+  for (const item of returnedLineItems) {
+    const key = item.sku || item.name;
+    const rev = item.quantity * Number(item.price);
+    const existing = productMap.get(key) || { sku: item.sku, name: item.name, quantity: 0, lostRevenue: 0 };
+    existing.quantity += item.quantity;
+    existing.lostRevenue += rev;
+    productMap.set(key, existing);
+  }
+  const products = Array.from(productMap.values())
+    .sort((a, b) => b.quantity - a.quantity)
+    .slice(0, 10);
+
+  // 2. Most Returned Drops
+  // We fetch all INCOME transactions to calculate total orders vs returned orders per Drop
+  const allDropTransactions = await prisma.transaction.findMany({
+    where: {
+      organizationId,
+      type: "INCOME",
+      dropId: { not: null },
+      ...dateFilter,
+      ...tagFilter,
+    },
+    select: {
+      dropId: true,
+      status: true,
+      fulfillmentStatus: true,
+      amount: true,
+      drop: { select: { name: true } }
+    }
+  });
+
+  const dropMap = new Map<string, ReturnedDrop>();
+  for (const tx of allDropTransactions) {
+    if (!tx.dropId || !tx.drop) continue;
+
+    const existing = dropMap.get(tx.dropId) || {
+      dropId: tx.dropId,
+      dropName: tx.drop.name,
+      totalOrders: 0,
+      returnedOrders: 0,
+      returnRate: 0,
+      lostRevenue: 0
+    };
+
+    existing.totalOrders += 1;
+    if (tx.status === "RETURNED" || tx.fulfillmentStatus === "RETURNED") {
+      existing.returnedOrders += 1;
+      existing.lostRevenue += Number(tx.amount);
+    }
+    
+    dropMap.set(tx.dropId, existing);
+  }
+
+  const drops = Array.from(dropMap.values()).map(d => ({
+    ...d,
+    returnRate: d.totalOrders > 0 ? (d.returnedOrders / d.totalOrders) * 100 : 0
+  }))
+  .sort((a, b) => b.lostRevenue - a.lostRevenue)
+  .slice(0, 10);
+
+  // 3. Return Trends (Time-Series)
+  const returnedTransactions = await prisma.transaction.findMany({
+    where: {
+      organizationId,
+      type: "INCOME",
+      OR: [
+        { status: "RETURNED" },
+        { fulfillmentStatus: "RETURNED" }
+      ],
+      ...dateFilter,
+      ...tagFilter,
+    },
+    select: { date: true, amount: true }
+  });
+
+  const trendsMap = new Map<string, ReturnTrend>();
+  for (const tx of returnedTransactions) {
+    // Add 3 hours to convert UTC to Cairo time before taking the date string
+    const dateObj = new Date(tx.date.getTime() + 3 * 60 * 60 * 1000);
+    const dateStr = dateObj.toISOString().split('T')[0];
+    
+    const existing = trendsMap.get(dateStr) || { date: dateStr, returnCount: 0, lostRevenue: 0 };
+    existing.returnCount += 1;
+    existing.lostRevenue += Number(tx.amount);
+    trendsMap.set(dateStr, existing);
+  }
+
+  const trends = Array.from(trendsMap.values())
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  return { products, drops, trends };
+}
+
+export async function getAdvancedReturnMetrics(
+  organizationId: string,
+  startDate: Date | null,
+  endDate: Date | null,
+  tagId?: string
+): Promise<AdvancedReturnMetrics> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized: No session");
+
+  const org = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden: User does not belong to this organization");
+
+  const getCached = unstable_cache(
+    async () => fetchAdvancedReturnMetrics(organizationId, startDate, endDate, tagId),
+    [
+      'advanced-return-metrics',
+      organizationId,
+      startDate?.toISOString() || 'all',
+      endDate?.toISOString() || 'all',
+      tagId || 'none'
+    ],
+    {
+      tags: [`org-${organizationId}-transactions`],
+      revalidate: 3600
+    }
+  );
+
+  return getCached();
+}
+
+================== src/actions/tags.actions.ts
+"use server";
+
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+import { revalidatePath, revalidateTag } from "next/cache";
+
+export async function createTag(orgSlug: string, name: string, description?: string, startDate?: string, endDate?: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const org = await prisma.organization.findUnique({
+    where: { slug: orgSlug },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
+
+  try {
+    await prisma.drop.create({
+      data: {
+        name,
+        description,
+        organizationId: org.id,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
+        // Compute initial status if dates are provided
+        status: startDate && endDate
+          ? computeDropStatus(new Date(startDate), new Date(endDate))
+          : "UPCOMING",
+      },
+    });
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return { error: "A drop with this name already exists. Please choose a different name." };
+    }
+    throw error;
+  }
+
+  revalidatePath(`/${orgSlug}/tags`);
+  revalidateTag(`org-${org.id}-transactions`, 'default');
+}
+
+export async function deleteTag(id: string, orgSlug: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const org = await prisma.organization.findUnique({
+    where: { slug: orgSlug },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
+
+  const drop = await prisma.drop.findUnique({ where: { id } });
+  if (!drop || drop.organizationId !== org.id) {
+    throw new Error("Drop not found or does not belong to this organization");
+  }
+
+  await prisma.drop.delete({
+    where: { id },
+  });
+
+  revalidatePath(`/${orgSlug}/tags`);
+  revalidateTag(`org-${org.id}-transactions`, 'default');
+}
+
+export async function getTagROI(tagId: string, orgSlug: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const org = await prisma.organization.findUnique({
+    where: { slug: orgSlug },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
+
+  const drop = await prisma.drop.findUnique({ where: { id: tagId } });
+  if (!drop || drop.organizationId !== org.id) {
+    throw new Error("Drop not found or does not belong to this organization");
+  }
+
+  const transactionDrops = await prisma.transactionDrop.findMany({
+    where: { dropId: tagId },
+    include: { transaction: true },
+  });
+
+  const transactions = transactionDrops.map((td: any) => td.transaction);
+
+  let totalIncome = 0;
+  let totalExpenses = 0;
+
+  for (const t of transactions) {
+    if (t.type === "INCOME") {
+      totalIncome += Number(t.amount);
+    } else if (t.type === "EXPENSE") {
+      totalExpenses += Number(t.amount);
+    }
+  }
+
+  return {
+    totalIncome,
+    totalExpenses,
+    netROI: totalIncome - totalExpenses,
+    transactionCount: transactions.length,
+  };
+}
+
+export async function updateTag(id: string, orgSlug: string, name: string, description?: string, startDate?: string, endDate?: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const org = await prisma.organization.findUnique({
+    where: { slug: orgSlug },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
+
+  const duplicate = await prisma.drop.findFirst({
+    where: {
+      name,
+      organizationId: org.id,
+      NOT: { id }
+    }
+  });
+
+  if (duplicate) {
+    throw new Error("A drop with this name already exists. Please choose a different name.");
+  }
+
+  const parsedStart = startDate ? new Date(startDate) : undefined;
+  const parsedEnd = endDate ? new Date(endDate) : undefined;
+
+  await prisma.drop.update({
+    where: { id },
+    data: {
+      name,
+      description,
+      startDate: parsedStart,
+      endDate: parsedEnd,
+      status: parsedStart && parsedEnd
+        ? computeDropStatus(parsedStart, parsedEnd)
+        : undefined,
+    }
+  });
+
+  revalidatePath(`/${orgSlug}/tags`);
+  revalidateTag(`org-${org.id}-transactions`, 'default');
+}
+
+export async function getDropsByDateRange(orgSlug: string, startDate: Date, endDate: Date) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const org = await prisma.organization.findUnique({
+    where: { slug: orgSlug },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user?.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden");
+
+  // Query Drops for the org where startDate <= periodEnd AND endDate >= periodStart
+  const drops = await prisma.drop.findMany({
+    where: {
+      organizationId: org.id,
+      startDate: { lte: endDate },
+      endDate: { gte: startDate },
+    },
+  });
+
+  return drops;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function computeDropStatus(startDate: Date, endDate: Date): "UPCOMING" | "LIVE" | "ENDED" {
+  const now = new Date();
+  
+  // Make sure the end date covers the full final day (23:59:59)
+  const endOfDay = new Date(endDate);
+  endOfDay.setUTCHours(23, 59, 59, 999);
+
+  if (now < startDate) return "UPCOMING";
+  if (now > endOfDay) return "ENDED";
+  return "LIVE";
+}
+
+================== src/actions/reports.actions.ts
+"use server";
+
+import prisma from "@/lib/prisma";
+import Groq from "groq-sdk";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { generateAnalyticsPayload } from "@/lib/analytics";
+import { ReportType } from "@prisma/client";
+
+function getSystemPrompt(reportType: ReportType, daysCount: number): string {
+  const basePrompt = `You are the fractional CFO for an Egyptian e-commerce clothing brand.
+You are acting as a Fractional CFO. Analyze the provided financial payload for the exact period of ${daysCount} days.
+You are NOT responsible for calculations, percentages, thresholds, trends, anomaly detection, or alert generation. These have already been computed by the system.
+
+THE GOLDEN RULE: You MUST start every response with a "oneParagraphStory" explaining the numbers directly to the founder (e.g., "This period your business generated 52,000 EGP in revenue...").
+
+If confidence is LOW, use a balanced educational tone and avoid strong conclusions.
+
+Return ONLY valid raw JSON.
+Do not return markdown.
+Do not return explanations outside the JSON object.
+
+Output Schema:
+{
+  "oneParagraphStory": "Your direct message to the founder.",
+  "narrative": {
+    "drivers": "Analysis of what drove revenue/profit (e.g., specific products/drops).",
+    "efficiency": "Analysis of operational health (e.g., logistics, ads, fixed vs variable costs)."
+  },
+  "actionItems": [
+    {
+      "title": "Short action title",
+      "priority": "HIGH | MEDIUM | LOW",
+      "reason": "Why this action matters"
+    }
+  ]
+}`;
+
+  switch (reportType) {
+    case "WEEKLY":
+      return `${basePrompt}\n\nGOAL: "The Tactical Pulse" - A 30-second read on cash flow health and immediate leaks.\nNARRATIVE FOCUS: Drop ROI Performance (best vs worst tags), Return Rate Alert, Ad Efficiency, and Pending COD Warning.`;
+
+    case "MONTHLY":
+      return `${basePrompt}\n\nGOAL: "The P&L Boardroom" - A deep dive into profitability and operational efficiency.\nNARRATIVE FOCUS: Month-over-Month Comparisons, Expense Breakdown, and Fulfillment Efficiency (average delivery times from unfulfilled to delivered).`;
+
+    case "QUARTERLY":
+      return `${basePrompt}\n\nGOAL: "The Strategic Pivot" - Identifying 90-day trends for macro-level decisions.\nNARRATIVE FOCUS: Product Pareto Analysis (top 20% product concentration), Fixed vs Variable Cost Shifts (Salaries/Rent vs Ads/Logistics), and the Risk Board (dependence on a single product, margin compression).`;
+
+    case "YEARLY":
+      return `${basePrompt}\n\nGOAL: "The Tax & Bookkeeping Handoff" - A wrap-up for the Egyptian tax authority.\nNARRATIVE FOCUS: Total Year Summary, Expense Hall of Fame (where the money went), and Taxes & Legal Summary.`;
+
+    default:
+      return basePrompt;
+  }
+}
+
+export async function generateReport(
+  orgSlug: string,
+  reportType: ReportType,
+  startDateStr: string,
+  endDateStr: string,
+  isCron: boolean = false
+) {
+  try {
+    const org = await prisma.organization.findUnique({
+      where: { slug: orgSlug },
+    });
+
+    if (!org) {
+      throw new Error("Organization not found");
+    }
+
+    if (!isCron) {
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.id) {
+        throw new Error("Unauthorized");
+      }
+      const membership = await prisma.membership.findUnique({
+        where: {
+          userId_organizationId: {
+            userId: session.user.id,
+            organizationId: org.id,
+          },
+        },
+      });
+      if (!membership) {
+        throw new Error("Forbidden: Invalid organization membership");
+      }
+    }
+
+    const startDate = new Date(startDateStr);
+    const endDate = new Date(endDateStr);
+    const daysCount = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+
+    const existingReport = await prisma.report.findUnique({
+      where: {
+        organizationId_type_startDate_endDate: {
+          organizationId: org.id,
+          type: reportType,
+          startDate,
+          endDate,
+        },
+      },
+    });
+
+    if (existingReport) {
+      if (existingReport.status === "COMPLETED") {
+        return { success: true, data: JSON.parse(JSON.stringify(existingReport)) };
+      }
+      if (existingReport.status === "GENERATING") {
+        return { success: true, message: "Report generation already in progress" };
+      }
+      if (existingReport.status === "INSUFFICIENT_DATA") {
+        return { success: true, data: JSON.parse(JSON.stringify(existingReport)) };
+      }
+    }
+
+    const payload = await generateAnalyticsPayload(org.id, startDate, endDate, reportType);
+
+    const isActivityLow = payload.metrics.revenue === 0 && payload.metrics.transactionCount < 5;
+
+    let reportId = existingReport?.id;
+
+    if (!reportId) {
+      const newReport = await prisma.report.create({
+        data: {
+          organizationId: org.id,
+          type: reportType,
+          status: isActivityLow ? "INSUFFICIENT_DATA" : "GENERATING",
+          startDate,
+          endDate,
+          revenue: payload.metrics.revenue,
+          expenses: payload.metrics.expenses,
+          profit: payload.metrics.profit,
+          marginPercent: payload.metrics.marginPercent,
+          metrics: payload.metrics as any,
+          inputPayload: payload as any,
+        },
+      });
+      reportId = newReport.id;
+    } else {
+      await prisma.report.update({
+        where: { id: reportId },
+        data: {
+          status: isActivityLow ? "INSUFFICIENT_DATA" : "GENERATING",
+          inputPayload: payload as any,
+          revenue: payload.metrics.revenue,
+          expenses: payload.metrics.expenses,
+          profit: payload.metrics.profit,
+          marginPercent: payload.metrics.marginPercent,
+          metrics: payload.metrics as any,
+        },
+      });
+    }
+
+    if (isActivityLow) {
+      return { success: true, message: "Insufficient data to generate narrative." };
+    }
+
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      throw new Error("GROQ_API_KEY is not configured.");
+    }
+
+    const groq = new Groq({ apiKey });
+    const systemPrompt = getSystemPrompt(reportType, daysCount);
+
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: JSON.stringify(payload) },
+      ],
+      temperature: 0.1,
+      max_tokens: 1024,
+    });
+
+    const rawContent = completion.choices[0]?.message?.content ?? "";
+    if (!rawContent) {
+      throw new Error("Groq returned an empty response.");
+    }
+
+    const narrativeData = JSON.parse(rawContent);
+
+    const completedReport = await prisma.report.update({
+      where: { id: reportId },
+      data: {
+        status: "COMPLETED",
+        oneParagraphStory: narrativeData.oneParagraphStory,
+        narrative: narrativeData.narrative,
+        metrics: {
+          ...payload.metrics,
+          actionItems: narrativeData.actionItems,
+        } as any,
+      },
+    });
+
+    return { success: true, data: JSON.parse(JSON.stringify(completedReport)) };
+
+  } catch (error: any) {
+    console.error(`🔴 [generateReport] Error:`, error);
+    try {
+      const org = await prisma.organization.findUnique({ where: { slug: orgSlug } });
+      if (org) {
+        const report = await prisma.report.findUnique({
+          where: {
+            organizationId_type_startDate_endDate: {
+              organizationId: org.id,
+              type: reportType,
+              startDate: new Date(startDateStr),
+              endDate: new Date(endDateStr),
+            },
+          },
+        });
+
+        if (report && report.status === "GENERATING") {
+          await prisma.report.update({
+            where: { id: report.id },
+            data: {
+              status: "FAILED",
+              error: error?.message || "Unknown error occurred during generation",
+            },
+          });
+        }
+      }
+    } catch (fallbackError) {
+      console.error("Failed to update report status to FAILED:", fallbackError);
+    }
+
+    return { success: false, error: error?.message || "Failed to generate report" };
+  }
+}
+
+export async function getTransactionsForExport(
+  orgSlug: string,
+  startDateStr: string,
+  endDateStr: string
+) {
+  try {
+    const org = await prisma.organization.findUnique({
+      where: { slug: orgSlug },
+    });
+    if (!org) throw new Error("Organization not found");
+
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) throw new Error("Unauthorized");
+
+    const membership = await prisma.membership.findUnique({
+      where: {
+        userId_organizationId: {
+          userId: session.user.id,
+          organizationId: org.id,
+        },
+      },
+    });
+    if (!membership) throw new Error("Forbidden");
+
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        organizationId: org.id,
+        date: {
+          gte: new Date(startDateStr),
+          lte: new Date(endDateStr),
+        },
+      },
+      orderBy: { date: "desc" },
+    });
+
+    const exportData = transactions.map((t) => ({
+      ID: t.id,
+      Date: t.date.toISOString().split("T")[0],
+      Type: t.type,
+      Category: t.category,
+      Amount: t.amount.toString(),
+      Currency: "EGP",
+      Status: t.status,
+      Notes: t.notes || "",
+    }));
+
+    return { success: true, data: exportData };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

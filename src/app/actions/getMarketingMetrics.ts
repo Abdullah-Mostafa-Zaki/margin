@@ -17,7 +17,17 @@ async function fetchMarketingMetrics(
   endDate?: Date,
   tagId?: string
 ): Promise<MarketingMetrics> {
-  const dateFilter: Prisma.TransactionWhereInput = startDate && endDate ? { date: { gte: startDate, lte: endDate } } : {};
+  const dateFilter: Prisma.TransactionWhereInput = startDate && endDate ? { 
+    date: { gte: startDate, lte: endDate },
+    OR: [
+      { dateConfidence: "CONFIRMED" as any },
+      { 
+        dateConfidence: "ESTIMATED" as any,
+        estimatedRangeStart: { gte: startDate },
+        estimatedRangeEnd: { lte: endDate },
+      }
+    ]
+  } : {};
   const isAllTime = !startDate && !endDate;
 
   // Helper to fetch metrics for a given period
@@ -119,16 +129,45 @@ async function fetchMarketingMetrics(
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
     
-    const currentMonthData = await fetchPeriodMetrics({ date: { gte: startOfThisMonth } }, startOfThisMonth);
+    const currentMonthData = await fetchPeriodMetrics({ 
+      date: { gte: startOfThisMonth },
+      OR: [
+        { dateConfidence: "CONFIRMED" as any },
+        { 
+          dateConfidence: "ESTIMATED" as any,
+          estimatedRangeStart: { gte: startOfThisMonth }
+        }
+      ]
+    }, startOfThisMonth);
     current.roas = currentMonthData.roas;
     current.cac = currentMonthData.cac;
 
-    prevFilter = { date: { gte: startOfLastMonth, lte: endOfLastMonth } };
+    prevFilter = { 
+      date: { gte: startOfLastMonth, lte: endOfLastMonth },
+      OR: [
+        { dateConfidence: "CONFIRMED" as any },
+        { 
+          dateConfidence: "ESTIMATED" as any,
+          estimatedRangeStart: { gte: startOfLastMonth },
+          estimatedRangeEnd: { lte: endOfLastMonth },
+        }
+      ]
+    };
   } else {
     const duration = endDate!.getTime() - startDate!.getTime();
     const prevStart = new Date(startDate!.getTime() - duration - 1);
     const prevEnd = new Date(startDate!.getTime() - 1);
-    prevFilter = { date: { gte: prevStart, lte: prevEnd } };
+    prevFilter = { 
+      date: { gte: prevStart, lte: prevEnd },
+      OR: [
+        { dateConfidence: "CONFIRMED" as any },
+        { 
+          dateConfidence: "ESTIMATED" as any,
+          estimatedRangeStart: { gte: prevStart },
+          estimatedRangeEnd: { lte: prevEnd },
+        }
+      ]
+    };
   }
 
   const prev = await fetchPeriodMetrics(prevFilter, isAllTime ? undefined : new Date(startDate!.getTime() - (endDate!.getTime() - startDate!.getTime()) - 1));

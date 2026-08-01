@@ -14,10 +14,14 @@ async function fetchMonthMetrics(organizationId: string) {
     by: ["type", "status"],
     where: {
       organizationId,
-      date: {
-        gte: startOfMonthUtc,
-        lte: endOfMonthUtc,
-      },
+      OR: [
+        { dateConfidence: "CONFIRMED" as any, date: { gte: startOfMonthUtc, lte: endOfMonthUtc } },
+        { 
+          dateConfidence: "ESTIMATED" as any,
+          estimatedRangeStart: { gte: startOfMonthUtc },
+          estimatedRangeEnd: { lte: endOfMonthUtc },
+        }
+      ],
     },
     _sum: { amount: true },
   });
