@@ -47,6 +47,14 @@ async function fetchAnalyticsVelocity(
     where: {
       organizationId,
       date: { gte: currentStart, lte: currentEnd },
+      OR: [
+        { dateConfidence: "CONFIRMED" as const },
+        { 
+          dateConfidence: "ESTIMATED" as const,
+          estimatedRangeStart: { gte: currentStart },
+          estimatedRangeEnd: { lte: currentEnd },
+        }
+      ],
       ...tagFilter,
     },
     select: { type: true, amount: true, status: true, shipmentFee: true },
@@ -57,6 +65,14 @@ async function fetchAnalyticsVelocity(
     where: {
       organizationId,
       date: { gte: prevStart, lte: prevEnd },
+      OR: [
+        { dateConfidence: "CONFIRMED" as const },
+        { 
+          dateConfidence: "ESTIMATED" as const,
+          estimatedRangeStart: { gte: prevStart },
+          estimatedRangeEnd: { lte: prevEnd },
+        }
+      ],
       ...tagFilter,
     },
     select: { type: true, amount: true, status: true, shipmentFee: true },

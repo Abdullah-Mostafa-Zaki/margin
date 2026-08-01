@@ -39,7 +39,7 @@ function formatPercent(value: number): string {
 
 import { unstable_cache } from 'next/cache';
 
-async function fetchDashboardInsights(
+export async function fetchDashboardInsights(
   organizationId: string,
   startDate: Date | null,
   endDate: Date | null,
@@ -111,7 +111,7 @@ async function fetchDashboardInsights(
       }
       
       // God Metric Denominator
-      if (group.status === "RECEIVED" && group.category.toLowerCase() === "sales revenue") {
+      if (group.status === "RECEIVED" && ["sales revenue", "pop-up/bazaar sales", "wholesale/b2b"].includes(group.category.toLowerCase())) {
         totalOrders += group._count.id;
       }
     } else if (group.type === "EXPENSE") {

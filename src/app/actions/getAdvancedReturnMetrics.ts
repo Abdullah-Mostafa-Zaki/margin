@@ -33,13 +33,23 @@ export interface AdvancedReturnMetrics {
   trends: ReturnTrend[];
 }
 
-async function fetchAdvancedReturnMetrics(
+export async function fetchAdvancedReturnMetrics(
   organizationId: string,
   startDate: Date | null,
   endDate: Date | null,
   tagId?: string
 ): Promise<AdvancedReturnMetrics> {
-  const dateFilter = startDate && endDate ? { date: { gte: startDate, lte: endDate } } : {};
+  const dateFilter = startDate && endDate ? { 
+    date: { gte: startDate, lte: endDate },
+    OR: [
+      { dateConfidence: "CONFIRMED" as const },
+      { 
+        dateConfidence: "ESTIMATED" as const,
+        estimatedRangeStart: { gte: startDate },
+        estimatedRangeEnd: { lte: endDate },
+      }
+    ]
+  } : {};
   const tagFilter = tagId ? { 
     drops: { some: { dropId: tagId } }
   } : {};
@@ -50,12 +60,16 @@ async function fetchAdvancedReturnMetrics(
       transaction: {
         organizationId,
         type: "INCOME",
-        OR: [
-          { status: "RETURNED" },
-          { fulfillmentStatus: "RETURNED" }
-        ],
-        ...dateFilter,
         ...tagFilter,
+        AND: [
+          dateFilter,
+          {
+            OR: [
+              { status: "RETURNED" },
+              { fulfillmentStatus: "RETURNED" }
+            ]
+          }
+        ]
       }
     },
     select: { name: true, sku: true, quantity: true, price: true }
@@ -127,12 +141,16 @@ async function fetchAdvancedReturnMetrics(
     where: {
       organizationId,
       type: "INCOME",
-      OR: [
-        { status: "RETURNED" },
-        { fulfillmentStatus: "RETURNED" }
-      ],
-      ...dateFilter,
       ...tagFilter,
+      AND: [
+        dateFilter,
+        {
+          OR: [
+            { status: "RETURNED" },
+            { fulfillmentStatus: "RETURNED" }
+          ]
+        }
+      ]
     },
     select: { date: true, amount: true }
   });
