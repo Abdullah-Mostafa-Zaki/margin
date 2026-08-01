@@ -35,10 +35,7 @@ async function fetchReturnsByCity(
   } : {};
 
   const tagFilter = tagId ? { 
-    OR: [
-      { dropId: tagId },
-      { drops: { some: { dropId: tagId } } }
-    ]
+    drops: { some: { dropId: tagId } }
   } : {};
 
   // Fetch COD INCOME transactions with a city

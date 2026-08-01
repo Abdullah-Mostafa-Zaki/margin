@@ -61,10 +61,7 @@ async function fetchDashboardInsights(
   } : {};
 
   const tagFilter = tagId ? { 
-    OR: [
-      { dropId: tagId },
-      { drops: { some: { dropId: tagId } } }
-    ]
+    drops: { some: { dropId: tagId } }
   } : {};
 
   // Fetch grouped transactions to leverage SQL aggregation and save memory

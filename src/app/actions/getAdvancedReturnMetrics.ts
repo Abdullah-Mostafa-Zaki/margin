@@ -41,10 +41,7 @@ async function fetchAdvancedReturnMetrics(
 ): Promise<AdvancedReturnMetrics> {
   const dateFilter = startDate && endDate ? { date: { gte: startDate, lte: endDate } } : {};
   const tagFilter = tagId ? { 
-    OR: [
-      { dropId: tagId },
-      { drops: { some: { dropId: tagId } } }
-    ]
+    drops: { some: { dropId: tagId } }
   } : {};
 
   // 1. Most Returned Products
