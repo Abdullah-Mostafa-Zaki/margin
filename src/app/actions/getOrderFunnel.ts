@@ -26,9 +26,9 @@ async function fetchOrderFunnel(
       lte: endDate,
     },
     OR: [
-      { dateConfidence: "CONFIRMED" as any },
+      { dateConfidence: "CONFIRMED" as const },
       { 
-        dateConfidence: "ESTIMATED" as any,
+        dateConfidence: "ESTIMATED" as const,
         estimatedRangeStart: { gte: startDate },
         estimatedRangeEnd: { lte: endDate },
       }

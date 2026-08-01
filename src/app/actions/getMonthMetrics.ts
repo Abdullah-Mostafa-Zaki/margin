@@ -15,9 +15,9 @@ async function fetchMonthMetrics(organizationId: string) {
     where: {
       organizationId,
       OR: [
-        { dateConfidence: "CONFIRMED" as any, date: { gte: startOfMonthUtc, lte: endOfMonthUtc } },
+        { dateConfidence: "CONFIRMED" as const, date: { gte: startOfMonthUtc, lte: endOfMonthUtc } },
         { 
-          dateConfidence: "ESTIMATED" as any,
+          dateConfidence: "ESTIMATED" as const,
           estimatedRangeStart: { gte: startOfMonthUtc },
           estimatedRangeEnd: { lte: endOfMonthUtc },
         }

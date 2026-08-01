@@ -260,9 +260,9 @@ export async function getTransactionsForExport(
       where: {
         organizationId: org.id,
         OR: [
-          { dateConfidence: "CONFIRMED" as any, date: { gte: new Date(startDateStr), lte: new Date(endDateStr) } },
+          { dateConfidence: "CONFIRMED" as const, date: { gte: new Date(startDateStr), lte: new Date(endDateStr) } },
           { 
-            dateConfidence: "ESTIMATED" as any,
+            dateConfidence: "ESTIMATED" as const,
             estimatedRangeStart: { gte: new Date(startDateStr) },
             estimatedRangeEnd: { lte: new Date(endDateStr) },
           }

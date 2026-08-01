@@ -20,9 +20,9 @@ async function fetchMarketingMetrics(
   const dateFilter: Prisma.TransactionWhereInput = startDate && endDate ? { 
     date: { gte: startDate, lte: endDate },
     OR: [
-      { dateConfidence: "CONFIRMED" as any },
+      { dateConfidence: "CONFIRMED" as const },
       { 
-        dateConfidence: "ESTIMATED" as any,
+        dateConfidence: "ESTIMATED" as const,
         estimatedRangeStart: { gte: startDate },
         estimatedRangeEnd: { lte: endDate },
       }
@@ -42,13 +42,17 @@ async function fetchMarketingMetrics(
         organizationId,
         type: "EXPENSE",
         status: "RECEIVED",
-        ...filter,
         ...localTagFilter,
-        OR: [
-          { category: { equals: "Ads", mode: "insensitive" } },
-          { category: { equals: "Marketing", mode: "insensitive" } },
-          { category: { equals: "Ad Spend", mode: "insensitive" } },
-        ],
+        AND: [
+          filter,
+          {
+            OR: [
+              { category: { equals: "Ads", mode: "insensitive" } },
+              { category: { equals: "Marketing", mode: "insensitive" } },
+              { category: { equals: "Ad Spend", mode: "insensitive" } },
+            ],
+          }
+        ]
       },
       select: { amount: true, date: true },
       orderBy: { date: "asc" },
@@ -129,9 +133,9 @@ async function fetchMarketingMetrics(
     const currentMonthData = await fetchPeriodMetrics({ 
       date: { gte: startOfThisMonth },
       OR: [
-        { dateConfidence: "CONFIRMED" as any },
+        { dateConfidence: "CONFIRMED" as const },
         { 
-          dateConfidence: "ESTIMATED" as any,
+          dateConfidence: "ESTIMATED" as const,
           estimatedRangeStart: { gte: startOfThisMonth }
         }
       ]
@@ -142,9 +146,9 @@ async function fetchMarketingMetrics(
     prevFilter = { 
       date: { gte: startOfLastMonth, lte: endOfLastMonth },
       OR: [
-        { dateConfidence: "CONFIRMED" as any },
+        { dateConfidence: "CONFIRMED" as const },
         { 
-          dateConfidence: "ESTIMATED" as any,
+          dateConfidence: "ESTIMATED" as const,
           estimatedRangeStart: { gte: startOfLastMonth },
           estimatedRangeEnd: { lte: endOfLastMonth },
         }
@@ -157,9 +161,9 @@ async function fetchMarketingMetrics(
     prevFilter = { 
       date: { gte: prevStart, lte: prevEnd },
       OR: [
-        { dateConfidence: "CONFIRMED" as any },
+        { dateConfidence: "CONFIRMED" as const },
         { 
-          dateConfidence: "ESTIMATED" as any,
+          dateConfidence: "ESTIMATED" as const,
           estimatedRangeStart: { gte: prevStart },
           estimatedRangeEnd: { lte: prevEnd },
         }
