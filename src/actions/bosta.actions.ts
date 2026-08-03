@@ -192,6 +192,55 @@ export async function syncBostaDeliveries(organizationId: string) {
           data: updateData
         });
         processedCount++;
+
+        // Reconcile sibling shipping expense transaction
+        try {
+          const expenseId = `${transaction.shopifyOrderId}-shipping`;
+          const shippingExpense = await prisma.transaction.findUnique({
+            where: {
+              shopifyOrderId_organizationId: {
+                shopifyOrderId: expenseId,
+                organizationId
+              }
+            }
+          });
+
+          if (shippingExpense) {
+            await prisma.transaction.update({
+              where: { id: shippingExpense.id },
+              data: {
+                amount: Number(shipmentFee),
+                notes: shippingExpense.notes 
+                  ? `${shippingExpense.notes} (Reconciled from Bosta)`
+                  : "Reconciled from Bosta"
+              }
+            });
+          } else if (Number(shipmentFee) > 0) {
+            const associatedDrops = await prisma.transactionDrop.findMany({
+              where: { transactionId: transaction.id }
+            });
+
+            await prisma.transaction.create({
+              data: {
+                type: "EXPENSE",
+                source: "SHOPIFY",
+                category: "Logistics (Shipping)",
+                amount: Number(shipmentFee),
+                date: transaction.date,
+                shopifyOrderId: expenseId,
+                organizationId,
+                createdById: transaction.createdById,
+                paymentMethod: "CASH",
+                notes: "Created from Bosta reconciliation",
+                drops: associatedDrops.length > 0 
+                  ? { create: associatedDrops.map(d => ({ dropId: d.dropId })) }
+                  : undefined
+              }
+            });
+          }
+        } catch (reconError) {
+          console.error(`Bosta Sync Error reconciling expense for ${transaction.id}:`, reconError);
+        }
       } catch (innerError) {
         console.error(`Bosta Sync Error updating transaction ${transaction.id}:`, innerError);
         failedCount++;

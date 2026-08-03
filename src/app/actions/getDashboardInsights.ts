@@ -69,7 +69,6 @@ async function fetchDashboardInsights(
     },
     _sum: {
       amount: true,
-      shipmentFee: true,
     },
     _count: {
       id: true,
@@ -82,14 +81,12 @@ async function fetchDashboardInsights(
   let pendingEscrow = 0;
   let returnedRevenue = 0;
   let manualExpenses = 0;
-  let shippingCosts = 0;
   let adSpend = 0;
   let totalOrders = 0;
   const expenseByCategory: Record<string, number> = {};
 
   groupedTransactions.forEach((group) => {
     const sumAmount = Number(group._sum.amount || 0);
-    const sumShipment = Number(group._sum.shipmentFee || 0);
 
     if (group.type === "INCOME") {
       if (group.status === "RECEIVED") {
@@ -100,9 +97,6 @@ async function fetchDashboardInsights(
       }
       if (group.fulfillmentStatus === "RETURNED") {
         returnedRevenue += sumAmount;
-      }
-      if (sumShipment > 0) {
-        shippingCosts += sumShipment;
       }
       
       // God Metric Denominator
@@ -123,11 +117,7 @@ async function fetchDashboardInsights(
     }
   });
 
-  const totalExpenses = manualExpenses + shippingCosts;
-
-  if (shippingCosts > 0) {
-    expenseByCategory["Shipping"] = (expenseByCategory["Shipping"] || 0) + shippingCosts;
-  }
+  const totalExpenses = manualExpenses;
 
   let topExpenseCategory: { category: string; pct: number } | null = null;
   if (totalExpenses > 0) {

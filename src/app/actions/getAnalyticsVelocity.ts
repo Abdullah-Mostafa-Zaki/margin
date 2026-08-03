@@ -49,7 +49,7 @@ async function fetchAnalyticsVelocity(
       date: { gte: currentStart, lte: currentEnd },
       ...tagFilter,
     },
-    select: { type: true, amount: true, status: true, shipmentFee: true },
+    select: { type: true, amount: true, status: true },
   });
 
   // Fetch previous period transactions
@@ -59,26 +59,24 @@ async function fetchAnalyticsVelocity(
       date: { gte: prevStart, lte: prevEnd },
       ...tagFilter,
     },
-    select: { type: true, amount: true, status: true, shipmentFee: true },
+    select: { type: true, amount: true, status: true },
   });
 
   const calculateMetrics = (txs: any[]) => {
     let realizedRevenue = 0;
     let pendingEscrow = 0;
     let manualExpenses = 0;
-    let shippingCosts = 0;
 
     txs.forEach((t) => {
       if (t.type === "INCOME") {
         if (t.status === "RECEIVED") realizedRevenue += Number(t.amount);
         if (t.status === "PENDING") pendingEscrow += Number(t.amount);
-        if (t.shipmentFee) shippingCosts += Number(t.shipmentFee);
       } else if (t.type === "EXPENSE") {
         manualExpenses += Number(t.amount);
       }
     });
 
-    const totalExpenses = manualExpenses + shippingCosts;
+    const totalExpenses = manualExpenses;
     const netProfit = realizedRevenue - totalExpenses;
 
     return { netProfit, realizedRevenue, totalExpenses, pendingEscrow };
