@@ -185,20 +185,15 @@ async function fetchMarketingMetrics(
   };
 }
 
+import { verifyOrgAccess } from "@/lib/auth";
+
 export async function getMarketingMetrics(
   organizationId: string,
   startDate?: Date,
   endDate?: Date,
   tagId?: string
 ): Promise<MarketingMetrics> {
-  const org = await prisma.organization.findUnique({
-    where: { id: organizationId },
-    select: { id: true },
-  });
-
-  if (!org) {
-    throw new Error("Organization not found");
-  }
+  await verifyOrgAccess(organizationId);
 
   const getCached = unstable_cache(
     async () => fetchMarketingMetrics(organizationId, startDate, endDate, tagId),

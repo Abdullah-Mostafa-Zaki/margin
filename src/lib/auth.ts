@@ -73,3 +73,31 @@ export const authOptions: NextAuthOptions = {
     verifyRequest: "/login?verifyRequest=1",
   },
 };
+
+// ─── Shared auth helper for server actions that take organizationId ──────────
+// Verifies: (1) valid session, (2) org exists, (3) user has membership OR is super admin.
+// Mirrors the exact pattern from getDropPerformance / getAnalyticsVelocity.
+// Import: import { verifyOrgAccess } from "@/lib/auth";
+
+import { getServerSession } from "next-auth";
+
+export async function verifyOrgAccess(organizationId: string): Promise<void> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) throw new Error("Unauthorized: No session");
+
+  const org = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    include: { memberships: { include: { user: true } } },
+  });
+
+  if (!org) throw new Error("Organization not found");
+
+  const isSuperAdmin =
+    !!process.env.SUPER_ADMIN_EMAIL &&
+    session.user.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = org.memberships.find(
+    (m: any) => m.user.email === session.user?.email
+  );
+  if (!membership && !isSuperAdmin)
+    throw new Error("Forbidden: User does not belong to this organization");
+}

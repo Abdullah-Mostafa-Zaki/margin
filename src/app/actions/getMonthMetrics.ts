@@ -47,7 +47,11 @@ async function fetchMonthMetrics(organizationId: string) {
   };
 }
 
+import { verifyOrgAccess } from "@/lib/auth";
+
 export async function getMonthMetrics(organizationId: string) {
+  await verifyOrgAccess(organizationId);
+
   const getCached = unstable_cache(
     async () => fetchMonthMetrics(organizationId),
     ["monthMetrics", organizationId],

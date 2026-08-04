@@ -77,7 +77,11 @@ async function fetchDrops(organizationId: string): Promise<DropSummary[]> {
 
 // ─── Exported action ─────────────────────────────────────────────────────────
 
+import { verifyOrgAccess } from "@/lib/auth";
+
 export async function getDrops(organizationId: string): Promise<DropSummary[]> {
+  await verifyOrgAccess(organizationId);
+
   const getCached = unstable_cache(
     async () => fetchDrops(organizationId),
     ["drops", organizationId],

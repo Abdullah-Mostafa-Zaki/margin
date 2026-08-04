@@ -266,12 +266,16 @@ export async function fetchDashboardInsights(
   };
 }
 
+import { verifyOrgAccess } from '@/lib/auth';
+
 export async function getDashboardInsights(
   organizationId: string,
   startDate: Date | null,
   endDate: Date | null,
   tagId?: string
 ): Promise<DashboardInsights> {
+  await verifyOrgAccess(organizationId);
+
   const getCached = unstable_cache(
     async () => fetchDashboardInsights(organizationId, startDate, endDate, tagId),
     [

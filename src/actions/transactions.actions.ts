@@ -555,10 +555,15 @@ export async function fetchPendingCODTransactions({
   if (!session?.user?.email) throw new Error("Unauthorized");
 
   const organization = await prisma.organization.findUnique({
-    where: { slug: orgSlug }
+    where: { slug: orgSlug },
+    include: { memberships: { include: { user: true } } },
   });
 
   if (!organization) throw new Error("Organization not found");
+
+  const isSuperAdmin = !!process.env.SUPER_ADMIN_EMAIL && session.user.email === process.env.SUPER_ADMIN_EMAIL;
+  const membership = organization.memberships.find((m: any) => m.user.email === session.user?.email);
+  if (!membership && !isSuperAdmin) throw new Error("Forbidden: User does not belong to this organization");
 
   const transactions = await prisma.transaction.findMany({
     where: {

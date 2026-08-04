@@ -142,7 +142,11 @@ async function fetchAlerts(organizationId: string): Promise<Alert[]> {
 
 // ─── Exported action ─────────────────────────────────────────────────────────
 
+import { verifyOrgAccess } from "@/lib/auth";
+
 export async function getAlerts(organizationId: string): Promise<Alert[]> {
+  await verifyOrgAccess(organizationId);
+
   const getCached = unstable_cache(
     async () => fetchAlerts(organizationId),
     ["alerts", organizationId],
