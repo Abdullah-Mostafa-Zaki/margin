@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
 
   console.log('--- Phase 1: Authentication & Security ---');
   console.log('Navigating to login...');
-  await page.goto('https://margin-eg.vercel.app/login');
+  await page.goto('https://www.marginegy.com/login');
   
   await page.fill('input[type="email"]', 'margin.qa.testing@gmail.com');
   await page.fill('input[type="password"]', 'Password@123');
@@ -36,7 +36,7 @@ const { chromium } = require('playwright');
   console.log('Detected Org Slug:', orgSlug);
   
   console.log('Navigating to transactions page...');
-  await page.goto(`https://margin-eg.vercel.app/${orgSlug}/transactions`);
+  await page.goto(`https://www.marginegy.com/${orgSlug}/transactions`);
   await page.waitForTimeout(2000);
   
   console.log('\n--- Phase 2: Transaction Modals & Form State ---');

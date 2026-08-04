@@ -4,7 +4,7 @@
 
 It blends strict deterministic e-commerce data with unstructured probabilistic real-world data (receipts, voice, text) into a unified, mobile-responsive dashboard.
 
-**Status:** MVP feature-complete. Live at: [margin-eg.vercel.app](https://margin-eg.vercel.app/)
+**Status:** MVP feature-complete. Live at: [marginegy.com](https://www.marginegy.com/)
 
 ---
 
