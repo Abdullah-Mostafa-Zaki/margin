@@ -4,8 +4,10 @@ import { sendRecurringExpenseLoggedEmail } from "@/lib/mail";
 import { backfillMissedOccurrences } from "@/app/actions/recurring.actions";
 import { getCairoNow } from "@/lib/date-utils";
 
+export const dynamic = 'force-dynamic';
+
 // Vercel Cron handles the schedule. We just process whatever is due.
-export async function POST(request: Request) {
+export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return new NextResponse("Unauthorized", { status: 401 });
