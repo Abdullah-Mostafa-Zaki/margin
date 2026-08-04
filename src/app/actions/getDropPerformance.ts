@@ -64,7 +64,7 @@ export async function fetchDropPerformance(
     select: {
       dropId: true,
       transaction: {
-        select: { amount: true, shipmentFee: true, status: true },
+        select: { amount: true, status: true },
       },
     },
   });
@@ -90,27 +90,28 @@ export async function fetchDropPerformance(
 
   // ── Build lookup maps in JS ────────────────────────────────────────────────
 
-  // Income map: dropId → { revenue, shippingCost }
-  const incomeMap = new Map<string, { revenue: number; shippingCost: number }>();
+  // Income map: dropId → { revenue }
+  const incomeMap = new Map<string, { revenue: number }>();
   for (const row of allIncomeRows) {
-    const existing = incomeMap.get(row.dropId) ?? { revenue: 0, shippingCost: 0 };
+    const existing = incomeMap.get(row.dropId) ?? { revenue: 0 };
     if (row.transaction.status === 'RECEIVED') {
       existing.revenue += Number(row.transaction.amount || 0);
     }
-    existing.shippingCost += Number(row.transaction.shipmentFee || 0);
     incomeMap.set(row.dropId, existing);
   }
 
-  // Expense map: dropId → { adSpend, productionCost }
-  const expenseMap = new Map<string, { adSpend: number; productionCost: number }>();
+  // Expense map: dropId → { adSpend, productionCost, shippingCost }
+  const expenseMap = new Map<string, { adSpend: number; productionCost: number; shippingCost: number }>();
   for (const row of allExpenseRows) {
-    const existing = expenseMap.get(row.dropId) ?? { adSpend: 0, productionCost: 0 };
+    const existing = expenseMap.get(row.dropId) ?? { adSpend: 0, productionCost: 0, shippingCost: 0 };
     const amt = Number(row.transaction.amount || 0);
     const cat = row.transaction.category?.toLowerCase() ?? '';
     if (cat === 'ads' || cat === 'marketing' || cat === 'ad spend') {
       existing.adSpend += amt;
     } else if (cat === 'raw materials' || cat === 'packaging') {
       existing.productionCost += amt;
+    } else if (cat === 'logistics (shipping)') {
+      existing.shippingCost += amt;
     }
     expenseMap.set(row.dropId, existing);
   }
@@ -118,11 +119,11 @@ export async function fetchDropPerformance(
   // ── Build per-drop result (same output shape as before) ───────────────────
 
   const performances: DropPerformance[] = drops.map((drop) => {
-    const inc = incomeMap.get(drop.id) ?? { revenue: 0, shippingCost: 0 };
-    const exp = expenseMap.get(drop.id) ?? { adSpend: 0, productionCost: 0 };
+    const inc = incomeMap.get(drop.id) ?? { revenue: 0 };
+    const exp = expenseMap.get(drop.id) ?? { adSpend: 0, productionCost: 0, shippingCost: 0 };
 
-    const { revenue, shippingCost } = inc;
-    const { adSpend, productionCost } = exp;
+    const { revenue } = inc;
+    const { adSpend, productionCost, shippingCost } = exp;
 
     const netMargin = revenue - adSpend - productionCost - shippingCost;
     const netMarginPercent = revenue > 0 ? (netMargin / revenue) * 100 : 0;

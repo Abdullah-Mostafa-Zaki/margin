@@ -163,7 +163,7 @@ export async function POST(req: Request) {
       if (existingTx) {
         // Handle Updates / Partial Refunds
         const updateData: any = {
-          amount: Number(price) - Number(organization.courierFee || 0),
+          amount: Number(price),
           status: txStatus !== existingTx.status && txStatus === "RETURNED" ? "RETURNED" : undefined,
           fulfillmentStatus: fulfillmentStatus !== "UNFULFILLED" ? fulfillmentStatus : undefined,
         };
@@ -215,7 +215,7 @@ export async function POST(req: Request) {
       data: {
         type: "INCOME",
         source: "SHOPIFY",
-        amount: Number(price) - Number(organization.courierFee || 0),
+        amount: Number(price),
         date: orderDate,
         category: "Shopify Sale",
         status: txStatus,

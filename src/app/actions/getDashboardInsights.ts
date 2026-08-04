@@ -1,6 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
+import { getLivePendingEscrow } from "@/actions/bosta.actions";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -16,7 +17,9 @@ export interface DashboardInsights {
   totalExpenses: number;
   netProfit: number;
   adSpend: number;
-  pendingEscrow: number;
+  pendingEscrow: number; // total expected + collected for compatibility, or just expected
+  collectedCOD: number;
+  expectedCOD: number;
   returnedRevenue: number;
   excelBullets: string[];
   expenseSubtitle: string;
@@ -74,7 +77,6 @@ export async function fetchDashboardInsights(
     },
     _sum: {
       amount: true,
-      shipmentFee: true,
     },
     _count: {
       id: true,
@@ -84,30 +86,25 @@ export async function fetchDashboardInsights(
   // ─── Calculations ──────────────────────────────────────────────────────────
 
   let realizedRevenue = 0;
-  let pendingEscrow = 0;
+  let localPendingEscrow = 0;
   let returnedRevenue = 0;
   let manualExpenses = 0;
-  let shippingCosts = 0;
   let adSpend = 0;
   let totalOrders = 0;
   const expenseByCategory: Record<string, number> = {};
 
   groupedTransactions.forEach((group) => {
     const sumAmount = Number(group._sum.amount || 0);
-    const sumShipment = Number(group._sum.shipmentFee || 0);
 
     if (group.type === "INCOME") {
       if (group.status === "RECEIVED") {
         realizedRevenue += sumAmount;
       }
       if (group.status === "PENDING") {
-        pendingEscrow += sumAmount;
+        localPendingEscrow += sumAmount;
       }
       if (group.fulfillmentStatus === "RETURNED") {
         returnedRevenue += sumAmount;
-      }
-      if (sumShipment > 0) {
-        shippingCosts += sumShipment;
       }
       
       // God Metric Denominator
@@ -128,11 +125,7 @@ export async function fetchDashboardInsights(
     }
   });
 
-  const totalExpenses = manualExpenses + shippingCosts;
-
-  if (shippingCosts > 0) {
-    expenseByCategory["Shipping"] = (expenseByCategory["Shipping"] || 0) + shippingCosts;
-  }
+  const totalExpenses = manualExpenses;
 
   let topExpenseCategory: { category: string; pct: number } | null = null;
   if (totalExpenses > 0) {
@@ -166,6 +159,12 @@ export async function fetchDashboardInsights(
     ? Math.ceil(Math.abs(netProfit) / averageOrderValue) 
     : 0;
 
+  // 13. Live Bosta Escrow
+  const { collectedCOD, expectedCOD } = await getLivePendingEscrow(organizationId);
+  const totalBostaEscrow = collectedCOD + expectedCOD;
+  // Fallback to local if Bosta is not connected or returns 0
+  const pendingEscrow = totalBostaEscrow > 0 ? totalBostaEscrow : localPendingEscrow;
+
   // ─── Formatted values ──────────────────────────────────────────────────────
 
   const fRevenue = formatCurrency(realizedRevenue);
@@ -197,7 +196,9 @@ export async function fetchDashboardInsights(
   // ─── Escrow Text (universal rule) ─────────────────────────────────────────
 
   let escrowText: string | null = null;
-  if (pendingEscrow > realizedRevenue) {
+  if (collectedCOD > 0 || expectedCOD > 0) {
+    escrowText = `You have ${formatCurrency(collectedCOD)} collected by couriers and ${formatCurrency(expectedCOD)} still in transit.`;
+  } else if (pendingEscrow > realizedRevenue) {
     escrowText = `Most of your money (${fEscrow}) is still uncollected. Focus on delivery success rate.`;
   } else if (pendingEscrow > 0) {
     escrowText = `You also have ${fEscrow} waiting with couriers.`;
@@ -254,6 +255,8 @@ export async function fetchDashboardInsights(
     netProfit,
     adSpend,
     pendingEscrow,
+    collectedCOD,
+    expectedCOD,
     returnedRevenue,
     excelBullets,
     expenseSubtitle,

@@ -126,20 +126,21 @@ export async function syncBostaDeliveries(organizationId: string) {
 
     if (pendingTransactions.length === 0) return { processedCount: 0, failedCount: 0 };
 
-    // Use v0 for listing as it provides the most stable delivery object (Verified)
-    const response = await fetch("https://app.bosta.co/api/v0/deliveries?limit=500", {
-      method: "GET",
+    // Use v2 search endpoint as per Phase 2 spec
+    const response = await fetch("https://app.bosta.co/api/v2/deliveries/search", {
+      method: "POST",
       headers: {
         "Authorization": authHeader,
         "Content-Type": "application/json"
       },
+      body: JSON.stringify({}),
       cache: "no-store"
     });
 
     if (!response.ok) return { processedCount: 0, failedCount: 0 };
 
     const json = await response.json();
-    const deliveries = json.deliveries || json.data?.deliveries || [];
+    const deliveries = json.deliveries || json.data?.deliveries || json.data || [];
 
     let processedCount = 0;
     let failedCount = 0;
@@ -154,36 +155,57 @@ export async function syncBostaDeliveries(organizationId: string) {
 
       const stateCode = bostaDelivery.state?.code;
       const bostaStateValue = bostaDelivery.state?.value || "Processing";
-      const shipmentFee = bostaDelivery.shipmentFees || 0;
-
+      
       let newMarginStatus = transaction.status;
-
-      // Status mapping verified during the Forensic Audit
-      let newFulfillmentStatus: "UNFULFILLED" | "SHIPPED" | "DELIVERED" | "RETURNED" = "SHIPPED"; // default to shipped since it's with Bosta
-
-      if (stateCode === 45 || bostaStateValue === "Delivered") {
-        newMarginStatus = "RECEIVED";
-        newFulfillmentStatus = "DELIVERED";
-      } else if (
-        [46, 47, 101].includes(stateCode) ||
-        ["Returned", "Canceled", "Cancelled"].includes(bostaStateValue)
-      ) {
-        newMarginStatus = "RETURNED";
-        newFulfillmentStatus = "RETURNED";
-      }
+      let newFulfillmentStatus: "UNFULFILLED" | "SHIPPED" | "DELIVERED" | "RETURNED" = "SHIPPED";
 
       const updateData: any = {
-        status: newMarginStatus,
-        fulfillmentStatus: newFulfillmentStatus,
         bostaTrackingNumber: String(bostaDelivery.trackingNumber),
         bostaState: bostaStateValue,
-        shipmentFee: Number(shipmentFee),
         bostaLastSyncedAt: new Date()
       };
 
-      // If delivered, the collected cash is the ultimate truth
-      if (newFulfillmentStatus === "DELIVERED" && bostaDelivery.cod !== undefined) {
-        updateData.amount = Number(bostaDelivery.cod);
+      // RTO / Returned Flow (Ghost Revenue - Bucket 3)
+      if ([46, 47, 101].includes(stateCode) || ["Returned", "Canceled", "Cancelled"].includes(bostaStateValue)) {
+        newMarginStatus = "RETURNED";
+        newFulfillmentStatus = "RETURNED";
+        updateData.status = newMarginStatus;
+        updateData.fulfillmentStatus = newFulfillmentStatus;
+      } 
+      // Delivered Flow (Realized Revenue - Bucket 1)
+      else if (stateCode === 45 || bostaStateValue === "Delivered") {
+        newMarginStatus = "RECEIVED";
+        newFulfillmentStatus = "DELIVERED";
+        updateData.status = newMarginStatus;
+        updateData.fulfillmentStatus = newFulfillmentStatus;
+
+        // Secondary call for exact shipmentFees
+        try {
+          const detailsResponse = await fetch(`https://app.bosta.co/api/v2/deliveries/business/${bostaDelivery.trackingNumber}`, {
+            method: "GET",
+            headers: {
+              "Authorization": authHeader,
+              "Content-Type": "application/json"
+            },
+            cache: "no-store"
+          });
+          
+          if (detailsResponse.ok) {
+            const detailsJson = await detailsResponse.json();
+            const deliveryData = detailsJson.data || detailsJson;
+            const shipmentFee = deliveryData.shipmentFees || 0;
+            
+            // Deduct shipmentFees from the Shopify order total and lock into Bucket 1
+            const currentAmount = Number(transaction.amount);
+            updateData.amount = currentAmount - Number(shipmentFee);
+            updateData.shipmentFee = Number(shipmentFee);
+          }
+        } catch (detailError) {
+          console.error(`Bosta detail fetch error for ${bostaDelivery.trackingNumber}:`, detailError);
+        }
+      } else {
+        updateData.status = newMarginStatus;
+        updateData.fulfillmentStatus = newFulfillmentStatus;
       }
 
       try {
@@ -192,6 +214,19 @@ export async function syncBostaDeliveries(organizationId: string) {
           data: updateData
         });
         processedCount++;
+
+        // Remove the old sibling expense if it exists (reverting Phase 3 logic)
+        try {
+          const expenseId = `${transaction.shopifyOrderId}-shipping`;
+          await prisma.transaction.deleteMany({
+            where: {
+              shopifyOrderId: expenseId,
+              organizationId
+            }
+          });
+        } catch (e) {
+          // Ignore if it doesn't exist
+        }
       } catch (innerError) {
         console.error(`Bosta Sync Error updating transaction ${transaction.id}:`, innerError);
         failedCount++;
