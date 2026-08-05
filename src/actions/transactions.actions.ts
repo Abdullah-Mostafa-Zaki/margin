@@ -86,6 +86,7 @@ export async function createTransaction(orgSlug: string, formData: FormData) {
       organizationId: org.id,
       createdById: membership?.userId || (session.user as any).id,
       source: sourceEnum as any,
+      dropId: type === "INCOME" && tagIds.length > 0 ? tagIds[0] : null,
       drops: {
         create: tagIds.map(dropId => ({ dropId })),
       },
@@ -187,6 +188,7 @@ export async function updateTransaction(id: string, orgSlug: string, formData: F
       notes,
       merchant,
       receiptUrl,
+      dropId: type === "INCOME" && tagIds.length > 0 ? tagIds[0] : null,
     },
   });
 
@@ -386,8 +388,13 @@ export async function bulkAssignDrop(ids: string[], dropId: string, orgSlug: str
     .filter((t) => t.type === "EXPENSE")
     .map((t) => t.id);
 
-  // Update INCOME transactions: exclusively link via TransactionDrop
+  // Update INCOME transactions: exclusively link via TransactionDrop and FK
   if (incomeIds.length > 0) {
+    await prisma.transaction.updateMany({
+      where: { id: { in: incomeIds } },
+      data: { dropId }
+    });
+
     await prisma.transactionDrop.deleteMany({
       where: { transactionId: { in: incomeIds } }
     });

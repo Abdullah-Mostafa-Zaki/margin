@@ -1,5 +1,8 @@
 "use server";
 
+import { verifyOrgAccess } from "@/lib/auth";
+import "server-only";
+
 import prisma from "@/lib/prisma";
 import { unstable_cache } from "next/cache";
 import { DropStatus } from "@prisma/client";
@@ -76,8 +79,6 @@ async function fetchDrops(organizationId: string): Promise<DropSummary[]> {
 }
 
 // ─── Exported action ─────────────────────────────────────────────────────────
-
-import { verifyOrgAccess } from "@/lib/auth";
 
 export async function getDrops(organizationId: string): Promise<DropSummary[]> {
   await verifyOrgAccess(organizationId);

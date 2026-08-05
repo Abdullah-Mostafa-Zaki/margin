@@ -19,13 +19,9 @@ async function fetchReturnsByCity(
   endDate: Date | null,
   tagId?: string
 ): Promise<CityReturnData[]> {
-    const dateFilter = startDate && endDate ? {
-    date: {
-      gte: startDate,
-      lte: endDate,
-    },
+  const dateFilter = startDate && endDate ? {
     OR: [
-      { dateConfidence: "CONFIRMED" as const },
+      { dateConfidence: "CONFIRMED" as const, date: { gte: startDate, lte: endDate } },
       { 
         dateConfidence: "ESTIMATED" as const,
         estimatedRangeStart: { gte: startDate },

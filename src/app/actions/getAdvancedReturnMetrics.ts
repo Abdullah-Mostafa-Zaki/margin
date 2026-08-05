@@ -40,9 +40,8 @@ export async function fetchAdvancedReturnMetrics(
   tagId?: string
 ): Promise<AdvancedReturnMetrics> {
   const dateFilter = startDate && endDate ? { 
-    date: { gte: startDate, lte: endDate },
     OR: [
-      { dateConfidence: "CONFIRMED" as const },
+      { dateConfidence: "CONFIRMED" as const, date: { gte: startDate, lte: endDate } },
       { 
         dateConfidence: "ESTIMATED" as const,
         estimatedRangeStart: { gte: startDate },

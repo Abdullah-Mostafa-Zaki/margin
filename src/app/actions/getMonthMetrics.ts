@@ -1,5 +1,6 @@
 "use server";
 
+import { verifyOrgAccess } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { unstable_cache } from "next/cache";
 import { startOfCairoMonth, endOfCairoMonth } from "@/lib/date-utils";
@@ -46,8 +47,6 @@ async function fetchMonthMetrics(organizationId: string) {
     monthNetProfit,
   };
 }
-
-import { verifyOrgAccess } from "@/lib/auth";
 
 export async function getMonthMetrics(organizationId: string) {
   await verifyOrgAccess(organizationId);

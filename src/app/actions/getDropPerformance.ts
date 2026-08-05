@@ -26,12 +26,8 @@ export async function fetchDropPerformance(
   tagId?: string
 ): Promise<DropPerformance[]> {
   const dateFilter: any = startDate && endDate ? {
-    date: {
-      gte: startDate,
-      lte: endDate,
-    },
     OR: [
-      { dateConfidence: "CONFIRMED" },
+      { dateConfidence: "CONFIRMED", date: { gte: startDate, lte: endDate } },
       { 
         dateConfidence: "ESTIMATED",
         estimatedRangeStart: { gte: startDate },

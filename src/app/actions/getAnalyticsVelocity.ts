@@ -46,9 +46,8 @@ async function fetchAnalyticsVelocity(
   const currentTransactions = await prisma.transaction.findMany({
     where: {
       organizationId,
-      date: { gte: currentStart, lte: currentEnd },
       OR: [
-        { dateConfidence: "CONFIRMED" as const },
+        { dateConfidence: "CONFIRMED" as const, date: { gte: currentStart, lte: currentEnd } },
         { 
           dateConfidence: "ESTIMATED" as const,
           estimatedRangeStart: { gte: currentStart },
@@ -64,9 +63,8 @@ async function fetchAnalyticsVelocity(
   const prevTransactions = await prisma.transaction.findMany({
     where: {
       organizationId,
-      date: { gte: prevStart, lte: prevEnd },
       OR: [
-        { dateConfidence: "CONFIRMED" as const },
+        { dateConfidence: "CONFIRMED" as const, date: { gte: prevStart, lte: prevEnd } },
         { 
           dateConfidence: "ESTIMATED" as const,
           estimatedRangeStart: { gte: prevStart },

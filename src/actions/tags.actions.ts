@@ -104,7 +104,7 @@ export async function getTagROI(tagId: string, orgSlug: string) {
   let totalExpenses = 0;
 
   for (const t of transactions) {
-    if (t.type === "INCOME") {
+    if (t.type === "INCOME" && t.status === "RECEIVED") {
       totalIncome += Number(t.amount);
     } else if (t.type === "EXPENSE") {
       totalExpenses += Number(t.amount);

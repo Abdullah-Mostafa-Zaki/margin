@@ -20,13 +20,9 @@ async function fetchOrderFunnel(
   endDate: Date | null,
   tagId?: string
 ): Promise<OrderFunnelData> {
-    const dateFilter = startDate && endDate ? {
-    date: {
-      gte: startDate,
-      lte: endDate,
-    },
+  const dateFilter = startDate && endDate ? {
     OR: [
-      { dateConfidence: "CONFIRMED" as const },
+      { dateConfidence: "CONFIRMED" as const, date: { gte: startDate, lte: endDate } },
       { 
         dateConfidence: "ESTIMATED" as const,
         estimatedRangeStart: { gte: startDate },

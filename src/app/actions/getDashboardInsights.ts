@@ -1,5 +1,6 @@
 "use server";
 
+import { verifyOrgAccess } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getLivePendingEscrow } from "@/actions/bosta.actions";
 
@@ -48,13 +49,9 @@ export async function fetchDashboardInsights(
   endDate: Date | null,
   tagId?: string
 ): Promise<DashboardInsights> {
-    const dateFilter = startDate && endDate ? {
-    date: {
-      gte: startDate,
-      lte: endDate,
-    },
+  const dateFilter = startDate && endDate ? {
     OR: [
-      { dateConfidence: "CONFIRMED" as const },
+      { dateConfidence: "CONFIRMED" as const, date: { gte: startDate, lte: endDate } },
       { 
         dateConfidence: "ESTIMATED" as const,
         estimatedRangeStart: { gte: startDate },
@@ -265,8 +262,6 @@ export async function fetchDashboardInsights(
     ordersToBreakeven,
   };
 }
-
-import { verifyOrgAccess } from '@/lib/auth';
 
 export async function getDashboardInsights(
   organizationId: string,

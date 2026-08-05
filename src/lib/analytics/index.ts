@@ -234,9 +234,8 @@ export async function calculateDropRoi(orgId: string, startDate: Date, endDate: 
   const transactions = await prisma.transaction.findMany({
     where: {
       organizationId: orgId,
-      date: { gte: startDate, lte: endDate },
       OR: [
-        { dateConfidence: "CONFIRMED" },
+        { dateConfidence: "CONFIRMED", date: { gte: startDate, lte: endDate } },
         { 
           dateConfidence: "ESTIMATED",
           estimatedRangeStart: { gte: startDate },

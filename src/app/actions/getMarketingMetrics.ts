@@ -1,3 +1,4 @@
+import { verifyOrgAccess } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 
@@ -18,9 +19,8 @@ async function fetchMarketingMetrics(
   tagId?: string
 ): Promise<MarketingMetrics> {
   const dateFilter: Prisma.TransactionWhereInput = startDate && endDate ? { 
-    date: { gte: startDate, lte: endDate },
     OR: [
-      { dateConfidence: "CONFIRMED" as const },
+      { dateConfidence: "CONFIRMED" as const, date: { gte: startDate, lte: endDate } },
       { 
         dateConfidence: "ESTIMATED" as const,
         estimatedRangeStart: { gte: startDate },
@@ -131,9 +131,8 @@ async function fetchMarketingMetrics(
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
     
     const currentMonthData = await fetchPeriodMetrics({ 
-      date: { gte: startOfThisMonth },
       OR: [
-        { dateConfidence: "CONFIRMED" as const },
+        { dateConfidence: "CONFIRMED" as const, date: { gte: startOfThisMonth } },
         { 
           dateConfidence: "ESTIMATED" as const,
           estimatedRangeStart: { gte: startOfThisMonth }
@@ -144,9 +143,8 @@ async function fetchMarketingMetrics(
     current.cac = currentMonthData.cac;
 
     prevFilter = { 
-      date: { gte: startOfLastMonth, lte: endOfLastMonth },
       OR: [
-        { dateConfidence: "CONFIRMED" as const },
+        { dateConfidence: "CONFIRMED" as const, date: { gte: startOfLastMonth, lte: endOfLastMonth } },
         { 
           dateConfidence: "ESTIMATED" as const,
           estimatedRangeStart: { gte: startOfLastMonth },
@@ -159,9 +157,8 @@ async function fetchMarketingMetrics(
     const prevStart = new Date(startDate!.getTime() - duration - 1);
     const prevEnd = new Date(startDate!.getTime() - 1);
     prevFilter = { 
-      date: { gte: prevStart, lte: prevEnd },
       OR: [
-        { dateConfidence: "CONFIRMED" as const },
+        { dateConfidence: "CONFIRMED" as const, date: { gte: prevStart, lte: prevEnd } },
         { 
           dateConfidence: "ESTIMATED" as const,
           estimatedRangeStart: { gte: prevStart },
@@ -185,8 +182,6 @@ async function fetchMarketingMetrics(
   };
 }
 
-import { verifyOrgAccess } from "@/lib/auth";
-
 export async function getMarketingMetrics(
   organizationId: string,
   startDate?: Date,
@@ -196,7 +191,7 @@ export async function getMarketingMetrics(
   await verifyOrgAccess(organizationId);
 
   const getCached = unstable_cache(
-    async () => fetchMarketingMetrics(organizationId, startDate, endDate, tagId),
+    async () => fetchMarketingMetrics(organizationId, startDate || undefined, endDate || undefined, tagId),
     [
       'marketing-metrics',
       organizationId,
