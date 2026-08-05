@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# scratch and test scripts
+/scripts/
+/scratch/
+test-*.js
+test-*.ts
+test-*.mjs
+verify-*.js
+verify-*.ts
+query-*.js
+fix-*.js
+puppeteer-*.js
+puppeteer-error-*.png
