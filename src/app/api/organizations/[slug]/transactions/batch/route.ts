@@ -10,12 +10,10 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    // Temporarily bypass session check for testing
-    // const session = await getServerSession(authOptions);
-    // if (!session?.user?.email) {
-    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    // }
-    const session = { user: { email: 'test@example.com' } };
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { slug } = await params;
 
