@@ -89,34 +89,9 @@ export function ShopifyIntegration({
 
       <div className="px-6 py-5 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-          {/* Setup Instructions */}
-          <div className="rounded-lg bg-blue-50 border border-blue-100 p-4 w-full h-full max-w-full flex flex-col justify-center">
-            <div className="flex items-start gap-2">
-              <Zap className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-              <div className="space-y-1.5 min-w-0 flex-1">
-                <p className="text-xs font-semibold text-blue-800 whitespace-normal break-words text-wrap">
-                  Setup Instructions
-                </p>
-                <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside whitespace-normal break-words text-wrap">
-                  <li>
-                    Paste the Webhook URL below into{" "}
-                    <span className="font-medium">
-                      Shopify Settings → Notifications → Webhooks
-                    </span>
-                    .
-                  </li>
-                  <li>
-                    Copy the webhook signature secret from the bottom of that
-                    Shopify page.
-                  </li>
-                  <li>Paste the secret here and save.</li>
-                </ol>
-              </div>
-            </div>
-          </div>
-
-          {/* Video Tutorial */}
-          <div className="rounded-xl overflow-hidden border shadow-sm w-full aspect-video bg-muted">
+          
+          {/* Video Tutorial (Left) */}
+          <div className="rounded-xl overflow-hidden border shadow-sm w-full aspect-video bg-muted md:sticky md:top-6">
             <video
               className="w-full h-full object-cover"
               controls
@@ -127,98 +102,127 @@ export function ShopifyIntegration({
               src="/video.mp4"
             />
           </div>
-        </div>
 
-        {/* Section 1: Webhook URL */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-zinc-700">
-            Webhook URL
-          </label>
-          <div className="flex flex-wrap gap-2 w-full">
-            <div
-              id="shopify-webhook-url"
-              className="flex-1 min-w-0 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600 font-mono break-all whitespace-normal overflow-hidden select-all"
-            >
-              {webhookUrl}
+          {/* Right Column: Instructions & Form */}
+          <div className="space-y-6">
+            {/* Setup Instructions */}
+            <div className="rounded-lg bg-blue-50 border border-blue-100 p-4 w-full h-full max-w-full flex flex-col justify-center">
+              <div className="flex items-start gap-2">
+                <Zap className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+                <div className="space-y-1.5 min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-blue-800 whitespace-normal break-words text-wrap">
+                    Setup Instructions
+                  </p>
+                  <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside whitespace-normal break-words text-wrap">
+                    <li>
+                      Paste the Webhook URL below into{" "}
+                      <span className="font-medium">
+                        Shopify Settings → Notifications → Webhooks
+                      </span>
+                      .
+                    </li>
+                    <li>
+                      Copy the webhook signature secret from the bottom of that
+                      Shopify page.
+                    </li>
+                    <li>Paste the secret here and save.</li>
+                  </ol>
+                </div>
+              </div>
             </div>
-            <button
-              id="copy-webhook-url-btn"
-              type="button"
-              onClick={handleCopy}
-              className="inline-flex h-10 items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-300 whitespace-nowrap"
-            >
-              {copied ? (
-                <>
-                  <Check className="h-4 w-4 text-emerald-500" />
-                  <span className="text-emerald-600">Copied</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="h-4 w-4" />
-                  Copy
-                </>
-              )}
-            </button>
-          </div>
-        </div>
 
-        {/* Section 2: Secret Key */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label
-              htmlFor="shopify-secret-input"
-              className="text-sm font-medium text-zinc-700"
-            >
-              Webhook Signature Secret
-            </label>
-            {hasSecret && (
-              <span className="text-xs text-zinc-400">
-                A secret is already saved — paste a new one to replace it
-              </span>
+            {/* Section 1: Webhook URL */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700">
+                Webhook URL
+              </label>
+              <div className="flex flex-wrap gap-2 w-full">
+                <div
+                  id="shopify-webhook-url"
+                  className="flex-1 min-w-0 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600 font-mono break-all whitespace-normal overflow-hidden select-all"
+                >
+                  {webhookUrl}
+                </div>
+                <button
+                  id="copy-webhook-url-btn"
+                  type="button"
+                  onClick={handleCopy}
+                  className="inline-flex h-10 items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-300 whitespace-nowrap"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-4 w-4 text-emerald-500" />
+                      <span className="text-emerald-600">Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      Copy
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Section 2: Secret Key */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="shopify-secret-input"
+                  className="text-sm font-medium text-zinc-700"
+                >
+                  Webhook Signature Secret
+                </label>
+                {hasSecret && (
+                  <span className="text-xs text-zinc-400">
+                    A secret is already saved — paste a new one to replace it
+                  </span>
+                )}
+              </div>
+              <input
+                id="shopify-secret-input"
+                type="password"
+                placeholder={
+                  hasSecret
+                    ? "Paste new secret to update…"
+                    : "Paste your Shopify webhook secret…"
+                }
+                value={secret}
+                onChange={(e) => setSecret(e.target.value)}
+                disabled={isPending}
+                className="flex h-10 w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent disabled:opacity-50 transition"
+              />
+            </div>
+
+            {/* Feedback */}
+            {result && (
+              <div
+                className={`rounded-md px-4 py-3 text-sm font-medium ${
+                  "success" in result && result.success
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    : "bg-red-50 text-red-700 border border-red-200"
+                }`}
+              >
+                {"success" in result && result.success
+                  ? "✓ Shopify connection saved successfully."
+                  : `✕ ${"error" in result ? result.error : "An error occurred."}`}
+              </div>
             )}
-          </div>
-          <input
-            id="shopify-secret-input"
-            type="password"
-            placeholder={
-              hasSecret
-                ? "Paste new secret to update…"
-                : "Paste your Shopify webhook secret…"
-            }
-            value={secret}
-            onChange={(e) => setSecret(e.target.value)}
-            disabled={isPending}
-            className="flex h-10 w-full min-w-0 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-transparent disabled:opacity-50 transition"
-          />
-        </div>
 
-        {/* Feedback */}
-        {result && (
-          <div
-            className={`rounded-md px-4 py-3 text-sm font-medium ${
-              "success" in result && result.success
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                : "bg-red-50 text-red-700 border border-red-200"
-            }`}
-          >
-            {"success" in result && result.success
-              ? "✓ Shopify connection saved successfully."
-              : `✕ ${"error" in result ? result.error : "An error occurred."}`}
+            {/* Save Button */}
+            <div className="flex flex-wrap justify-end pt-1 w-full max-w-full">
+              <button
+                id="save-shopify-secret-btn"
+                type="button"
+                onClick={handleSave}
+                disabled={isPending || !secret.trim()}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-zinc-900 px-5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed w-full sm:w-auto"
+              >
+                {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                {hasSecret ? "Update Connection" : "Save Connection"}
+              </button>
+            </div>
           </div>
-        )}
-
-        {/* Save Button */}
-        <div className="flex flex-wrap justify-end pt-1 w-full max-w-full">
-          <button
-            id="save-shopify-secret-btn"
-            type="button"
-            onClick={handleSave}
-            disabled={isPending || !secret.trim()}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-zinc-900 px-5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 disabled:opacity-40 disabled:cursor-not-allowed w-full sm:w-auto"
-          >
-            {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            {hasSecret ? "Update Connection" : "Save Connection"}
-          </button>
         </div>
       </div>
       </UpgradeOverlay>
