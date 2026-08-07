@@ -3,13 +3,15 @@
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { redirect } from "next/navigation";
+
 
 export async function completeOnboarding(data: {
   brandName: string;
   courierFee: number;
-  startingCapital: number;
   firstDropName: string;
+  firstDropStartDate: string;
+  firstDropEndDate: string;
+  firstDropDescription?: string;
   shopifyWebhookUrl?: string;
   shopifyWebhookSecret?: string;
   bostaEmail?: string;
@@ -28,10 +30,13 @@ export async function completeOnboarding(data: {
   const slug = existingOrg ? `${baseSlug}-${Math.random().toString(36).substring(2, 6)}` : baseSlug;
 
   // 1. Create Brand and Membership
+  const isFreePeriod = new Date() < new Date('2026-11-01T00:00:00Z');
+  
   const newOrg = await prisma.organization.create({
     data: {
       name: data.brandName,
       slug: slug,
+      plan: isFreePeriod ? "BUSINESS" : "FREE",
       courierFee: data.courierFee || 0,
       shopifyWebhookUrl: data.shopifyWebhookUrl || null, // <-- Saved to DB
       shopifyWebhookSecret: data.shopifyWebhookSecret || null,   // <-- Saved to DB
@@ -48,34 +53,18 @@ export async function completeOnboarding(data: {
       data: {
         name: data.firstDropName,
         organizationId: newOrg.id,
-      }
-    });
-  }
-
-  // 3. Inject Starting Capital if > 0
-  if (data.startingCapital > 0) {
-    await prisma.transaction.create({
-      data: {
-        amount: data.startingCapital,
-        type: "INCOME",
-        category: "Starting Capital",
-        paymentMethod: "CASH",
-        status: "RECEIVED",
-        date: new Date(),
-        organizationId: newOrg.id,
-        createdById: user.id,
+        startDate: new Date(data.firstDropStartDate),
+        endDate: new Date(data.firstDropEndDate),
+        description: data.firstDropDescription || null,
       }
     });
   }
 
   // 4. Connect Bosta if provided
   if (data.bostaEmail && data.bostaPassword) {
-    // We already have `connectBostaAccount` from bosta.actions.ts, but wait, `bosta.actions.ts` is in another module.
-    // Instead of importing `connectBostaAccount` and dealing with circular dependencies, we can just fetch here
-    // or better, since we are in `onboarding.actions.ts` we can import it.
     const { connectBostaAccount } = await import('./bosta.actions');
     await connectBostaAccount(data.bostaEmail, data.bostaPassword, newOrg.id);
   }
 
-  redirect(`/${newOrg.slug}`);
+  return { success: true, orgSlug: newOrg.slug };
 }

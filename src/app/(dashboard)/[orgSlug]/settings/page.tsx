@@ -168,8 +168,8 @@ export default async function SettingsPage({
                           )}
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="font-medium text-zinc-900 truncate">
-                            {membership.user.name || "Unknown User"}
+                          <span className="font-medium text-zinc-900 truncate capitalize">
+                            {membership.user.name || membership.user.email?.split('@')[0] || "Unknown User"}
                           </span>
                           <span className="text-xs text-zinc-500 truncate">{membership.user.email}</span>
                         </div>
@@ -205,8 +205,8 @@ export default async function SettingsPage({
                       )}
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="font-medium text-zinc-900 truncate">
-                        {membership.user.name || "Unknown User"}
+                      <span className="font-medium text-zinc-900 truncate capitalize">
+                        {membership.user.name || membership.user.email?.split('@')[0] || "Unknown User"}
                       </span>
                       <span className="text-xs text-zinc-500 truncate">{membership.user.email}</span>
                     </div>

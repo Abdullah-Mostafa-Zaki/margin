@@ -88,6 +88,19 @@ export function ShopifyIntegration({
       </div>
 
       <div className="px-6 py-5 space-y-6">
+        {/* Video Tutorial */}
+        <div className="rounded-xl overflow-hidden border shadow-sm w-full aspect-video bg-muted">
+          <video
+            className="w-full h-full object-cover"
+            controls
+            autoPlay
+            muted
+            loop
+            playsInline
+            src="/video.mp4"
+          />
+        </div>
+
         {/* Setup Instructions */}
         <div className="rounded-lg bg-blue-50 border border-blue-100 p-4 w-full max-w-full">
           <div className="flex items-start gap-2">

@@ -21,6 +21,7 @@ model User {
   memberships   Membership[]
   sessions      Session[]
   transactions  Transaction[]
+  invitesSent   OrganizationInvite[]
 }
 
 model Account {
@@ -81,6 +82,7 @@ model Organization {
   onboardingCompleted  Boolean           @default(false)
   reports              Report[]
   recurringExpenses    RecurringExpense[]
+  invites              OrganizationInvite[]
 
   @@index([slug])
 }
@@ -378,3 +380,20 @@ model RecurringExpense {
   @@index([organizationId])
   @@index([organizationId, isActive, nextDueDate])
 }
+
+model OrganizationInvite {
+  id             String       @id @default(cuid())
+  organizationId String
+  email          String
+  role           Role         @default(MEMBER)
+  token          String       @unique
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  invitedById    String?
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy      User?        @relation(fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, email])
+}
+

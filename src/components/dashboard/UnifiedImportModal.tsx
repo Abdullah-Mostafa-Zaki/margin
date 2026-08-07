@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScanLine, Sheet, Plus, ChevronLeft, Loader2, CheckCircle2, UploadCloud, AlertCircle, Trash2, Pencil, CalendarRange } from "lucide-react";
+import { ScanLine, Sheet, Plus, ChevronLeft, Loader2, CheckCircle2, UploadCloud, AlertCircle, Trash2, Pencil, CalendarRange, Lock } from "lucide-react";
 import { useUploadThing } from "@/lib/uploadthing";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -58,8 +58,20 @@ export interface UnifiedTransaction {
   dropId?: string | null;
 }
 
-export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
-  const [open, setOpen] = useState(false);
+export function UnifiedImportModal({ 
+  orgSlug, 
+  trigger,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange
+}: { 
+  orgSlug: string; 
+  trigger?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
   const [step, setStep] = useState<ImportStep>("SPLIT");
   const [isUploading, setIsUploading] = useState(false);
   const [transactions, setTransactions] = useState<UnifiedTransaction[]>([]);
@@ -119,14 +131,17 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
     },
   });
 
-  const handleOpenChange = (val: boolean) => {
-    if (isUploading || step === "SAVING") return;
-    setOpen(val);
-    if (val) {
-      posthog?.capture('import_started');
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!isControlled) {
+      setInternalOpen(newOpen);
     }
-    if (!val) {
-      resetState();
+    controlledOnOpenChange?.(newOpen);
+    if (!newOpen) {
+      setTimeout(() => {
+        setStep("SPLIT");
+        setTransactions([]);
+        setHideDateBanner(false);
+      }, 300);
     }
   };
 
@@ -293,19 +308,31 @@ export function UnifiedImportModal({ orgSlug }: { orgSlug: string }) {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {hasImportAccess ? (
-        <DialogTrigger asChild>
-          <Button variant="outline" className="gap-2 h-8 px-2.5 rounded-lg">
-            <Plus className="w-4 h-4" />
-            Import Data
-          </Button>
-        </DialogTrigger>
+        trigger ? (
+          <DialogTrigger asChild>
+            {trigger}
+          </DialogTrigger>
+        ) : !isControlled ? (
+          <DialogTrigger asChild>
+            <Button variant="outline" className="gap-2 h-8 px-2.5 rounded-lg">
+              <Plus className="w-4 h-4" />
+              Import Data
+            </Button>
+          </DialogTrigger>
+        ) : null
       ) : (
-        <div title="Upgrade to PLUS to import data">
-          <Button disabled variant="outline" className="gap-2 h-8 px-2.5 rounded-lg opacity-50 cursor-not-allowed">
-            <Plus className="w-4 h-4" />
-            Import Data
-          </Button>
-        </div>
+        trigger ? (
+          <DialogTrigger asChild>
+            {trigger}
+          </DialogTrigger>
+        ) : !isControlled ? (
+          <DialogTrigger asChild>
+            <Button variant="outline" className="gap-2 h-8 px-2.5 rounded-lg opacity-50">
+              <Lock className="w-3 h-3 text-amber-500" />
+              Import Data
+            </Button>
+          </DialogTrigger>
+        ) : null
       )}
       <DialogContent className="!w-[95vw] !max-w-[95vw] xl:!max-w-[1200px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         

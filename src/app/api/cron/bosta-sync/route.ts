@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { syncBostaDeliveries } from "@/actions/bosta.actions";
+import { canAccessFeature } from "@/lib/plans";
 
 export const dynamic = 'force-dynamic';
 
@@ -17,13 +18,16 @@ export async function GET(request: Request) {
           isNot: null,
         },
       },
-      select: { id: true }
+      select: { id: true, plan: true }
     });
 
     let totalProcessed = 0;
     let totalFailed = 0;
 
     for (const org of organizations) {
+      if (!canAccessFeature(org.plan, 'bostaSync')) {
+        continue;
+      }
       const { processedCount, failedCount } = await syncBostaDeliveries(org.id);
       totalProcessed += processedCount;
       totalFailed += failedCount;

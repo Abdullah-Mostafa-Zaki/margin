@@ -1,6 +1,7 @@
 import React from 'react';
 import prisma from "@/lib/prisma";
 import { PricingGrid } from '@/components/pricing-grid';
+import Link from 'next/link';
 
 export default async function PricingPage({
   params,
@@ -20,7 +21,24 @@ export default async function PricingPage({
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full relative pb-24">
+      {/* Free Period Overlay */}
+      <div className="absolute inset-0 z-50 flex items-start justify-center pt-64 bg-white/40 backdrop-blur-sm rounded-3xl mx-4">
+        <div className="bg-white border shadow-xl rounded-2xl p-8 max-w-md text-center flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
+          <div className="text-4xl mb-4">🎉</div>
+          <h2 className="text-xl font-bold text-zinc-900 mb-2">You're in the free period</h2>
+          <p className="text-sm text-zinc-600 mb-6">
+            Congrats — Margin's free until Nov 1st. We just haven't figured out how to charge you yet.
+          </p>
+          <Link 
+            href={`/${resolvedParams.orgSlug}`}
+            className="inline-flex h-10 items-center justify-center rounded-md bg-zinc-900 px-8 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
+          >
+            Go to Dashboard
+          </Link>
+        </div>
+      </div>
+
       <div className="text-center max-w-3xl mx-auto mb-16 pt-10">
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 mb-4">
           Simple, transparent pricing
@@ -30,7 +48,9 @@ export default async function PricingPage({
         </p>
       </div>
 
-      <PricingGrid currentPlan={currentPlan} orgSlug={resolvedParams.orgSlug} />
+      <div className="opacity-40 pointer-events-none select-none filter blur-[3px]">
+        <PricingGrid currentPlan={currentPlan} orgSlug={resolvedParams.orgSlug} />
+      </div>
     </div>
   );
 }

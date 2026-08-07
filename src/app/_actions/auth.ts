@@ -13,29 +13,56 @@ export type ActionResult =
 
 export async function registerUser(
   email: string,
-  password: string
+  password: string,
+  name?: string
 ): Promise<ActionResult> {
   if (!email || !password) {
     return { success: false, error: "Email and password are required." };
   }
 
+  const emailLower = email.toLowerCase();
+
   if (password.length < 8) {
     return { success: false, error: "Password must be at least 8 characters." };
   }
 
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await prisma.user.findUnique({ where: { email: emailLower } });
   if (existing) {
     return { success: false, error: "An account with this email already exists." };
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
-      email,
+      name: name || undefined,
+      email: emailLower,
       password: hashedPassword,
     },
   });
+
+  // Automatically accept any pending invites for this email
+  const pendingInvites = await prisma.organizationInvite.findMany({
+    where: { email: emailLower }
+  });
+
+  if (pendingInvites.length > 0) {
+    for (const invite of pendingInvites) {
+      if (invite.expiresAt > new Date()) {
+        await prisma.membership.create({
+          data: {
+            organizationId: invite.organizationId,
+            userId: user.id,
+            role: invite.role
+          }
+        });
+      }
+    }
+    // Delete all processed invites
+    await prisma.organizationInvite.deleteMany({
+      where: { email: emailLower }
+    });
+  }
 
   return { success: true };
 }

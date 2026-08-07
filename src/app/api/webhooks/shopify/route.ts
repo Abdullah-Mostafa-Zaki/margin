@@ -3,11 +3,7 @@ import { unstable_noStore as noStore } from 'next/cache';
 import { revalidateTag } from "next/cache";
 import crypto from "crypto";
 import prisma from "@/lib/prisma";
-import { PLAN_LIMITS } from "@/lib/plans";
-
-function canAccessFeature(plan: string, feature: keyof typeof PLAN_LIMITS["FREE"]) {
-  return PLAN_LIMITS[plan as keyof typeof PLAN_LIMITS][feature];
-}
+import { PLAN_LIMITS, canAccessFeature } from "@/lib/plans";
 /**
  * Maps a Shopify payment gateway string to one of Margin's PaymentMethod enum values.
  * Handles common Egyptian payment methods (COD, InstaPay) with a CARD fallback.

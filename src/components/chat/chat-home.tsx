@@ -14,6 +14,14 @@ import {
 import TransactionForm from "@/components/transactions/transaction-form";
 import { useUploadThing } from "@/lib/uploadthing";
 import { useAudioRecorder } from "@/hooks/use-audio-recorder";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Image as ImageIcon, FileSpreadsheet } from "lucide-react";
+import { UnifiedImportModal } from "@/components/dashboard/UnifiedImportModal";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -95,6 +103,8 @@ export function ChatHome({ orgSlug, tags = [], currentMonthVoice = 0, currentMon
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef    = useRef<HTMLDivElement>(null);
+
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   // ── Audio recorder hook (handles iOS MIME, base64, stream release) ──────────
   const {
@@ -296,15 +306,35 @@ export function ChatHome({ orgSlug, tags = [], currentMonthVoice = 0, currentMon
           {/* The Unified Input Pill */}
           <div className={`flex items-center gap-2 bg-muted/40 border border-border/50 rounded-3xl px-2 py-1.5 shadow-sm focus-within:ring-1 focus-within:ring-ring transition-all ${isQuotaExhausted ? 'opacity-50 pointer-events-none' : ''}`}>
 
-            {/* 1. Attachment Button (Left) */}
-            <button
-              type="button"
-              onClick={handleImageAttach}
-              disabled={isProcessing}
-              className="flex-shrink-0 p-2 text-muted-foreground hover:bg-muted hover:text-foreground rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Paperclip className="w-5 h-5" />
-            </button>
+            {/* 1. Attachment Button (Left) via Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                disabled={isProcessing}
+                className="flex-shrink-0 p-2 text-muted-foreground hover:bg-muted hover:text-foreground rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed outline-none"
+              >
+                <Paperclip className="w-5 h-5" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuItem onClick={handleImageAttach} className="cursor-pointer">
+                  <ImageIcon className="mr-2 h-4 w-4" />
+                  <span>Image / Receipt</span>
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem 
+                  onClick={() => setImportModalOpen(true)} 
+                  className="cursor-pointer w-full"
+                >
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  <span>Spreadsheet (CSV/Excel)</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <UnifiedImportModal 
+              orgSlug={orgSlug} 
+              open={importModalOpen}
+              onOpenChange={setImportModalOpen}
+            />
 
             {/* 2. Transparent Input (Center) */}
             <input

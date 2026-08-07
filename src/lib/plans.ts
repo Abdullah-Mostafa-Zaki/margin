@@ -105,3 +105,8 @@ export function hasRemainingQuota(org: {
   const totalUsage = org.currentMonthVoice + org.currentMonthImage + org.currentMonthText;
   return totalUsage < PLAN_LIMITS[org.plan].maxAiTransactions;
 }
+
+export function canAccessFeature(plan: string, feature: keyof typeof PLAN_LIMITS["FREE"]) {
+  const planLimits = PLAN_LIMITS[plan as keyof typeof PLAN_LIMITS] || PLAN_LIMITS["FREE"];
+  return !!planLimits[feature];
+}

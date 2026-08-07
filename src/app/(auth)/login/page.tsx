@@ -26,6 +26,7 @@ function LoginForm() {
 
   const initialMode = searchParams.get("mode") === "signup" ? "register" : "login";
   const [mode, setMode] = useState<Mode>(initialMode);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -46,7 +47,7 @@ function LoginForm() {
     setLoading(true);
 
     if (mode === "register") {
-      const result = await registerUser(email, password);
+      const result = await registerUser(email, password, name);
       if (!result.success) {
         setError(result.error);
         setLoading(false);
@@ -171,6 +172,21 @@ function LoginForm() {
         <CardContent className="space-y-4">
           {!isVerify && (
             <form onSubmit={handleCredentials} className="space-y-4">
+              {mode === "register" && (
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Jane Doe"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required={mode === "register"}
+                    autoComplete="name"
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
