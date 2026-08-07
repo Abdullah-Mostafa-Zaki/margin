@@ -66,5 +66,5 @@ export async function completeOnboarding(data: {
     await connectBostaAccount(data.bostaEmail, data.bostaPassword, newOrg.id);
   }
 
-  return { success: true, orgSlug: newOrg.slug };
+  return { success: true, orgSlug: newOrg.slug, plan: newOrg.plan };
 }

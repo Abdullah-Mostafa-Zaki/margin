@@ -7,12 +7,14 @@ import { Loader2, Zap } from "lucide-react";
 import { BostaConnectForm } from "@/components/settings/bosta-connect-form";
 import { UnifiedImportModal } from "@/components/dashboard/UnifiedImportModal";
 import { useRouter } from "next/navigation";
+import { PlanProvider } from "@/lib/plan-context";
 
 export function OnboardingWizard() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdOrgSlug, setCreatedOrgSlug] = useState<string | null>(null);
+  const [createdOrgPlan, setCreatedOrgPlan] = useState<any>("FREE");
 
   const [formData, setFormData] = useState({
     brandName: "",
@@ -46,6 +48,7 @@ export function OnboardingWizard() {
       const res = await completeOnboarding(dataToSubmit);
       if (res?.success && res.orgSlug) {
         setCreatedOrgSlug(res.orgSlug);
+        if (res.plan) setCreatedOrgPlan(res.plan);
         setStep(5);
       }
     } catch (error) {
@@ -273,7 +276,11 @@ export function OnboardingWizard() {
             <p className="text-sm text-muted-foreground mt-2">Bring in your old transactions via Excel or CSV.</p>
           </div>
           <div className="flex justify-center border rounded-lg p-8 bg-zinc-50">
-            {createdOrgSlug && <UnifiedImportModal orgSlug={createdOrgSlug} />}
+            {createdOrgSlug && (
+              <PlanProvider plan={createdOrgPlan}>
+                <UnifiedImportModal orgSlug={createdOrgSlug} />
+              </PlanProvider>
+            )}
           </div>
           <div className="flex justify-between gap-3 pt-2">
             <button onClick={handleNext} className="h-10 flex-1 rounded-md bg-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors">

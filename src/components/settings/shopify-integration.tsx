@@ -88,42 +88,44 @@ export function ShopifyIntegration({
       </div>
 
       <div className="px-6 py-5 space-y-6">
-        {/* Video Tutorial */}
-        <div className="rounded-xl overflow-hidden border shadow-sm w-full aspect-video bg-muted">
-          <video
-            className="w-full h-full object-cover"
-            controls
-            autoPlay
-            muted
-            loop
-            playsInline
-            src="/video.mp4"
-          />
-        </div>
-
-        {/* Setup Instructions */}
-        <div className="rounded-lg bg-blue-50 border border-blue-100 p-4 w-full max-w-full">
-          <div className="flex items-start gap-2">
-            <Zap className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-            <div className="space-y-1.5 min-w-0 flex-1">
-              <p className="text-xs font-semibold text-blue-800 whitespace-normal break-words text-wrap">
-                Setup Instructions
-              </p>
-              <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside whitespace-normal break-words text-wrap">
-                <li>
-                  Paste the Webhook URL below into{" "}
-                  <span className="font-medium">
-                    Shopify Settings → Notifications → Webhooks
-                  </span>
-                  .
-                </li>
-                <li>
-                  Copy the webhook signature secret from the bottom of that
-                  Shopify page.
-                </li>
-                <li>Paste the secret here and save.</li>
-              </ol>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+          {/* Setup Instructions */}
+          <div className="rounded-lg bg-blue-50 border border-blue-100 p-4 w-full h-full max-w-full flex flex-col justify-center">
+            <div className="flex items-start gap-2">
+              <Zap className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+              <div className="space-y-1.5 min-w-0 flex-1">
+                <p className="text-xs font-semibold text-blue-800 whitespace-normal break-words text-wrap">
+                  Setup Instructions
+                </p>
+                <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside whitespace-normal break-words text-wrap">
+                  <li>
+                    Paste the Webhook URL below into{" "}
+                    <span className="font-medium">
+                      Shopify Settings → Notifications → Webhooks
+                    </span>
+                    .
+                  </li>
+                  <li>
+                    Copy the webhook signature secret from the bottom of that
+                    Shopify page.
+                  </li>
+                  <li>Paste the secret here and save.</li>
+                </ol>
+              </div>
             </div>
+          </div>
+
+          {/* Video Tutorial */}
+          <div className="rounded-xl overflow-hidden border shadow-sm w-full aspect-video bg-muted">
+            <video
+              className="w-full h-full object-cover"
+              controls
+              autoPlay
+              muted
+              loop
+              playsInline
+              src="/video.mp4"
+            />
           </div>
         </div>
 
