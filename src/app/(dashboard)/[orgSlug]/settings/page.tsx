@@ -127,20 +127,22 @@ export default async function SettingsPage({
                 {organization.memberships.length} of {limits.maxTeamMembers} seats used
               </p>
             </div>
-            {isTeamFull ? (
-              <div className="text-right">
-                <button disabled className="inline-flex h-9 items-center justify-center rounded-md bg-zinc-200 px-4 py-2 text-sm font-medium text-zinc-400 cursor-not-allowed">
+            <div className="hidden">
+              {isTeamFull ? (
+                <div className="text-right">
+                  <button disabled className="inline-flex h-9 items-center justify-center rounded-md bg-zinc-200 px-4 py-2 text-sm font-medium text-zinc-400 cursor-not-allowed">
+                    Invite Member
+                  </button>
+                  <p className="text-[11px] text-zinc-500 mt-1">
+                    Team limit reached. <Link href={`/${orgSlug}/pricing`} className="text-emerald-600 hover:underline">Upgrade</Link> to add more.
+                  </p>
+                </div>
+              ) : (
+                <button className="inline-flex h-9 items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-900/90">
                   Invite Member
                 </button>
-                <p className="text-[11px] text-zinc-500 mt-1">
-                  Team limit reached. <Link href={`/${orgSlug}/pricing`} className="text-emerald-600 hover:underline">Upgrade</Link> to add more.
-                </p>
-              </div>
-            ) : (
-              <button className="inline-flex h-9 items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-900/90">
-                Invite Member
-              </button>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Desktop Table */}
