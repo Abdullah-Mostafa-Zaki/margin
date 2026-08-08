@@ -10,7 +10,6 @@ import prisma from "@/lib/prisma";
 import Sidebar from "@/components/shared/sidebar";
 import TopNav from "@/components/shared/top-nav";
 import { getDashboardInsights } from "@/app/actions/getDashboardInsights";
-import { PostHogProvider } from "@/components/providers/PostHogProvider";
 import { PlanProvider } from "@/lib/plan-context";
 import { Plan } from "@prisma/client";
 
@@ -135,11 +134,9 @@ export default async function DashboardLayout({
           />
           {/* pb-20 ensures content clears the fixed mobile bottom tab bar */}
           <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-20 md:py-8 md:pb-8">
-            <PostHogProvider session={session}>
-              <PlanProvider plan={org.plan}>
-                {children}
-              </PlanProvider>
-            </PostHogProvider>
+            <PlanProvider plan={org.plan}>
+              {children}
+            </PlanProvider>
           </main>
         </div>
       </div>

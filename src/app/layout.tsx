@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import SessionProvider from "@/components/providers/session-provider";
+import { PostHogProvider } from "@/components/providers/PostHogProvider";
 import { NextSSRPlugin } from "@uploadthing/react/next-ssr-plugin";
 import { extractRouterConfig } from "uploadthing/server";
 import { ourFileRouter } from "@/app/api/uploadthing/core";
@@ -58,7 +59,9 @@ export default function RootLayout({
       <body className={inter.className} suppressHydrationWarning>
         <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
         <SessionProvider>
-          {children}
+          <PostHogProvider>
+            {children}
+          </PostHogProvider>
         </SessionProvider>
       </body>
     </html>

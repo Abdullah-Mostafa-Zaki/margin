@@ -2,8 +2,9 @@
 
 import posthog from 'posthog-js';
 import { PostHogProvider as CSPostHogProvider } from 'posthog-js/react';
-import { useEffect } from 'react';
-import type { Session } from 'next-auth';
+import { useEffect, Suspense } from 'react';
+import { useSession } from 'next-auth/react';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
   console.log('PostHog initialized', process.env.NEXT_PUBLIC_POSTHOG_KEY);
@@ -13,18 +14,43 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
   });
 }
 
-export function PostHogProvider({ children, session }: { children: React.ReactNode, session: Session | null }) {
+function PostHogPageView() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (session?.user?.email) {
+    if (pathname) {
+      let url = window.origin + pathname;
+      if (searchParams && searchParams.toString()) {
+        url = url + `?${searchParams.toString()}`;
+      }
+      posthog.capture('$pageview', { '$current_url': url });
+    }
+  }, [pathname, searchParams]);
+
+  return null;
+}
+
+export function PostHogProvider({ children }: { children: React.ReactNode }) {
+  const { data: session, status } = useSession();
+
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.email) {
       posthog.identify(session.user.email, {
         email: session.user.email,
         name: session.user.name,
       });
-    } else if (session === null) {
+    } else if (status === 'unauthenticated') {
       posthog.reset();
     }
-  }, [session]);
+  }, [session, status]);
 
-  return <CSPostHogProvider client={posthog}>{children}</CSPostHogProvider>;
+  return (
+    <CSPostHogProvider client={posthog}>
+      <Suspense fallback={null}>
+        <PostHogPageView />
+      </Suspense>
+      {children}
+    </CSPostHogProvider>
+  );
 }
