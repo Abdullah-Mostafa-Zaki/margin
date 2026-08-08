@@ -64,11 +64,13 @@ export async function registerUser(
     });
   }
 
-  // Fire and forget welcome email: no await so it does not block registration
-  // Errors are caught and logged silently to the server console to ensure fail-safe execution.
-  sendWelcomeEmail(emailLower, name || "there").catch((err) => {
+  // Await the welcome email so the server action process stays alive long enough to send it.
+  // Errors are caught and logged silently to ensure fail-safe execution (non-blocking for the user).
+  try {
+    await sendWelcomeEmail(emailLower, name || "there");
+  } catch (err) {
     console.error("Non-blocking error: Failed to send welcome email", err);
-  });
+  }
 
   return { success: true };
 }
