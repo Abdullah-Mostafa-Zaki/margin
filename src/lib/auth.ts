@@ -6,6 +6,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "./prisma";
 import bcrypt from "bcryptjs";
 import type { Adapter } from "next-auth/adapters";
+import { sendWelcomeEmail } from "./mail";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma as any) as Adapter,
@@ -66,6 +67,17 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.sub;
       }
       return session;
+    },
+  },
+  events: {
+    async createUser({ user }) {
+      if (user.email) {
+        try {
+          await sendWelcomeEmail(user.email, user.name || "there");
+        } catch (err) {
+          console.error("Non-blocking error: Failed to send welcome email for OAuth signup", err);
+        }
+      }
     },
   },
   pages: {
