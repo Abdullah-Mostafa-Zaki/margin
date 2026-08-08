@@ -2,7 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import { sendResetPasswordEmail } from "@/lib/mail";
+import { sendResetPasswordEmail, sendWelcomeEmail } from "@/lib/mail";
 import { randomUUID } from "crypto";
 
 export type ActionResult =
@@ -63,6 +63,12 @@ export async function registerUser(
       where: { email: emailLower }
     });
   }
+
+  // Fire and forget welcome email: no await so it does not block registration
+  // Errors are caught and logged silently to the server console to ensure fail-safe execution.
+  sendWelcomeEmail(emailLower, name || "there").catch((err) => {
+    console.error("Non-blocking error: Failed to send welcome email", err);
+  });
 
   return { success: true };
 }
