@@ -13,6 +13,7 @@ export function OnboardingWizard() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSkipping, setIsSkipping] = useState(false);
   const [createdOrgSlug, setCreatedOrgSlug] = useState<string | null>(null);
   const [createdOrgPlan, setCreatedOrgPlan] = useState<any>("FREE");
 
@@ -343,15 +344,18 @@ export function OnboardingWizard() {
 
           <div className="flex gap-3 pt-4">
             <button
-              onClick={() => router.push(`/${createdOrgSlug}`)}
-              disabled={isSubmitting}
-              className="h-10 px-4 rounded-md border border-input bg-transparent text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+              onClick={() => {
+                setIsSkipping(true);
+                router.push(`/${createdOrgSlug}`);
+              }}
+              disabled={isSubmitting || isSkipping}
+              className="h-10 px-4 rounded-md border border-input bg-transparent text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              Skip
+              {isSkipping ? <Loader2 className="h-4 w-4 animate-spin" /> : "Skip"}
             </button>
             <button
               onClick={handleFinishDrop}
-              disabled={isSubmitting || !formData.firstDropName || !formData.firstDropStartDate || !formData.firstDropEndDate || formData.firstDropEndDate < formData.firstDropStartDate}
+              disabled={isSubmitting || isSkipping || !formData.firstDropName || !formData.firstDropStartDate || !formData.firstDropEndDate || formData.firstDropEndDate < formData.firstDropStartDate}
               className="h-10 flex-1 rounded-md bg-primary text-primary-foreground flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Completing...</> : "Complete Setup"}
