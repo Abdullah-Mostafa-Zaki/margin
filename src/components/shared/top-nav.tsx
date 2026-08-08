@@ -52,7 +52,7 @@ export default function TopNav({ orgSlug, userName, userImage, mood }: TopNavPro
     { name: "Transactions", href: `/${orgSlug}/transactions`, icon: Receipt },
     { name: "Analytics", href: `/${orgSlug}/analytics`, icon: BarChart2 },
     { name: "Drops", href: `/${orgSlug}/tags`, icon: Tag },
-    { name: "Recommendations", href: `/${orgSlug}/recommendations`, icon: Zap },
+    // { name: "Recommendations", href: `/${orgSlug}/recommendations`, icon: Zap },
     { name: "Settings", href: `/${orgSlug}/settings`, icon: Settings },
     { name: "Pricing", href: `/${orgSlug}/pricing`, icon: CreditCard },
   ];
@@ -82,9 +82,11 @@ export default function TopNav({ orgSlug, userName, userImage, mood }: TopNavPro
           {/* ── Right Column: Profile Pill ── */}
           <div className="flex flex-1 justify-end items-center gap-2 md:gap-4">
             {mood && (
-              <div className={`flex items-center gap-1.5 px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wider border shadow-sm ${mood.color}`}>
-                <span>{mood.emoji}</span>
-                <span className="hidden sm:inline">Mood: {mood.text}</span>
+              <div className="hidden">
+                <div className={`flex items-center gap-1.5 px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wider border shadow-sm ${mood.color}`}>
+                  <span>{mood.emoji}</span>
+                  <span className="hidden sm:inline">Mood: {mood.text}</span>
+                </div>
               </div>
             )}
             

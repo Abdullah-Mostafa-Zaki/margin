@@ -103,7 +103,7 @@ export function PricingGrid({ currentPlan, orgSlug }: PricingGridProps) {
           buttonText = 'Get started';
         }
         
-        const href = isCurrentPlan ? "#" : orgSlug ? `/${orgSlug}/payments` : "/login";
+        const href = isCurrentPlan ? "#" : orgSlug ? `/${orgSlug}/payments` : "/login?mode=signup";
 
         return (
           <div 

@@ -18,7 +18,7 @@ export default function Sidebar({ orgSlug, orgName }: SidebarProps) {
     { name: "Transactions", href: `/${orgSlug}/transactions`, icon: Receipt },
     { name: "Analytics", href: `/${orgSlug}/analytics`, icon: BarChart2 },
     { name: "Drops", href: `/${orgSlug}/tags`, icon: Tags },
-    { name: "Recommendations", href: `/${orgSlug}/recommendations`, icon: Zap },
+    // { name: "Recommendations", href: `/${orgSlug}/recommendations`, icon: Zap },
     { name: "Settings", href: `/${orgSlug}/settings`, icon: Settings },
     { name: "Pricing", href: `/${orgSlug}/pricing`, icon: CreditCard },
   ];
