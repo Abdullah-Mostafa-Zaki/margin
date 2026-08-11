@@ -157,7 +157,7 @@ export async function syncBostaDeliveries(organizationId: string) {
       const bostaStateValue = bostaDelivery.state?.value || "Processing";
       
       let newMarginStatus = transaction.status;
-      let newFulfillmentStatus: "UNFULFILLED" | "SHIPPED" | "DELIVERED" | "RETURNED" = "SHIPPED";
+      let newFulfillmentStatus: "UNFULFILLED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "RETURNED" = "SHIPPED";
 
       const updateData: any = {
         bostaTrackingNumber: String(bostaDelivery.trackingNumber),
@@ -166,14 +166,15 @@ export async function syncBostaDeliveries(organizationId: string) {
       };
 
       // RTO / Returned Flow (Ghost Revenue - Bucket 3)
-      if ([46, 47, 101].includes(stateCode) || ["Returned", "Canceled", "Cancelled"].includes(bostaStateValue)) {
+      // Removing hardcoded stateCodes (e.g. 46, 47, 101) to rely solely on the stable string value
+      if (["Returned", "Canceled", "Cancelled"].includes(bostaStateValue)) {
         newMarginStatus = "RETURNED";
         newFulfillmentStatus = "RETURNED";
         updateData.status = newMarginStatus;
         updateData.fulfillmentStatus = newFulfillmentStatus;
       } 
       // Delivered Flow (Realized Revenue - Bucket 1)
-      else if (stateCode === 45 || bostaStateValue === "Delivered") {
+      else if (bostaStateValue === "Delivered") {
         newMarginStatus = "RECEIVED";
         newFulfillmentStatus = "DELIVERED";
         updateData.status = newMarginStatus;
@@ -203,9 +204,16 @@ export async function syncBostaDeliveries(organizationId: string) {
         } catch (detailError) {
           console.error(`Bosta detail fetch error for ${bostaDelivery.trackingNumber}:`, detailError);
         }
-      } else {
+      } 
+      // Intermediate / Awaiting Action
+      else if (bostaStateValue === "Awaiting for Action") {
         updateData.status = newMarginStatus;
-        updateData.fulfillmentStatus = newFulfillmentStatus;
+        updateData.fulfillmentStatus = "PROCESSING";
+      } 
+      // In Transit / Processing fallback
+      else {
+        updateData.status = newMarginStatus;
+        updateData.fulfillmentStatus = newFulfillmentStatus; // defaults to SHIPPED
       }
 
       try {

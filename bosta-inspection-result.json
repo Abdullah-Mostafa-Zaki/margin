@@ -1,0 +1,274 @@
+{
+  "statusCounts": {
+    "24 - Processing": 11,
+    "21 - Picked Up": 8,
+    "10 - Created": 9,
+    "47 - Awaiting for Action": 2,
+    "45 - Delivered": 11,
+    "30 - Processing": 2,
+    "41 - Processing": 5,
+    "46 - Delivered": 2
+  },
+  "sample": [
+    {
+      "bosta_trackingNumber": "8360936301",
+      "bosta_stateCode": 24,
+      "bosta_stateValue": "Processing",
+      "bosta_cod": 1000,
+      "bosta_dropOffAddress": "Sharqia",
+      "bosta_timestamps": {
+        "createdAt": "Tue Aug 11 2026 07:46:22 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "UNFULFILLED",
+      "shopifyOrderId": "4069"
+    },
+    {
+      "bosta_trackingNumber": "7325138095",
+      "bosta_stateCode": 21,
+      "bosta_stateValue": "Picked Up",
+      "bosta_cod": 745,
+      "bosta_dropOffAddress": "Cairo",
+      "bosta_timestamps": {
+        "createdAt": "Tue Aug 11 2026 07:46:22 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "UNFULFILLED",
+      "shopifyOrderId": "4064"
+    },
+    {
+      "bosta_trackingNumber": "2090597799",
+      "bosta_stateCode": 21,
+      "bosta_stateValue": "Picked Up",
+      "bosta_cod": 1490,
+      "bosta_dropOffAddress": "Alexandria",
+      "bosta_timestamps": {
+        "createdAt": "Tue Aug 11 2026 07:46:22 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "UNFULFILLED",
+      "shopifyOrderId": "4066"
+    },
+    {
+      "bosta_trackingNumber": "1782560606",
+      "bosta_stateCode": 10,
+      "bosta_stateValue": "Created",
+      "bosta_cod": 800,
+      "bosta_dropOffAddress": "El Kalioubia",
+      "bosta_timestamps": {
+        "createdAt": "Tue Aug 11 2026 07:46:21 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "UNFULFILLED",
+      "shopifyOrderId": "4065"
+    },
+    {
+      "bosta_trackingNumber": "7727664147",
+      "bosta_stateCode": 24,
+      "bosta_stateValue": "Processing",
+      "bosta_cod": 745,
+      "bosta_dropOffAddress": "Cairo",
+      "bosta_timestamps": {
+        "createdAt": "Tue Aug 11 2026 07:46:21 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "UNFULFILLED",
+      "shopifyOrderId": "4080"
+    },
+    {
+      "bosta_trackingNumber": "8562386862",
+      "bosta_stateCode": 10,
+      "bosta_stateValue": "Created",
+      "bosta_cod": 700,
+      "bosta_dropOffAddress": "Cairo",
+      "bosta_timestamps": {
+        "createdAt": "Tue Aug 11 2026 07:46:21 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "UNFULFILLED",
+      "shopifyOrderId": "4067"
+    },
+    {
+      "bosta_trackingNumber": "1187106182",
+      "bosta_stateCode": 21,
+      "bosta_stateValue": "Picked Up",
+      "bosta_cod": 485,
+      "bosta_dropOffAddress": "Cairo",
+      "bosta_timestamps": {
+        "createdAt": "Tue Aug 11 2026 07:46:21 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "UNFULFILLED",
+      "shopifyOrderId": "4070"
+    },
+    {
+      "bosta_trackingNumber": "8787806766",
+      "bosta_stateCode": 21,
+      "bosta_stateValue": "Picked Up",
+      "bosta_cod": 885,
+      "bosta_dropOffAddress": "Giza",
+      "bosta_timestamps": {
+        "createdAt": "Tue Aug 11 2026 07:46:21 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "UNFULFILLED",
+      "shopifyOrderId": "4068"
+    },
+    {
+      "bosta_trackingNumber": "9098794235",
+      "bosta_stateCode": 21,
+      "bosta_stateValue": "Picked Up",
+      "bosta_cod": 485,
+      "bosta_dropOffAddress": "Cairo",
+      "bosta_timestamps": {
+        "createdAt": "Tue Aug 11 2026 07:46:21 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "UNFULFILLED",
+      "shopifyOrderId": "4073"
+    },
+    {
+      "bosta_trackingNumber": "5795036897",
+      "bosta_stateCode": 24,
+      "bosta_stateValue": "Processing",
+      "bosta_cod": 750,
+      "bosta_dropOffAddress": "Alexandria",
+      "bosta_timestamps": {
+        "createdAt": "Tue Aug 11 2026 07:46:21 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "UNFULFILLED",
+      "shopifyOrderId": "4074"
+    },
+    {
+      "bosta_trackingNumber": "9061333053",
+      "bosta_stateCode": 24,
+      "bosta_stateValue": "Processing",
+      "bosta_cod": 525,
+      "bosta_dropOffAddress": "Sohag",
+      "bosta_timestamps": {
+        "createdAt": "Tue Aug 11 2026 07:46:21 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "UNFULFILLED",
+      "shopifyOrderId": "4075"
+    },
+    {
+      "bosta_trackingNumber": "2498268325",
+      "bosta_stateCode": 24,
+      "bosta_stateValue": "Processing",
+      "bosta_cod": 1095,
+      "bosta_dropOffAddress": "Cairo",
+      "bosta_timestamps": {
+        "createdAt": "Tue Aug 11 2026 07:46:21 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "UNFULFILLED",
+      "shopifyOrderId": "4072"
+    },
+    {
+      "bosta_trackingNumber": "9362055240",
+      "bosta_stateCode": 21,
+      "bosta_stateValue": "Picked Up",
+      "bosta_cod": 525,
+      "bosta_dropOffAddress": "Sohag",
+      "bosta_timestamps": {
+        "createdAt": "Tue Aug 11 2026 07:46:21 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "UNFULFILLED",
+      "shopifyOrderId": "4076"
+    },
+    {
+      "bosta_trackingNumber": "6241090417",
+      "bosta_stateCode": 21,
+      "bosta_stateValue": "Picked Up",
+      "bosta_cod": 785,
+      "bosta_dropOffAddress": "Sohag",
+      "bosta_timestamps": {
+        "createdAt": "Tue Aug 11 2026 07:46:21 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "UNFULFILLED",
+      "shopifyOrderId": "4077"
+    },
+    {
+      "bosta_trackingNumber": "8358229377",
+      "bosta_stateCode": 10,
+      "bosta_stateValue": "Created",
+      "bosta_cod": 660,
+      "bosta_dropOffAddress": "Cairo",
+      "bosta_timestamps": {
+        "createdAt": "Tue Aug 11 2026 07:46:21 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "UNFULFILLED",
+      "shopifyOrderId": "4078"
+    },
+    {
+      "bosta_trackingNumber": "6328765780",
+      "bosta_stateCode": 21,
+      "bosta_stateValue": "Picked Up",
+      "bosta_cod": 485,
+      "bosta_dropOffAddress": "Cairo",
+      "bosta_timestamps": {
+        "createdAt": "Tue Aug 11 2026 07:46:21 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "UNFULFILLED",
+      "shopifyOrderId": "4079"
+    },
+    {
+      "bosta_trackingNumber": "9369252549",
+      "bosta_stateCode": 47,
+      "bosta_stateValue": "Awaiting for Action",
+      "bosta_cod": 1185,
+      "bosta_dropOffAddress": "Assuit",
+      "bosta_timestamps": {
+        "createdAt": "Mon Aug 10 2026 08:46:18 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "SHIPPED",
+      "shopifyOrderId": "4048"
+    },
+    {
+      "bosta_trackingNumber": "7025763327",
+      "bosta_stateCode": 45,
+      "bosta_stateValue": "Delivered",
+      "bosta_cod": 0,
+      "bosta_dropOffAddress": "Alexandria",
+      "bosta_timestamps": {
+        "createdAt": "Mon Aug 10 2026 08:46:18 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "SHIPPED",
+      "shopifyOrderId": "4060"
+    },
+    {
+      "bosta_trackingNumber": "8709388583",
+      "bosta_stateCode": 30,
+      "bosta_stateValue": "Processing",
+      "bosta_cod": 0,
+      "bosta_dropOffAddress": "Giza",
+      "bosta_timestamps": {
+        "createdAt": "Mon Aug 10 2026 08:46:18 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "SHIPPED",
+      "shopifyOrderId": "4055"
+    },
+    {
+      "bosta_trackingNumber": "6123412593",
+      "bosta_stateCode": 45,
+      "bosta_stateValue": "Delivered",
+      "bosta_cod": 1445,
+      "bosta_dropOffAddress": "Cairo",
+      "bosta_timestamps": {
+        "createdAt": "Mon Aug 10 2026 08:46:18 GMT+0000 (Coordinated Universal Time)"
+      },
+      "margin_status": "PENDING",
+      "margin_fulfillmentStatus": "SHIPPED",
+      "shopifyOrderId": "4056"
+    }
+  ]
+}

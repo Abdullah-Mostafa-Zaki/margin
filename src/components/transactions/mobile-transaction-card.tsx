@@ -41,6 +41,8 @@ export function MobileTransactionCard({ transaction, orgSlug, onEdit }: { transa
                   ? "text-emerald-700 bg-emerald-50 border-emerald-200 text-[9px] px-1 py-0 h-4 uppercase"
                   : (t as any).fulfillmentStatus === "SHIPPED"
                   ? "text-blue-700 bg-blue-50 border-blue-200 text-[9px] px-1 py-0 h-4 uppercase"
+                  : (t as any).fulfillmentStatus === "PROCESSING"
+                  ? "text-orange-700 bg-orange-50 border-orange-200 text-[9px] px-1 py-0 h-4 uppercase"
                   : (t as any).fulfillmentStatus === "RETURNED"
                   ? "text-red-700 bg-red-50 border-red-200 text-[9px] px-1 py-0 h-4 uppercase"
                   : "text-zinc-600 bg-zinc-100 border-zinc-200 text-[9px] px-1 py-0 h-4 uppercase"

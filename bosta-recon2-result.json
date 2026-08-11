@@ -1,0 +1,377 @@
+{
+  "jova": {
+    "statusCounts": {
+      "24 - Processing": 11,
+      "21 - Picked Up": 8,
+      "10 - Created": 9,
+      "47 - Awaiting for Action": 2,
+      "45 - Delivered": 11,
+      "30 - Processing": 2,
+      "41 - Processing": 5,
+      "46 - Delivered": 2
+    },
+    "unexpected4647": [
+      {
+        "trackingNumber": "9369252549",
+        "code": 47,
+        "value": "Awaiting for Action"
+      },
+      {
+        "trackingNumber": "8789474290",
+        "code": 47,
+        "value": "Awaiting for Action"
+      },
+      {
+        "trackingNumber": "735941932",
+        "code": 46,
+        "value": "Delivered"
+      },
+      {
+        "trackingNumber": "8322742177",
+        "code": 46,
+        "value": "Delivered"
+      }
+    ],
+    "detailedHistory": [
+      {
+        "trackingNumber": "8360936301",
+        "stateCode": 24,
+        "stateValue": "Processing",
+        "history": []
+      },
+      {
+        "trackingNumber": "7325138095",
+        "stateCode": 21,
+        "stateValue": "Picked Up",
+        "history": []
+      },
+      {
+        "trackingNumber": "2090597799",
+        "stateCode": 21,
+        "stateValue": "Picked Up",
+        "history": []
+      },
+      {
+        "trackingNumber": "1782560606",
+        "stateCode": 10,
+        "stateValue": "Created",
+        "history": []
+      },
+      {
+        "trackingNumber": "7727664147",
+        "stateCode": 24,
+        "stateValue": "Processing",
+        "history": []
+      },
+      {
+        "trackingNumber": "8562386862",
+        "stateCode": 10,
+        "stateValue": "Created",
+        "history": []
+      },
+      {
+        "trackingNumber": "1187106182",
+        "stateCode": 21,
+        "stateValue": "Picked Up",
+        "history": []
+      },
+      {
+        "trackingNumber": "8787806766",
+        "stateCode": 21,
+        "stateValue": "Picked Up",
+        "history": []
+      },
+      {
+        "trackingNumber": "9098794235",
+        "stateCode": 21,
+        "stateValue": "Picked Up",
+        "history": []
+      },
+      {
+        "trackingNumber": "5795036897",
+        "stateCode": 24,
+        "stateValue": "Processing",
+        "history": []
+      },
+      {
+        "trackingNumber": "9061333053",
+        "stateCode": 24,
+        "stateValue": "Processing",
+        "history": []
+      },
+      {
+        "trackingNumber": "2498268325",
+        "stateCode": 24,
+        "stateValue": "Processing",
+        "history": []
+      },
+      {
+        "trackingNumber": "9362055240",
+        "stateCode": 21,
+        "stateValue": "Picked Up",
+        "history": []
+      },
+      {
+        "trackingNumber": "6241090417",
+        "stateCode": 21,
+        "stateValue": "Picked Up",
+        "history": []
+      },
+      {
+        "trackingNumber": "8358229377",
+        "stateCode": 10,
+        "stateValue": "Created",
+        "history": []
+      },
+      {
+        "trackingNumber": "6328765780",
+        "stateCode": 21,
+        "stateValue": "Picked Up",
+        "history": []
+      },
+      {
+        "trackingNumber": "9369252549",
+        "stateCode": 47,
+        "stateValue": "Awaiting for Action",
+        "history": []
+      },
+      {
+        "trackingNumber": "7025763327",
+        "stateCode": 45,
+        "stateValue": "Delivered",
+        "history": []
+      },
+      {
+        "trackingNumber": "8709388583",
+        "stateCode": 30,
+        "stateValue": "Processing",
+        "history": []
+      },
+      {
+        "trackingNumber": "6123412593",
+        "stateCode": 45,
+        "stateValue": "Delivered",
+        "history": []
+      },
+      {
+        "trackingNumber": "4896193315",
+        "stateCode": 41,
+        "stateValue": "Processing",
+        "history": []
+      },
+      {
+        "trackingNumber": "4656965145",
+        "stateCode": 41,
+        "stateValue": "Processing",
+        "history": []
+      },
+      {
+        "trackingNumber": "9537058644",
+        "stateCode": 45,
+        "stateValue": "Delivered",
+        "history": []
+      },
+      {
+        "trackingNumber": "664447554",
+        "stateCode": 10,
+        "stateValue": "Created",
+        "history": []
+      },
+      {
+        "trackingNumber": "1671914309",
+        "stateCode": 10,
+        "stateValue": "Created",
+        "history": []
+      },
+      {
+        "trackingNumber": "8967370668",
+        "stateCode": 45,
+        "stateValue": "Delivered",
+        "history": []
+      },
+      {
+        "trackingNumber": "8497246844",
+        "stateCode": 10,
+        "stateValue": "Created",
+        "history": []
+      },
+      {
+        "trackingNumber": "7255115184",
+        "stateCode": 41,
+        "stateValue": "Processing",
+        "history": []
+      },
+      {
+        "trackingNumber": "4077916580",
+        "stateCode": 10,
+        "stateValue": "Created",
+        "history": []
+      },
+      {
+        "trackingNumber": "6541729490",
+        "stateCode": 45,
+        "stateValue": "Delivered",
+        "history": []
+      },
+      {
+        "trackingNumber": "8119439832",
+        "stateCode": 24,
+        "stateValue": "Processing",
+        "history": []
+      },
+      {
+        "trackingNumber": "5994905885",
+        "stateCode": 24,
+        "stateValue": "Processing",
+        "history": []
+      },
+      {
+        "trackingNumber": "5473424011",
+        "stateCode": 41,
+        "stateValue": "Processing",
+        "history": []
+      },
+      {
+        "trackingNumber": "3336051687",
+        "stateCode": 45,
+        "stateValue": "Delivered",
+        "history": []
+      },
+      {
+        "trackingNumber": "8789474290",
+        "stateCode": 47,
+        "stateValue": "Awaiting for Action",
+        "history": []
+      },
+      {
+        "trackingNumber": "735941932",
+        "stateCode": 46,
+        "stateValue": "Delivered",
+        "history": []
+      },
+      {
+        "trackingNumber": "2137918981",
+        "stateCode": 45,
+        "stateValue": "Delivered",
+        "history": []
+      },
+      {
+        "trackingNumber": "6425735801",
+        "stateCode": 24,
+        "stateValue": "Processing",
+        "history": []
+      },
+      {
+        "trackingNumber": "6118966889",
+        "stateCode": 10,
+        "stateValue": "Created",
+        "history": []
+      },
+      {
+        "trackingNumber": "4415899619",
+        "stateCode": 45,
+        "stateValue": "Delivered",
+        "history": []
+      },
+      {
+        "trackingNumber": "8322742177",
+        "stateCode": 46,
+        "stateValue": "Delivered",
+        "history": []
+      },
+      {
+        "trackingNumber": "7471824623",
+        "stateCode": 41,
+        "stateValue": "Processing",
+        "history": []
+      },
+      {
+        "trackingNumber": "7703170218",
+        "stateCode": 45,
+        "stateValue": "Delivered",
+        "history": []
+      },
+      {
+        "trackingNumber": "4978509774",
+        "stateCode": 30,
+        "stateValue": "Processing",
+        "history": []
+      },
+      {
+        "trackingNumber": "299667077",
+        "stateCode": 24,
+        "stateValue": "Processing",
+        "history": []
+      },
+      {
+        "trackingNumber": "2959942880",
+        "stateCode": 45,
+        "stateValue": "Delivered",
+        "history": []
+      },
+      {
+        "trackingNumber": "6151321241",
+        "stateCode": 24,
+        "stateValue": "Processing",
+        "history": []
+      },
+      {
+        "trackingNumber": "9711273392",
+        "stateCode": 24,
+        "stateValue": "Processing",
+        "history": []
+      },
+      {
+        "trackingNumber": "7596025446",
+        "stateCode": 45,
+        "stateValue": "Delivered",
+        "history": []
+      },
+      {
+        "trackingNumber": "9310910846",
+        "stateCode": 10,
+        "stateValue": "Created",
+        "history": []
+      }
+    ],
+    "specificOrders": {
+      "4056": {
+        "trackingNumber": "6123412593",
+        "bosta_stateCode": 45,
+        "bosta_stateValue": "Delivered",
+        "bosta_lastChangeTimestamp": "Tue Aug 11 2026 13:34:18 GMT+0000 (Coordinated Universal Time)",
+        "margin_updatedAt": "2026-08-11T02:45:57.926Z",
+        "margin_bostaLastSyncedAt": "2026-08-11T02:45:57.926Z",
+        "margin_status": "PENDING",
+        "margin_fulfillmentStatus": "SHIPPED"
+      },
+      "4060": {
+        "trackingNumber": "7025763327",
+        "bosta_stateCode": 45,
+        "bosta_stateValue": "Delivered",
+        "bosta_lastChangeTimestamp": "Tue Aug 11 2026 11:57:38 GMT+0000 (Coordinated Universal Time)",
+        "margin_updatedAt": "2026-08-11T02:46:00.175Z",
+        "margin_bostaLastSyncedAt": "2026-08-11T02:46:00.174Z",
+        "margin_status": "PENDING",
+        "margin_fulfillmentStatus": "SHIPPED"
+      }
+    }
+  },
+  "zaki-4": {
+    "error": "Failed to refresh token for zaki-4"
+  },
+  "vague": {
+    "statusCounts": {
+      "10 - Created": 7,
+      "45 - Delivered": 31,
+      "41 - Processing": 3,
+      "47 - Awaiting for Action": 1,
+      "24 - Processing": 5,
+      "30 - Processing": 1,
+      "46 - Delivered": 2
+    },
+    "unexpected4647": [],
+    "detailedHistory": [],
+    "specificOrders": null
+  }
+}

@@ -274,6 +274,7 @@ enum Plan {
 
 enum FulfillmentStatus {
   UNFULFILLED
+  PROCESSING
   SHIPPED
   DELIVERED
   RETURNED
