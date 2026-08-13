@@ -11,8 +11,7 @@ export default async function DashboardPage(props: {
 }) {
   const resolvedParams = await props.params;
 
-  const org = await prisma.organization.findUnique({
-    where: { slug: resolvedParams.orgSlug },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: resolvedParams.orgSlug },
     select: {
       id: true,
       plan: true,

@@ -24,14 +24,13 @@ export async function createOrganization(formData: FormData) {
   let slug = baseSlug;
   let counter = 1;
   while (true) {
-    const existing = await prisma.organization.findUnique({ where: { slug } });
+    const existing = await prisma.organization.findFirst({ where: { deletedAt: null,  slug } });
     if (!existing) break;
     slug = `${baseSlug}-${counter}`;
     counter++;
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email }
+  const user = await prisma.user.findFirst({ where: { deletedAt: null,  email: session.user.email }
   });
 
   if (!user) {
@@ -60,8 +59,7 @@ export async function updateOrganizationName(orgId: string, newName: string) {
 
   if (!newName || newName.trim() === "") throw new Error("Name is required");
   
-  const org = await prisma.organization.findUnique({
-    where: { id: orgId },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  id: orgId },
     include: { memberships: { include: { user: true } } },
   });
 
@@ -97,8 +95,7 @@ export async function updateOrganizationCourierFee(orgId: string, fee: number) {
 
   if (fee < 0) throw new Error("Fee cannot be negative");
   
-  const org = await prisma.organization.findUnique({
-    where: { id: orgId },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  id: orgId },
     include: { memberships: { include: { user: true } } },
   });
 

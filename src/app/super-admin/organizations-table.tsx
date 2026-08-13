@@ -4,8 +4,10 @@ import { useState, useTransition, useMemo } from 'react';
 import Link from 'next/link';
 import { Plan } from '@prisma/client';
 import { updatePlan, resetUsage, fetchOrgActivityLog } from './actions';
+import { softDeleteOrganization, restoreOrganization } from '@/actions/super-admin.actions';
 import { toast } from 'sonner';
-import { MoreHorizontal, ArrowUpDown, Download, Activity, Key, RotateCcw } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Download, Activity, Key, RotateCcw, Trash2, Undo2 } from 'lucide-react';
+import { DeleteConfirmationModal } from './delete-confirmation-modal';
 import {
   Table,
   TableBody,
@@ -59,6 +61,7 @@ type OrgType = {
   usagePercentage: number;
   lastActive: Date;
   hasTransactions: boolean;
+  deletedAt: Date | null;
 };
 
 export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
@@ -72,6 +75,11 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
   const [activeOrgName, setActiveOrgName] = useState<string>('');
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [isLoadingActivity, setIsLoadingActivity] = useState(false);
+
+  // Delete Modal State
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [orgToDelete, setOrgToDelete] = useState<OrgType | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const filteredAndSortedOrgs = useMemo(() => {
     let result = recentOrgs.filter((org) => {
@@ -143,6 +151,41 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
       toast.error(`Failed to fetch activity log: ${error.message}`);
     } finally {
       setIsLoadingActivity(false);
+    }
+  };
+
+  const handleDeleteClick = (org: OrgType) => {
+    setOrgToDelete(org);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (!orgToDelete) return;
+    setIsDeleting(true);
+    startTransition(async () => {
+      try {
+        await softDeleteOrganization(orgToDelete.id, orgToDelete.slug);
+        toast.success(`Organization ${orgToDelete.name} deleted.`);
+        setDeleteModalOpen(false);
+      } catch (err: any) {
+        toast.error(`Failed to delete: ${err.message}`);
+      } finally {
+        setIsDeleting(false);
+        setOrgToDelete(null);
+      }
+    });
+  };
+
+  const handleRestoreClick = (org: OrgType) => {
+    if (window.confirm(`Are you sure you want to restore ${org.name}?`)) {
+      startTransition(async () => {
+        try {
+          await restoreOrganization(org.id, org.slug);
+          toast.success(`Organization ${org.name} restored.`);
+        } catch (err: any) {
+          toast.error(`Failed to restore: ${err.message}`);
+        }
+      });
     }
   };
 
@@ -223,7 +266,7 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                 const isSignedUp = !org.hasTransactions;
                 
                 return (
-                  <TableRow key={org.id}>
+                  <TableRow key={org.id} className={org.deletedAt ? "opacity-50" : ""}>
                     <TableCell className="sticky left-0 z-10 bg-white shadow-[1px_0_0_rgba(0,0,0,0.1)] min-w-[200px] border-r border-zinc-100">
                       <div className="flex flex-col gap-0.5">
                         <div className="font-medium flex items-center gap-2">
@@ -302,6 +345,17 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                             <RotateCcw className="h-4 w-4 text-red-500" />
                             Reset Usage
                           </DropdownMenuItem>
+                          {org.deletedAt ? (
+                            <DropdownMenuItem onClick={() => handleRestoreClick(org)} disabled={isPending} className="cursor-pointer text-green-600 gap-2">
+                              <Undo2 className="h-4 w-4 text-green-500" />
+                              Restore Org
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem onClick={() => handleDeleteClick(org)} disabled={isPending} className="cursor-pointer text-red-600 gap-2">
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                              Suspend / Delete Org
+                            </DropdownMenuItem>
+                          )}
                           </DropdownMenuGroup>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -355,6 +409,16 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="Suspend Organization"
+        description="This will soft-delete the organization, instantly logging out all its users and blocking API/app access. Data will be retained and can be restored."
+        expectedConfirmationString={orgToDelete?.slug || ''}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

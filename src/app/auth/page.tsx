@@ -11,8 +11,7 @@ export default async function RootPage() {
   }
 
   // 1. Fetch the user directly first
-  const dbUser = await prisma.user.findUnique({
-    where: { email: session.user.email }
+  const dbUser = await prisma.user.findFirst({ where: { deletedAt: null,  email: session.user.email }
   });
 
   if (!dbUser) {

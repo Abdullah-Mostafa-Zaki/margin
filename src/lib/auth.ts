@@ -23,8 +23,8 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+        const user = await prisma.user.findFirst({
+          where: { email: credentials.email, deletedAt: null },
           select: { id: true, name: true, email: true, image: true, password: true },
         });
 
@@ -64,6 +64,15 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async session({ session, token }) {
       if (session.user && token.sub) {
+        // Enforce immediate session revocation if the user is soft-deleted
+        const dbUser = await prisma.user.findFirst({
+          where: { id: token.sub, deletedAt: null },
+          select: { id: true }
+        });
+        if (!dbUser) {
+          throw new Error("Session revoked");
+        }
+        
         session.user.id = token.sub;
       }
       return session;
@@ -97,8 +106,8 @@ export async function verifyOrgAccess(organizationId: string): Promise<void> {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized: No session");
 
-  const org = await prisma.organization.findUnique({
-    where: { id: organizationId },
+  const org = await prisma.organization.findFirst({
+    where: { id: organizationId, deletedAt: null },
     include: { memberships: { include: { user: true } } },
   });
 

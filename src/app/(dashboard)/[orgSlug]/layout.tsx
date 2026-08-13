@@ -42,8 +42,7 @@ export default async function DashboardLayout({
 
   if (isSuperAdmin) {
     // Ghost Mode: fetch org directly without membership check
-    const organization = await prisma.organization.findUnique({
-      where: { slug: resolvedParams.orgSlug },
+    const organization = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: resolvedParams.orgSlug },
       select: { id: true, name: true, slug: true, plan: true },
     });
 

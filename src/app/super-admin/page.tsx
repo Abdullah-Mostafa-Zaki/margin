@@ -13,7 +13,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OrganizationsTable } from './organizations-table';
+import { UsersTable } from './users-table';
+import { AuditLogsTable } from './audit-logs-table';
 
 const safeAmount = (value: number | null | undefined) => value ?? 0;
 
@@ -62,6 +65,8 @@ export default async function SuperAdminPage({
       newOrgsWeek,
       newOrgsMonth,
       recentOrgs,
+      users,
+      auditLogs,
       productUsage,
       completedOnboarding,
       droppedOffNoOrg,
@@ -94,6 +99,7 @@ export default async function SuperAdminPage({
           createdAt: true,
           updatedAt: true,
           plan: true,
+          deletedAt: true,
           currentMonthReceipts: true,
           currentMonthVoice: true,
           currentMonthImage: true,
@@ -107,6 +113,27 @@ export default async function SuperAdminPage({
             select: { createdAt: true }
           }
         },
+      }),
+
+      // FETCH USERS
+      prisma.user.findMany({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+          deletedAt: true,
+          memberships: {
+            include: { organization: { select: { slug: true } } }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
+
+      // FETCH AUDIT LOGS
+      prisma.auditLog.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 100
       }),
 
       // FILTERED METRICS
@@ -299,15 +326,41 @@ export default async function SuperAdminPage({
           </div>
         </div>
 
-        {/* 2. Master Organizations Table */}
+        {/* 2. Master Tables */}
         <div className="w-full">
-          <Card className="w-full overflow-hidden">
-            <CardContent className="p-0 overflow-hidden w-full">
-              {/* Note: Pass all processedOrgs; the filtering by date is better handled inside or kept out so we can see all orgs,
-                  but for now we pass the filtered ones or all of them. The user wants to see them for management. */}
-              <OrganizationsTable recentOrgs={processedOrgs as any} />
-            </CardContent>
-          </Card>
+          <Tabs defaultValue="organizations" className="w-full">
+            <div className="flex items-center justify-between mb-4">
+              <TabsList>
+                <TabsTrigger value="organizations">Organizations</TabsTrigger>
+                <TabsTrigger value="users">Users</TabsTrigger>
+                <TabsTrigger value="audit">Audit Logs</TabsTrigger>
+              </TabsList>
+            </div>
+            
+            <TabsContent value="organizations" className="mt-0">
+              <Card className="w-full overflow-hidden">
+                <CardContent className="p-0 overflow-hidden w-full">
+                  <OrganizationsTable recentOrgs={processedOrgs as any} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="users" className="mt-0">
+              <Card className="w-full overflow-hidden">
+                <CardContent className="p-0 overflow-hidden w-full">
+                  <UsersTable users={users as any} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="audit" className="mt-0">
+              <Card className="w-full overflow-hidden">
+                <CardContent className="p-0 overflow-hidden w-full">
+                  <AuditLogsTable auditLogs={auditLogs as any} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* 3. Analytics (Collapsible / Bottom) */}

@@ -18,8 +18,7 @@ export async function POST(
     const { slug } = await params;
     
     // Resolve organization and membership
-    const org = await prisma.organization.findUnique({
-      where: { slug },
+    const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug },
       include: {
         memberships: {
           include: { user: true }

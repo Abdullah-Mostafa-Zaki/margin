@@ -33,8 +33,7 @@ export default async function TransactionsPage(props: {
   if (resolvedSearchParams.tab === "EXPENSE") activeTab = "EXPENSE";
   if (resolvedSearchParams.tab === "RECURRING") activeTab = "RECURRING";
 
-  const organization = await prisma.organization.findUnique({
-    where: { slug: resolvedParams.orgSlug },
+  const organization = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: resolvedParams.orgSlug },
   });
 
   if (!organization) {

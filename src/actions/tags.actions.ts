@@ -9,8 +9,7 @@ export async function createTag(orgSlug: string, name: string, description?: str
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const org = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: { memberships: { include: { user: true } } },
   });
 
@@ -49,8 +48,7 @@ export async function deleteTag(id: string, orgSlug: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const org = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: { memberships: { include: { user: true } } },
   });
 
@@ -77,8 +75,7 @@ export async function getTagROI(tagId: string, orgSlug: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const org = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: { memberships: { include: { user: true } } },
   });
 
@@ -123,8 +120,7 @@ export async function updateTag(id: string, orgSlug: string, name: string, descr
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const org = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: { memberships: { include: { user: true } } },
   });
 
@@ -170,8 +166,7 @@ export async function getDropsByDateRange(orgSlug: string, startDate: Date, endD
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const org = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: { memberships: { include: { user: true } } },
   });
 

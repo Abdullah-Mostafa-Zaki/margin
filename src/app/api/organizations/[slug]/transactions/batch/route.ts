@@ -18,8 +18,7 @@ export async function POST(
     const { slug } = await params;
 
     // Resolve organization and membership
-    const org = await prisma.organization.findUnique({
-      where: { slug },
+    const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug },
       include: {
         memberships: {
           include: { user: true }
@@ -39,7 +38,7 @@ export async function POST(
     }
 
     // Get the user who is creating the records
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    const user = await prisma.user.findFirst({ where: { deletedAt: null,  email: session.user.email } });
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }

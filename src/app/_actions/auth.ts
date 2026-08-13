@@ -26,7 +26,7 @@ export async function registerUser(
     return { success: false, error: "Password must be at least 8 characters." };
   }
 
-  const existing = await prisma.user.findUnique({ where: { email: emailLower } });
+  const existing = await prisma.user.findFirst({ where: { deletedAt: null, email: emailLower } });
   if (existing) {
     return { success: false, error: "An account with this email already exists." };
   }
@@ -82,7 +82,7 @@ export async function requestPasswordReset(email: string): Promise<ActionResult>
     return { success: false, error: "Email is required." };
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findFirst({ where: { deletedAt: null,  email } });
 
   // Always return success to prevent email enumeration attacks
   if (!user) {

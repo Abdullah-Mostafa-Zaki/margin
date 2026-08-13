@@ -153,8 +153,7 @@ export async function getDropPerformance(
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized: No session");
 
-  const org = await prisma.organization.findUnique({
-    where: { id: organizationId },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  id: organizationId },
     include: { memberships: { include: { user: true } } },
   });
 

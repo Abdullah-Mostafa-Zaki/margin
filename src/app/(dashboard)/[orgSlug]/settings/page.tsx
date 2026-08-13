@@ -25,8 +25,7 @@ export default async function SettingsPage({
   }
 
   // Security Rule: Resolve organizationId from the database using orgSlug
-  const organization = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const organization = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: {
       bostaIntegration: {
         select: { id: true }

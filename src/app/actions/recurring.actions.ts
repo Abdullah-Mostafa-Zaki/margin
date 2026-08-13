@@ -20,8 +20,7 @@ async function getOrgAndVerifyUser(orgSlug: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const org = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: { memberships: { include: { user: true } } },
   });
 
@@ -72,7 +71,7 @@ export async function createRecurringExpense(orgSlug: string, data: RecurringExp
     
     // Immediately backfill any missed occurrences (this also computes the true future nextDueDate)
     const session = await getServerSession(authOptions);
-    const user = await prisma.user.findUnique({ where: { email: session?.user?.email || "" } });
+    const user = await prisma.user.findFirst({ where: { deletedAt: null,  email: session?.user?.email || "" } });
     await backfillMissedOccurrences(newExpense.id, user?.id);
 
     revalidatePath(`/${orgSlug}/transactions`, "page");
@@ -121,7 +120,7 @@ export async function updateRecurringExpense(orgSlug: string, id: string, data: 
 
   // Backfill if the user moved the start date into the past
   const session = await getServerSession(authOptions);
-  const user = await prisma.user.findUnique({ where: { email: session?.user?.email || "" } });
+  const user = await prisma.user.findFirst({ where: { deletedAt: null,  email: session?.user?.email || "" } });
   await backfillMissedOccurrences(updated.id, user?.id);
 
   revalidatePath(`/${orgSlug}/transactions`, "page");
@@ -217,7 +216,7 @@ export async function logRecurringExpenseNow(orgSlug: string, id: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+  const user = await prisma.user.findFirst({ where: { deletedAt: null,  email: session.user.email } });
   if (!user) throw new Error("User not found");
 
   const expense = await prisma.recurringExpense.findUnique({

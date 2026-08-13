@@ -11,8 +11,7 @@ export async function createTransaction(orgSlug: string, formData: FormData) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized: No session");
 
-  const org = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: { memberships: { include: { user: true } } },
   });
 
@@ -112,8 +111,7 @@ export async function updateTransaction(id: string, orgSlug: string, formData: F
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const org = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: { memberships: { include: { user: true } } },
   });
 
@@ -214,8 +212,7 @@ export async function deleteTransaction(id: string, orgSlug: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const org = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: { memberships: { include: { user: true } } },
   });
 
@@ -242,8 +239,7 @@ export async function updateTransactionStatus(id: string, status: "PENDING" | "R
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const org = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: { memberships: { include: { user: true } } },
   });
 
@@ -271,8 +267,7 @@ export async function markAllPendingAsReceived(orgSlug: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const org = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: { memberships: { include: { user: true } } },
   });
 
@@ -301,8 +296,7 @@ export async function bulkDeleteTransactions(ids: string[], orgSlug: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const org = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: { memberships: { include: { user: true } } },
   });
 
@@ -327,8 +321,7 @@ export async function bulkUpdateStatus(ids: string[], status: "PENDING" | "RECEI
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const org = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: { memberships: { include: { user: true } } },
   });
 
@@ -354,8 +347,7 @@ export async function bulkAssignDrop(ids: string[], dropId: string, orgSlug: str
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const org = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: { memberships: { include: { user: true } } },
   });
 
@@ -427,8 +419,7 @@ export async function bulkUpdateFulfillmentStatus(ids: string[], status: Fulfill
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const org = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: { memberships: { include: { user: true } } },
   });
 
@@ -489,8 +480,7 @@ export async function fetchTransactionsTabData({
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const organization = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const organization = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: { memberships: { include: { user: true } } },
   });
 
@@ -561,8 +551,7 @@ export async function fetchPendingCODTransactions({
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const organization = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const organization = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: { memberships: { include: { user: true } } },
   });
 

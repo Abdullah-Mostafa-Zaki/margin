@@ -19,8 +19,7 @@ export default async function TagsPage({
     redirect("/login");
   }
 
-  const organization = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const organization = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     select: {
       id: true,
       drops: {

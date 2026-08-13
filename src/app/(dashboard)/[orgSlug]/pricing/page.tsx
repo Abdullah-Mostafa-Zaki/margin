@@ -11,8 +11,7 @@ export default async function PricingPage({
   const resolvedParams = await params;
   let currentPlan = null;
   
-  const org = await prisma.organization.findUnique({
-    where: { slug: resolvedParams.orgSlug },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: resolvedParams.orgSlug },
     select: { plan: true }
   });
 

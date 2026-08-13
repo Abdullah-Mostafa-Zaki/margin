@@ -24,8 +24,7 @@ export default async function AnalyticsPage(props: {
   const resolvedParams = await props.params;
   const resolvedSearchParams = await props.searchParams;
 
-  const organization = await prisma.organization.findUnique({
-    where: { slug: resolvedParams.orgSlug },
+  const organization = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: resolvedParams.orgSlug },
     select: { 
       id: true,
       slug: true,

@@ -33,8 +33,7 @@ async function getOrgFromSession() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+  const user = await prisma.user.findFirst({ where: { deletedAt: null,  email: session.user.email },
     include: { memberships: true },
   });
 
@@ -261,8 +260,7 @@ export async function parseTextTransaction(text: string): Promise<ActionResult> 
 
   try {
     const organizationId = await getOrgFromSession();
-    const org = await prisma.organization.findUnique({
-      where: { id: organizationId },
+    const org = await prisma.organization.findFirst({ where: { deletedAt: null,  id: organizationId },
       select: { id: true, plan: true, currentMonthVoice: true, currentMonthImage: true, currentMonthText: true },
     });
 
@@ -322,8 +320,7 @@ export async function parseVoiceTransaction(
 
   try {
     const organizationId = await getOrgFromSession();
-    const org = await prisma.organization.findUnique({
-      where: { id: organizationId },
+    const org = await prisma.organization.findFirst({ where: { deletedAt: null,  id: organizationId },
       select: { id: true, plan: true, currentMonthVoice: true, currentMonthImage: true, currentMonthText: true },
     });
 
@@ -446,8 +443,7 @@ export async function parseReceiptFromImage(imageUrl: string): Promise<ParsedRec
     const groq = new Groq({ apiKey });
 
     const organizationId = await getOrgFromSession();
-    const org = await prisma.organization.findUnique({
-      where: { id: organizationId },
+    const org = await prisma.organization.findFirst({ where: { deletedAt: null,  id: organizationId },
       select: { id: true, plan: true, currentMonthVoice: true, currentMonthImage: true, currentMonthText: true },
     });
 

@@ -16,8 +16,7 @@ export async function updateShopifySecret(
   }
 
   // Resolve org from slug and include memberships for auth check
-  const org = await prisma.organization.findUnique({
-    where: { slug: orgSlug },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     include: {
       memberships: {
         include: { user: true },

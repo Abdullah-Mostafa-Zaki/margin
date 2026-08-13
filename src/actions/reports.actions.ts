@@ -62,8 +62,7 @@ export async function generateReport(
   isCron: boolean = false
 ) {
   try {
-    const org = await prisma.organization.findUnique({
-      where: { slug: orgSlug },
+    const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     });
 
     if (!org) {
@@ -201,7 +200,7 @@ export async function generateReport(
   } catch (error: any) {
     console.error(`🔴 [generateReport] Error:`, error);
     try {
-      const org = await prisma.organization.findUnique({ where: { slug: orgSlug } });
+      const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug } });
       if (org) {
         const report = await prisma.report.findUnique({
           where: {
@@ -238,8 +237,7 @@ export async function getTransactionsForExport(
   endDateStr: string
 ) {
   try {
-    const org = await prisma.organization.findUnique({
-      where: { slug: orgSlug },
+    const org = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
     });
     if (!org) throw new Error("Organization not found");
 

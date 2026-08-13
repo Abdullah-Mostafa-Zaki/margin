@@ -43,8 +43,7 @@ export async function POST(req: Request) {
 
     // ── 3. Fetch Organization ───────────────────────────────────────────────
     noStore();
-    const organization = await prisma.organization.findUnique({
-      where: { slug: orgSlug },
+    const organization = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: orgSlug },
       include: {
         memberships: {
           orderBy: { createdAt: "asc" },

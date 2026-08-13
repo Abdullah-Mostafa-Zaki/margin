@@ -12,8 +12,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const organizations = await prisma.organization.findMany({
-      where: {
+    const organizations = await prisma.organization.findMany({ where: { deletedAt: null, 
         bostaIntegration: {
           isNot: null,
         },

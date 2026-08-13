@@ -20,8 +20,7 @@ export async function bulkImportTransactions(organizationId: string, data: unkno
     return { success: false, errors: { formErrors: ["Unauthorized"], fieldErrors: {} } };
   }
 
-  const org = await prisma.organization.findUnique({
-    where: { id: organizationId },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  id: organizationId },
     include: { memberships: { include: { user: true } } },
   });
 
@@ -104,8 +103,7 @@ export async function bulkSaveReceipts(organizationId: string, receipts: ParsedR
     return { success: false, saved: 0, failed: receipts.length };
   }
 
-  const org = await prisma.organization.findUnique({
-    where: { id: organizationId },
+  const org = await prisma.organization.findFirst({ where: { deletedAt: null,  id: organizationId },
     include: { memberships: { include: { user: true } } },
   });
 

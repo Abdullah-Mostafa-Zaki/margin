@@ -20,13 +20,13 @@ export async function completeOnboarding(data: {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) throw new Error("Unauthorized");
 
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+  const user = await prisma.user.findFirst({ where: { deletedAt: null,  email: session.user.email } });
   if (!user) throw new Error("User not found");
   if (!data.brandName) throw new Error("Brand Name is required");
 
   // Slug generation (checking for collisions)
   const baseSlug = data.brandName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-  const existingOrg = await prisma.organization.findUnique({ where: { slug: baseSlug } });
+  const existingOrg = await prisma.organization.findFirst({ where: { deletedAt: null,  slug: baseSlug } });
   const slug = existingOrg ? `${baseSlug}-${Math.random().toString(36).substring(2, 6)}` : baseSlug;
 
   // 1. Create Brand and Membership
