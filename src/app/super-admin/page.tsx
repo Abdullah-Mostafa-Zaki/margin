@@ -38,6 +38,10 @@ export default async function SuperAdminPage({
   if (!process.env.SUPER_ADMIN_EMAIL) {
     redirect('/');
   }
+  
+  if (session && (session as any).error === "SuspendedAccount") {
+    redirect("/suspended");
+  }
 
   if (!session?.user?.email || session.user.email !== process.env.SUPER_ADMIN_EMAIL) {
     redirect('/');

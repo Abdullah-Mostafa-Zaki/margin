@@ -29,6 +29,10 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  if ((session as any).error === "SuspendedAccount") {
+    redirect("/suspended");
+  }
+
   // ─── GHOST MODE CHECK ────────────────────────────────────────────────────────
   // Only the Super Admin email (set server-side via SUPER_ADMIN_EMAIL env var)
   // can bypass org membership enforcement. This value is never exposed to the client.

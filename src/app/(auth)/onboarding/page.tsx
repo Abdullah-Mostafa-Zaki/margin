@@ -5,6 +5,11 @@ import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
 
 export default async function OnboardingPage() {
   const session = await getServerSession(authOptions);
+  
+  if (session && (session as any).error === "SuspendedAccount") {
+    redirect("/suspended");
+  }
+
   if (!session?.user?.email) redirect("/login");
 
   return (

@@ -16,6 +16,10 @@ const ibmPlexMono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500', '
 export default async function LandingPage() {
   const session = await getServerSession(authOptions)
   
+  if (session && (session as any).error === "SuspendedAccount") {
+    redirect("/suspended")
+  }
+
   if (session?.user?.id) {
     const membership = await prisma.membership.findFirst({
       where: { userId: session.user.id },
