@@ -81,8 +81,8 @@ export const authOptions: NextAuthOptions = {
           select: { id: true }
         });
         if (!dbUser) {
-          // Return an empty session instead of throwing — throwing causes error=Callback redirect loop
-          session.user = undefined as any;
+          // Pass a flag to the client so we can forcefully redirect to /suspended
+          (session as any).error = "SuspendedAccount";
           return session;
         }
         
