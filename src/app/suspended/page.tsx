@@ -16,9 +16,9 @@ export default function SuspendedPage() {
           </p>
         </div>
         <div className="pt-4">
-          <Button asChild className="w-full">
-            <Link href="/login">Return to Login</Link>
-          </Button>
+          <Link href="/login" className="w-full">
+            <Button className="w-full">Return to Login</Button>
+          </Link>
         </div>
       </div>
     </div>
