@@ -62,6 +62,17 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async signIn({ user }) {
+      // Block soft-deleted users from signing in via any provider (Google, Email, etc.)
+      if (user?.id) {
+        const dbUser = await prisma.user.findFirst({
+          where: { id: user.id, deletedAt: null },
+          select: { id: true },
+        });
+        if (!dbUser) return false;
+      }
+      return true;
+    },
     async session({ session, token }) {
       if (session.user && token.sub) {
         // Enforce immediate session revocation if the user is soft-deleted
@@ -70,7 +81,9 @@ export const authOptions: NextAuthOptions = {
           select: { id: true }
         });
         if (!dbUser) {
-          throw new Error("Session revoked");
+          // Return an empty session instead of throwing — throwing causes error=Callback redirect loop
+          session.user = undefined as any;
+          return session;
         }
         
         session.user.id = token.sub;
