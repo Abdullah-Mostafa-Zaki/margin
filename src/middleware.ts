@@ -35,7 +35,10 @@ export default withAuth(
           path.startsWith("/refund-policy") ||
           path.startsWith("/shipping-policy") ||
           path.startsWith("/about") ||
-          path.startsWith("/contact");
+          path.startsWith("/contact") ||
+          path === "/sitemap.xml" ||
+          path === "/robots.txt" ||
+          path === "/site.webmanifest";
 
         if (isPublicPath) {
           return true; // Let them through
