@@ -14,13 +14,20 @@ export type ActionResult =
 export async function registerUser(
   email: string,
   password: string,
+  phone: string,
   name?: string
 ): Promise<ActionResult> {
-  if (!email || !password) {
-    return { success: false, error: "Email and password are required." };
+  if (!email || !password || !phone) {
+    return { success: false, error: "Email, password, and phone number are required." };
   }
 
   const emailLower = email.toLowerCase();
+
+  let normalizedPhone = phone.replace(/^0/, "");
+  if (!/^1[0125][0-9]{8}$/.test(normalizedPhone)) {
+    return { success: false, error: "Invalid Egyptian phone number." };
+  }
+  const e164Phone = `+20${normalizedPhone}`;
 
   if (password.length < 8) {
     return { success: false, error: "Password must be at least 8 characters." };
@@ -33,13 +40,23 @@ export async function registerUser(
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  const user = await prisma.user.create({
-    data: {
-      name: name || undefined,
-      email: emailLower,
-      password: hashedPassword,
-    },
-  });
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: {
+        name: name || undefined,
+        email: emailLower,
+        phone: e164Phone,
+        password: hashedPassword,
+      },
+    });
+  } catch (err: any) {
+    if (err.code === "P2002" && err.meta?.target?.includes("phone")) {
+      return { success: false, error: "This phone number is already registered." };
+    }
+    console.error("Failed to create user:", err);
+    return { success: false, error: "An unexpected error occurred." };
+  }
 
   // Automatically accept any pending invites for this email
   const pendingInvites = await prisma.organizationInvite.findMany({
@@ -157,4 +174,41 @@ export async function resetPassword(
   await prisma.verificationToken.delete({ where: { token } });
 
   return { success: true, message: "Password updated successfully." };
+}
+
+// ─── Save User Phone (Post-Login Gate) ──────────────────────────────────────────
+
+export async function saveUserPhone(phone: string): Promise<ActionResult> {
+  if (!phone) {
+    return { success: false, error: "Phone number is required." };
+  }
+
+  // Need to verify user is logged in
+  const { getServerSession } = await import("next-auth");
+  const { authOptions } = await import("@/lib/auth");
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.id) {
+    return { success: false, error: "Not authenticated." };
+  }
+
+  let normalizedPhone = phone.replace(/^0/, "");
+  if (!/^1[0125][0-9]{8}$/.test(normalizedPhone)) {
+    return { success: false, error: "Invalid Egyptian phone number." };
+  }
+  const e164Phone = `+20${normalizedPhone}`;
+
+  try {
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { phone: e164Phone },
+    });
+    return { success: true };
+  } catch (err: any) {
+    if (err.code === "P2002") {
+      return { success: false, error: "This phone number is already registered." };
+    }
+    console.error("Failed to update user phone:", err);
+    return { success: false, error: "An unexpected error occurred." };
+  }
 }

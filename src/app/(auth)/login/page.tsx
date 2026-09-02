@@ -28,6 +28,7 @@ function LoginForm() {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -47,7 +48,14 @@ function LoginForm() {
     setLoading(true);
 
     if (mode === "register") {
-      const result = await registerUser(email, password, name);
+      let normalizedPhone = phone.replace(/^0/, "");
+      if (!/^1[0125][0-9]{8}$/.test(normalizedPhone)) {
+        setError("Invalid phone number. Must be a valid Egyptian mobile number.");
+        setLoading(false);
+        return;
+      }
+
+      const result = await registerUser(email, password, phone, name);
       if (!result.success) {
         setError(result.error);
         setLoading(false);
@@ -173,18 +181,38 @@ function LoginForm() {
           {!isVerify && (
             <form onSubmit={handleCredentials} className="space-y-4">
               {mode === "register" && (
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Jane Doe"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required={mode === "register"}
-                    autoComplete="name"
-                  />
-                </div>
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Jane Doe"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required={mode === "register"}
+                      autoComplete="name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <div className="flex">
+                      <div className="flex items-center justify-center bg-muted text-muted-foreground border border-input border-r-0 rounded-l-md px-3 text-sm font-medium">
+                        +20
+                      </div>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="106 308 0622"
+                        className="rounded-l-none"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        required={mode === "register"}
+                        autoComplete="tel-local"
+                      />
+                    </div>
+                  </div>
+                </>
               )}
 
               <div className="space-y-2">

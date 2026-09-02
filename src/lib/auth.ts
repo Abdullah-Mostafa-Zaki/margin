@@ -25,7 +25,7 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.user.findFirst({
           where: { email: credentials.email, deletedAt: null },
-          select: { id: true, name: true, email: true, image: true, password: true },
+          select: { id: true, name: true, email: true, image: true, password: true, phone: true },
         });
 
         if (!user || !user.password) return null;
@@ -33,7 +33,7 @@ export const authOptions: NextAuthOptions = {
         const passwordMatch = await bcrypt.compare(credentials.password, user.password);
         if (!passwordMatch) return null;
 
-        return { id: user.id, name: user.name, email: user.email, image: user.image };
+        return { id: user.id, name: user.name, email: user.email, image: user.image, phone: user.phone };
       },
     }),
     GoogleProvider({
@@ -62,6 +62,15 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async jwt({ token, user, trigger, session }) {
+      if (trigger === "update" && session?.phone !== undefined) {
+        token.phone = session.phone;
+      }
+      if (user) {
+        token.phone = (user as any).phone;
+      }
+      return token;
+    },
     async signIn({ user }) {
       // Block soft-deleted users from signing in via any provider (Google, Email, etc.)
       if (user?.id) {
@@ -78,7 +87,7 @@ export const authOptions: NextAuthOptions = {
         // Enforce immediate session revocation if the user is soft-deleted
         const dbUser = await prisma.user.findFirst({
           where: { id: token.sub, deletedAt: null },
-          select: { id: true }
+          select: { id: true, phone: true }
         });
         if (!dbUser) {
           // Pass a flag to the client so we can forcefully redirect to /suspended
@@ -87,6 +96,7 @@ export const authOptions: NextAuthOptions = {
         }
         
         session.user.id = token.sub;
+        (session.user as any).phone = token.phone || dbUser.phone;
       }
       return session;
     },
