@@ -73,7 +73,7 @@ function RequirePhoneDialog() {
               <Input
                 id="global-phone"
                 type="tel"
-                placeholder="106 308 0622"
+                placeholder="100 123 4567"
                 className="rounded-l-none"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
