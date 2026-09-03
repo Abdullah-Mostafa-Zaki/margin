@@ -6,7 +6,7 @@ import { Plan } from '@prisma/client';
 import { updatePlan, resetUsage, fetchOrgActivityLog } from './actions';
 import { softDeleteOrganization, restoreOrganization } from '@/actions/super-admin.actions';
 import { toast } from 'sonner';
-import { MoreHorizontal, ArrowUpDown, Download, Activity, Key, RotateCcw, Trash2, Undo2, Mail, Phone, MessageSquare } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Download, Activity, Key, RotateCcw, Trash2, Undo2, Mail, Phone, MessageSquare, Check } from 'lucide-react';
 import { DeleteConfirmationModal } from './delete-confirmation-modal';
 import {
   Table,
@@ -90,9 +90,12 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [orgToDelete, setOrgToDelete] = useState<OrgType | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const handleCopy = (text: string, label: string) => {
+  const handleCopy = (text: string, label: string, id: string) => {
     navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
     toast.success(`${label} copied to clipboard`);
   };
 
@@ -349,33 +352,49 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                               {org.admins.length === 0 ? (
                                 <div className="px-4 py-4 text-sm text-zinc-500 text-center">No admins found</div>
                               ) : (
-                                org.admins.map((admin, idx) => (
-                                  <div key={idx} className="flex flex-col gap-1 border-b last:border-0 p-2">
-                                    <div className="px-2 py-1 text-xs font-semibold text-zinc-700 truncate">
-                                      {admin.name || 'Unknown Admin'}
+                                org.admins.map((admin, idx) => {
+                                  const emailId = `${org.id}-${idx}-email`;
+                                  const phoneId = `${org.id}-${idx}-phone`;
+                                  return (
+                                    <div key={idx} className="flex flex-col gap-1 border-b last:border-0 p-2">
+                                      <div className="px-2 py-1 text-xs font-semibold text-zinc-700 truncate">
+                                        {admin.name || 'Unknown Admin'}
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="justify-start font-normal h-8 text-xs"
+                                        onClick={() => admin.email && handleCopy(admin.email, 'Email', emailId)}
+                                        disabled={!admin.email}
+                                      >
+                                        {copiedId === emailId ? (
+                                          <Check className="mr-2 h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                                        ) : (
+                                          <Mail className="mr-2 h-3.5 w-3.5 text-zinc-500 shrink-0" />
+                                        )}
+                                        <span className={copiedId === emailId ? "text-emerald-600 font-medium truncate" : "truncate"}>
+                                          {copiedId === emailId ? 'Copied!' : (admin.email || 'No email')}
+                                        </span>
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="justify-start font-normal h-8 text-xs"
+                                        onClick={() => admin.phone && handleCopy(admin.phone, 'Phone number', phoneId)}
+                                        disabled={!admin.phone}
+                                      >
+                                        {copiedId === phoneId ? (
+                                          <Check className="mr-2 h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                                        ) : (
+                                          <Phone className="mr-2 h-3.5 w-3.5 text-zinc-500 shrink-0" />
+                                        )}
+                                        <span className={copiedId === phoneId ? "text-emerald-600 font-medium truncate" : "truncate"}>
+                                          {copiedId === phoneId ? 'Copied!' : (admin.phone || 'No phone')}
+                                        </span>
+                                      </Button>
                                     </div>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="justify-start font-normal h-8 text-xs"
-                                      onClick={() => admin.email && handleCopy(admin.email, 'Email')}
-                                      disabled={!admin.email}
-                                    >
-                                      <Mail className="mr-2 h-3.5 w-3.5 text-zinc-500 shrink-0" />
-                                      <span className="truncate">{admin.email || 'No email'}</span>
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="justify-start font-normal h-8 text-xs"
-                                      onClick={() => admin.phone && handleCopy(admin.phone, 'Phone number')}
-                                      disabled={!admin.phone}
-                                    >
-                                      <Phone className="mr-2 h-3.5 w-3.5 text-zinc-500 shrink-0" />
-                                      <span className="truncate">{admin.phone || 'No phone'}</span>
-                                    </Button>
-                                  </div>
-                                ))
+                                  );
+                                })
                               )}
                             </div>
                           </PopoverContent>
