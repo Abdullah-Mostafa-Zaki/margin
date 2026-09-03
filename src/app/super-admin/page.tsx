@@ -420,8 +420,10 @@ export default async function SuperAdminPage({
           <div className="space-y-6">
             <Card className="border-emerald-200 bg-emerald-50/30">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-emerald-800">
-                  Active Platform MRR
+                <CardTitle className="text-sm font-medium text-emerald-800 flex items-center gap-2">
+                  <span title="Projected from active subscriptions; not yet tied to real payment data." className="cursor-help border-b border-dotted border-emerald-800/50">
+                    Estimated MRR
+                  </span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
