@@ -82,6 +82,7 @@ model Organization {
   subscription         Subscription?
   bostaIntegration     BostaIntegration?
   onboardingCompleted  Boolean           @default(false)
+  hasShopifyConnected  Boolean           @default(false)
   reports              Report[]
   recurringExpenses    RecurringExpense[]
   invites              OrganizationInvite[]

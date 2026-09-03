@@ -200,6 +200,14 @@ export async function POST(req: Request) {
           where: { id: existingTx.id },
           data: updateData
         });
+
+        if (!organization.hasShopifyConnected) {
+          await prisma.organization.update({
+            where: { id: organization.id },
+            data: { hasShopifyConnected: true }
+          });
+        }
+
         revalidateTag(`org-${organization.id}-transactions`, 'default');
         return new NextResponse("OK", { status: 200 });
       }
@@ -260,6 +268,13 @@ export async function POST(req: Request) {
           drops: activeDrop ? { create: { dropId: activeDrop.id } } : undefined,
           notes: `Auto-deducted shipping cost for Shopify Order ${order.name || "\x23" + order.order_number}`,
         }
+      });
+    }
+
+    if (!organization.hasShopifyConnected) {
+      await prisma.organization.update({
+        where: { id: organization.id },
+        data: { hasShopifyConnected: true }
       });
     }
 

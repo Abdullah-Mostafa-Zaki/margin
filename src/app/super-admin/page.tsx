@@ -17,6 +17,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { OrganizationsTable } from './organizations-table';
 import { UsersTable } from './users-table';
 import { AuditLogsTable } from './audit-logs-table';
+import {
+  SignupsChart,
+  PlanDistributionChart,
+  ActivityStatusChart,
+  FeatureAdoptionChart,
+  TeamSizeChart
+} from './superadmin-charts';
 
 const safeAmount = (value: number | null | undefined) => value ?? 0;
 
@@ -75,6 +82,9 @@ export default async function SuperAdminPage({
       completedOnboarding,
       droppedOffNoOrg,
       droppedOffIncomplete,
+      orgMemberships,
+      totalBostaIntegrations,
+      shopifyOrgs,
     ] = await Promise.all([
       // STATIC CARDS
       prisma.organization.count(),
@@ -158,6 +168,13 @@ export default async function SuperAdminPage({
       }),
       prisma.organization.count({
         where: { createdAt: { gte: startDate }, onboardingCompleted: false } as any
+      }),
+      prisma.organization.findMany({
+        select: { _count: { select: { memberships: true } } }
+      }),
+      prisma.bostaIntegration.count(),
+      prisma.organization.count({
+        where: { hasShopifyConnected: true }
       })
     ]);
 
@@ -216,6 +233,94 @@ export default async function SuperAdminPage({
       .filter(org => org.plan === 'FREE')
       .sort((a, b) => b.usagePercentage - a.usagePercentage)
       .slice(0, 5);
+
+    // --- NEW CHARTS DATA CALCULATION ---
+    // 1. Signups Over Time (Group by YYYY-MM)
+    const signupsByMonth = processedOrgs.reduce((acc, org) => {
+      const d = new Date(org.createdAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const signupsChartData = Object.entries(signupsByMonth)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([key, count]) => {
+        const [year, month] = key.split('-');
+        const date = new Date(Number(year), Number(month) - 1);
+        return {
+          date: date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+          signups: count
+        };
+      });
+
+    // 2. Plan Distribution
+    const planCounts = processedOrgs.reduce((acc, org) => {
+      acc[org.plan] = (acc[org.plan] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const planColors: Record<string, string> = {
+      FREE: '#9ca3af',
+      PLUS: '#3b82f6',
+      PRO: '#a855f7',
+      BUSINESS: '#f59e0b',
+    };
+    const planChartData = Object.entries(planCounts).map(([plan, count]) => ({
+      name: plan,
+      value: count,
+      fill: planColors[plan] || '#000'
+    }));
+
+    // 3. Org Activity Status
+    let activeOrgs = 0, dormantOrgs = 0, churnedOrgs = 0;
+    const nowTime = new Date().getTime();
+    processedOrgs.forEach(org => {
+      const daysSinceActive = (nowTime - new Date(org.lastActive).getTime()) / (1000 * 3600 * 24);
+      if (daysSinceActive <= 7) activeOrgs++;
+      else if (daysSinceActive <= 30) dormantOrgs++;
+      else churnedOrgs++;
+    });
+    
+    const activityChartData = [
+      { name: 'Active (< 7d)', value: activeOrgs, fill: '#10b981' },
+      { name: 'Dormant (7-30d)', value: dormantOrgs, fill: '#facc15' },
+      { name: 'Churned (> 30d)', value: churnedOrgs, fill: '#ef4444' },
+    ];
+
+    // 4. Feature Adoption
+    const sourceColors: Record<string, string> = {
+      MANUAL: '#64748b',
+      IMPORT_IMAGE: '#3b82f6',
+      IMPORT_CSV: '#f59e0b',
+      VOICE: '#10b981',
+      SHOPIFY: '#8b5cf6'
+    };
+    const featureChartData = (productUsage as any[]).map(item => ({
+      name: item.source,
+      value: item._count,
+      fill: sourceColors[item.source] || '#cbd5e1'
+    })).sort((a, b) => b.value - a.value);
+
+    // 5. Team Size Distribution
+    let size1 = 0, size2to5 = 0, size6plus = 0;
+    (orgMemberships as any[]).forEach(org => {
+      const count = org._count.memberships;
+      if (count === 1) size1++;
+      else if (count >= 2 && count <= 5) size2to5++;
+      else size6plus++;
+    });
+    const teamSizeChartData = [
+      { name: '1 Member', value: size1, fill: '#60a5fa' },
+      { name: '2-5 Members', value: size2to5, fill: '#818cf8' },
+      { name: '6+ Members', value: size6plus, fill: '#c084fc' },
+    ];
+
+    // 6. Integration Health
+    const shopifyOrgCount = shopifyOrgs;
+    const bostaIntegrationPct = totalOrgs > 0 ? Math.round((totalBostaIntegrations / totalOrgs) * 100) : 0;
+    const shopifyIntegrationPct = totalOrgs > 0 ? Math.round((shopifyOrgCount / totalOrgs) * 100) : 0;
+    // ----------------------------
 
     return (
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
@@ -379,15 +484,16 @@ export default async function SuperAdminPage({
         </div>
 
         {/* 3. Analytics (Collapsible / Bottom) */}
-        <details className="group border border-zinc-200 rounded-xl bg-white [&_summary::-webkit-details-marker]:hidden">
+        <details className="group border border-zinc-200 rounded-xl bg-white [&_summary::-webkit-details-marker]:hidden" open>
           <summary className="flex cursor-pointer flex-col sm:flex-row items-start sm:items-center justify-between p-6 font-semibold text-zinc-900 gap-2 sm:gap-0">
-            <span>📊 View Secondary Analytics (Onboarding & Product Usage)</span>
+            <span>📊 Detailed Analytics & Platform Health</span>
             <span className="transition group-open:-rotate-180 self-end sm:self-auto">
               <svg fill="none" height="24" shapeRendering="geometricPrecision" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
             </span>
           </summary>
           <div className="p-6 pt-0 border-t border-zinc-100">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 mt-4">
+            {/* Global KPIs */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 mt-4">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-zinc-500">Total Organizations</CardTitle>
@@ -402,61 +508,65 @@ export default async function SuperAdminPage({
               </Card>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-zinc-500">Total EGP Volume</CardTitle>
+                  <CardTitle className="text-sm font-medium text-zinc-500">Total Volume</CardTitle>
                 </CardHeader>
                 <CardContent><p className="text-2xl font-bold">{formatCurrency(volumeAmount)}</p></CardContent>
               </Card>
+              {/* Integration Health KPIs */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-zinc-500">Integration Health</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col space-y-1">
+                    <div className="flex justify-between items-center text-sm border-b pb-1">
+                      <span className="text-zinc-600">Bosta</span>
+                      <span className="font-semibold">{bostaIntegrationPct}% active</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm pt-1">
+                      <span className="text-zinc-600">Shopify</span>
+                      <span className="font-semibold">{shopifyIntegrationPct}% active</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Product Usage */}
-              <div>
-                <h2 className="text-lg font-semibold mb-3">Product Usage ({range})</h2>
-                <Card>
-                  <CardContent className="p-5 space-y-3">
-                    <div className="flex justify-between items-center border-b pb-2">
-                      <span className="text-sm font-medium text-zinc-600">Manual (Form)</span>
-                      <span className="font-mono">{usageMap['MANUAL'] || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-center border-b pb-2">
-                      <span className="text-sm font-medium text-zinc-600">Magic Box (Image)</span>
-                      <span className="font-mono">{usageMap['IMPORT_IMAGE'] || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-center border-b pb-2">
-                      <span className="text-sm font-medium text-zinc-600">Magic Box (CSV)</span>
-                      <span className="font-mono">{usageMap['IMPORT_CSV'] || 0}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-zinc-600">Voice Note</span>
-                      <span className="font-mono">{usageMap['VOICE'] || 0}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+            {/* Charts Row 1 */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+              <SignupsChart data={signupsChartData} />
+              <PlanDistributionChart data={planChartData} />
+              <ActivityStatusChart data={activityChartData} />
+            </div>
 
+            {/* Charts Row 2 */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <FeatureAdoptionChart data={featureChartData} />
+              <TeamSizeChart data={teamSizeChartData} />
+              
               {/* Onboarding Funnel */}
-              <div>
-                <h2 className="text-lg font-semibold mb-3">Onboarding Funnel ({range})</h2>
-                <Card>
-                  <CardContent className="p-5 space-y-5">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-zinc-500">Onboarding Funnel ({range})</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2 space-y-5">
+                  <div className="flex flex-col space-y-1">
+                    <span className="text-sm font-medium text-emerald-600 uppercase tracking-wider">Completed</span>
+                    <span className="text-3xl font-bold">{completedOnboarding.toLocaleString()}</span>
+                    <span className="text-xs text-zinc-500">Created brand & completed onboarding</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-zinc-100">
                     <div className="flex flex-col space-y-1">
-                      <span className="text-sm font-medium text-emerald-600 uppercase tracking-wider">Completed</span>
-                      <span className="text-3xl font-bold">{completedOnboarding.toLocaleString()}</span>
-                      <span className="text-xs text-zinc-500">Created brand & completed onboarding</span>
+                      <span className="text-xs font-medium text-amber-600 uppercase tracking-wider">Dropped (No Brand)</span>
+                      <span className="text-xl font-bold text-zinc-700">{droppedOffNoOrg.toLocaleString()}</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-zinc-100">
-                      <div className="flex flex-col space-y-1">
-                        <span className="text-xs font-medium text-amber-600 uppercase tracking-wider">Dropped (No Brand)</span>
-                        <span className="text-xl font-bold text-zinc-700">{droppedOffNoOrg.toLocaleString()}</span>
-                      </div>
-                      <div className="flex flex-col space-y-1">
-                        <span className="text-xs font-medium text-amber-600 uppercase tracking-wider">Dropped (Incomplete)</span>
-                        <span className="text-xl font-bold text-zinc-700">{droppedOffIncomplete.toLocaleString()}</span>
-                      </div>
+                    <div className="flex flex-col space-y-1">
+                      <span className="text-xs font-medium text-amber-600 uppercase tracking-wider">Dropped (Incomplete)</span>
+                      <span className="text-xl font-bold text-zinc-700">{droppedOffIncomplete.toLocaleString()}</span>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </details>
