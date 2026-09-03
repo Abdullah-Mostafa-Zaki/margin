@@ -6,7 +6,7 @@ import { Plan } from '@prisma/client';
 import { updatePlan, resetUsage, fetchOrgActivityLog } from './actions';
 import { softDeleteOrganization, restoreOrganization } from '@/actions/super-admin.actions';
 import { toast } from 'sonner';
-import { MoreHorizontal, ArrowUpDown, Download, Activity, Key, RotateCcw, Trash2, Undo2 } from 'lucide-react';
+import { MoreHorizontal, ArrowUpDown, Download, Activity, Key, RotateCcw, Trash2, Undo2, Mail, Phone, MessageSquare } from 'lucide-react';
 import { DeleteConfirmationModal } from './delete-confirmation-modal';
 import {
   Table,
@@ -40,6 +40,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { formatCairoDate } from "@/lib/date-utils";
 
 const planColors: Record<string, string> = {
@@ -62,6 +67,11 @@ type OrgType = {
   lastActive: Date;
   hasTransactions: boolean;
   deletedAt: Date | null;
+  admins: {
+    name: string | null;
+    email: string | null;
+    phone: string | null;
+  }[];
 };
 
 export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
@@ -80,6 +90,11 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [orgToDelete, setOrgToDelete] = useState<OrgType | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleCopy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied to clipboard`);
+  };
 
   const filteredAndSortedOrgs = useMemo(() => {
     let result = recentOrgs.filter((org) => {
@@ -321,44 +336,90 @@ export function OrganizationsTable({ recentOrgs }: { recentOrgs: OrgType[] }) {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuGroup>
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={(e) => {
-                            e.preventDefault();
-                            window.location.href = `/${org.slug}`;
-                          }} className="cursor-pointer gap-2">
-                            <Key className="h-4 w-4 text-zinc-500" />
-                            Ghost Login
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleViewActivity(org)} className="cursor-pointer gap-2">
-                            <Activity className="h-4 w-4 text-zinc-500" />
-                            View Activity
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleResetUsage(org.id)} disabled={isPending} className="cursor-pointer text-red-600 gap-2">
-                            <RotateCcw className="h-4 w-4 text-red-500" />
-                            Reset Usage
-                          </DropdownMenuItem>
-                          {org.deletedAt ? (
-                            <DropdownMenuItem onClick={() => handleRestoreClick(org)} disabled={isPending} className="cursor-pointer text-green-600 gap-2">
-                              <Undo2 className="h-4 w-4 text-green-500" />
-                              Restore Org
+                      <div className="flex items-center justify-end gap-2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2.5 text-zinc-600">
+                              <MessageSquare className="h-3.5 w-3.5" />
+                              Contact
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" className="w-64 p-0 shadow-lg">
+                            <div className="flex flex-col max-h-[300px] overflow-y-auto">
+                              {org.admins.length === 0 ? (
+                                <div className="px-4 py-4 text-sm text-zinc-500 text-center">No admins found</div>
+                              ) : (
+                                org.admins.map((admin, idx) => (
+                                  <div key={idx} className="flex flex-col gap-1 border-b last:border-0 p-2">
+                                    <div className="px-2 py-1 text-xs font-semibold text-zinc-700 truncate">
+                                      {admin.name || 'Unknown Admin'}
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="justify-start font-normal h-8 text-xs"
+                                      onClick={() => admin.email && handleCopy(admin.email, 'Email')}
+                                      disabled={!admin.email}
+                                    >
+                                      <Mail className="mr-2 h-3.5 w-3.5 text-zinc-500 shrink-0" />
+                                      <span className="truncate">{admin.email || 'No email'}</span>
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="justify-start font-normal h-8 text-xs"
+                                      onClick={() => admin.phone && handleCopy(admin.phone, 'Phone number')}
+                                      disabled={!admin.phone}
+                                    >
+                                      <Phone className="mr-2 h-3.5 w-3.5 text-zinc-500 shrink-0" />
+                                      <span className="truncate">{admin.phone || 'No phone'}</span>
+                                    </Button>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuGroup>
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.preventDefault();
+                              window.location.href = `/${org.slug}`;
+                            }} className="cursor-pointer gap-2">
+                              <Key className="h-4 w-4 text-zinc-500" />
+                              Ghost Login
                             </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem onClick={() => handleDeleteClick(org)} disabled={isPending} className="cursor-pointer text-red-600 gap-2">
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                              Suspend / Delete Org
+                            <DropdownMenuItem onClick={() => handleViewActivity(org)} className="cursor-pointer gap-2">
+                              <Activity className="h-4 w-4 text-zinc-500" />
+                              View Activity
                             </DropdownMenuItem>
-                          )}
-                          </DropdownMenuGroup>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleResetUsage(org.id)} disabled={isPending} className="cursor-pointer text-red-600 gap-2">
+                              <RotateCcw className="h-4 w-4 text-red-500" />
+                              Reset Usage
+                            </DropdownMenuItem>
+                            {org.deletedAt ? (
+                              <DropdownMenuItem onClick={() => handleRestoreClick(org)} disabled={isPending} className="cursor-pointer text-green-600 gap-2">
+                                <Undo2 className="h-4 w-4 text-green-500" />
+                                Restore Org
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem onClick={() => handleDeleteClick(org)} disabled={isPending} className="cursor-pointer text-red-600 gap-2">
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                                Suspend / Delete Org
+                              </DropdownMenuItem>
+                            )}
+                            </DropdownMenuGroup>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

@@ -115,6 +115,10 @@ export default async function SuperAdminPage({
             orderBy: { createdAt: 'desc' },
             take: 1,
             select: { createdAt: true }
+          },
+          memberships: {
+            where: { role: 'ADMIN' },
+            include: { user: { select: { name: true, email: true, phone: true } } }
           }
         },
       }),
@@ -190,13 +194,20 @@ export default async function SuperAdminPage({
       const usagePercentage = limit > 0 ? (totalUsage / limit) * 100 : 0;
       const lastActive = org.transactions[0]?.createdAt || org.createdAt;
       
+      const admins = org.memberships?.map(m => m.user) || [];
+
       return {
         ...org,
         totalUsage,
         limit,
         usagePercentage,
         lastActive,
-        hasTransactions: org.transactions.length > 0
+        hasTransactions: org.transactions.length > 0,
+        admins: admins.map(a => ({
+          name: a.name || null,
+          email: a.email || null,
+          phone: a.phone || null
+        })),
       };
     });
 
