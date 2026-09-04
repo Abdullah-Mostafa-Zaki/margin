@@ -182,7 +182,7 @@ async function extractTransactionFromText(
     const groq = new Groq({ apiKey });
 
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: buildSystemPrompt(currentDate, yesterdayDate) },
@@ -469,7 +469,7 @@ export async function parseReceiptFromImage(imageUrl: string): Promise<ParsedRec
     let text = "";
     try {
       const completion = await groq.chat.completions.create({
-        model: "meta-llama/llama-4-scout-17b-16e-instruct",
+        model: "qwen/qwen3.6-27b",
         response_format: { type: "json_object" },
         messages: messages as any,
       });
@@ -477,7 +477,7 @@ export async function parseReceiptFromImage(imageUrl: string): Promise<ParsedRec
     } catch (err: any) {
       console.warn("🟡 [IMAGE] Groq JSON mode failed, retrying without response_format:", err.message);
       const completion = await groq.chat.completions.create({
-        model: "meta-llama/llama-4-scout-17b-16e-instruct",
+        model: "qwen/qwen3.6-27b",
         messages: messages as any,
       });
       text = completion.choices[0]?.message?.content ?? "";

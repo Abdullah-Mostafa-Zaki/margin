@@ -111,7 +111,7 @@ If no transactions are found, return { "transactions": [] }. Never return a sing
         let text = "";
         try {
           const completion = await groq.chat.completions.create({
-            model: "meta-llama/llama-4-scout-17b-16e-instruct",
+            model: "qwen/qwen3.6-27b",
             response_format: { type: "json_object" },
             messages: messages as any,
           });
@@ -119,7 +119,7 @@ If no transactions are found, return { "transactions": [] }. Never return a sing
         } catch (err: any) {
           console.warn("🟡 [IMAGE] Groq JSON mode failed, retrying without response_format:", err.message);
           const completion = await groq.chat.completions.create({
-            model: "meta-llama/llama-4-scout-17b-16e-instruct",
+            model: "qwen/qwen3.6-27b",
             messages: messages as any,
           });
           text = completion.choices[0]?.message?.content ?? "";

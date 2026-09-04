@@ -196,7 +196,7 @@ async function detectStructure(
   let responseText = "";
   try {
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
       response_format: { type: "json_object" },
       messages: [{ role: "user", content: prompt }],
     });
@@ -208,7 +208,7 @@ async function detectStructure(
     );
     try {
       const completion = await groq.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
+        model: "openai/gpt-oss-120b",
         messages: [{ role: "user", content: prompt }],
       });
       responseText = completion.choices[0]?.message?.content ?? "";
@@ -619,7 +619,7 @@ ${tableStr}`;
 
   try {
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
       response_format: { type: "json_object" },
       max_tokens: 8192,
       messages: [{ role: "user", content: prompt }],
@@ -631,7 +631,7 @@ ${tableStr}`;
     console.warn(`🔴 [CSV Direct] Chunk ${chunkIndex} Groq JSON mode failed, retrying without response_format:`, err.message);
     try {
       const completion = await groq.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
+        model: "openai/gpt-oss-120b",
         max_tokens: 8192,
         messages: [{ role: "user", content: prompt }],
       });
