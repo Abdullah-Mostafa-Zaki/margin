@@ -189,13 +189,17 @@ async function extractTransactionFromText(
         { role: "user", content: transcript },
       ],
       temperature: 0.1,
-      max_tokens: 256,
+      max_tokens: 1024,
+      reasoning_effort: "low",
     });
 
     const raw = completion.choices[0]?.message?.content ?? "";
     if (!raw) {
       return { success: false, error: "Groq returned an empty response. Please try again." };
     }
+
+    // Temporary log to inspect raw gpt-oss-120b output
+    console.log("🟡 [extractTransactionFromText] Raw LLM output:", raw);
 
     const parsed: ParsedTransaction = JSON.parse(raw);
     
@@ -273,7 +277,7 @@ export async function parseTextTransaction(text: string): Promise<ActionResult> 
       };
     }
 
-    console.log("🧠 [TEXT] Routing to Groq Llama-3.3-70B:", text.slice(0, 80));
+    console.log("🧠 [TEXT] Routing to openai/gpt-oss-120b:", text.slice(0, 80));
 
     const result = await extractTransactionFromText(text.trim());
 
