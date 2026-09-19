@@ -72,15 +72,36 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async signIn({ user }) {
-      // Block soft-deleted users from signing in via any provider (Google, Email, etc.)
-      if (user?.id) {
-        const dbUser = await prisma.user.findFirst({
-          where: { id: user.id, deletedAt: null },
-          select: { id: true },
-        });
-        if (!dbUser) return false;
+      try {
+        let dbUser = null;
+
+        if (user?.email) {
+          dbUser = await prisma.user.findFirst({
+            where: {
+              email: {
+                equals: user.email.trim(),
+                mode: "insensitive",
+              },
+            },
+            select: { deletedAt: true },
+          });
+        } else if (user?.id) {
+          dbUser = await prisma.user.findFirst({
+            where: { id: user.id },
+            select: { deletedAt: true },
+          });
+        }
+
+        // Block ONLY if a matching user exists AND is soft-deleted
+        if (dbUser && dbUser.deletedAt !== null) {
+          return false;
+        }
+
+        return true;
+      } catch (error: any) {
+        console.error("Error in signIn callback:", error.message);
+        return true; // Fail open on DB error
       }
-      return true;
     },
     async session({ session, token }) {
       if (session.user && token.sub) {
